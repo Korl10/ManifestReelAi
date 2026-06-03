@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Calendar, Download, Clock, ArrowLeft, Check } from 'lucide-react';
+import { Calendar, Download, Clock, ArrowLeft, Check, Loader2, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 const PLATFORMS = [
@@ -20,22 +20,32 @@ export default function SchedulePage() {
   const [time, setTime] = useState('');
   const [scheduling, setScheduling] = useState(false);
   const [scheduled, setScheduled] = useState(false);
+  const [error, setError] = useState('');
 
   const handleSchedule = async () => {
-    if (!date || !time) { toast.error('Please select date and time'); return; }
+    if (!date || !time) { toast.error('Please select both date and time'); return; }
     setScheduling(true);
+    setError('');
     try {
       const scheduledAt = new Date(`${date}T${time}`);
+      if (isNaN(scheduledAt.getTime())) { toast.error('Invalid date/time'); return; }
+      if (scheduledAt <= new Date()) { toast.error('Scheduled time must be in the future'); return; }
+
       const res = await fetch('/api/social/schedule', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ reelId, platform, scheduledAt: scheduledAt.toISOString() }),
       });
-      if (res.ok) {
-        setScheduled(true);
-        toast.success('Reel scheduled! Download and post at the scheduled time.');
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data?.error ?? 'Scheduling failed');
       }
-    } catch { toast.error('Scheduling failed'); }
+      setScheduled(true);
+      toast.success('Reel scheduled! Download and post at the scheduled time.');
+    } catch (err: any) {
+      setError(err?.message ?? 'Scheduling failed');
+      toast.error(err?.message ?? 'Scheduling failed');
+    }
     finally { setScheduling(false); }
   };
 
@@ -69,6 +79,14 @@ export default function SchedulePage() {
         </motion.div>
       ) : (
         <div className="space-y-6">
+          {/* Error */}
+          {error && (
+            <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center gap-3">
+              <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+              <p className="text-xs text-red-300">{error}</p>
+            </div>
+          )}
+
           {/* Platform select */}
           <div>
             <label className="text-xs text-white/40 mb-3 block">Platform</label>
@@ -103,13 +121,14 @@ export default function SchedulePage() {
           <div className="p-4 rounded-lg bg-[#D4AF37]/5 border border-[#D4AF37]/10">
             <p className="text-xs text-[#D4AF37]/80 leading-relaxed">
               <Clock className="w-3.5 h-3.5 inline mr-1.5" />
-              Social accounts are not connected yet. We'll set a reminder and you can download the reel to post manually at the scheduled time.
+              Social accounts are not connected yet. We&apos;ll set a reminder and you can download the reel to post manually at the scheduled time.
             </p>
           </div>
 
           <div className="flex gap-3">
             <button onClick={handleSchedule} disabled={scheduling} className="flex-1 py-3 rounded-lg gold-gradient text-black font-bold text-sm flex items-center justify-center gap-2 hover:opacity-90 transition-all disabled:opacity-50">
-              <Calendar className="w-4 h-4" /> Set Schedule
+              {scheduling ? <Loader2 className="w-4 h-4 animate-spin" /> : <Calendar className="w-4 h-4" />}
+              {scheduling ? 'Scheduling...' : 'Set Schedule'}
             </button>
             <button onClick={() => toast.success('Download started (demo mode)')} className="flex-1 py-3 rounded-lg bg-white/5 border border-white/10 text-white font-medium text-sm flex items-center justify-center gap-2 hover:bg-white/10 transition-all">
               <Download className="w-4 h-4" /> Just Download

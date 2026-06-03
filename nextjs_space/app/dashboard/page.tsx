@@ -3,9 +3,10 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { motion } from 'framer-motion';
-import { Sparkles, Wand2, Loader2, Clock, Zap } from 'lucide-react';
+import { Sparkles, Loader2, Clock, Zap, Film, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
+import { HydrationDate } from '@/components/hydration-date';
 
 const PLATFORMS = ['TikTok', 'Instagram Reels', 'YouTube Shorts'];
 const STYLES = ['Spiritual', 'Motivational', 'Wealth', 'Luxury', 'Meditation', 'Abundance', 'Law of Attraction'];
@@ -32,11 +33,33 @@ export default function DashboardPage() {
   const [generating, setGenerating] = useState(false);
   const [reels, setReels] = useState<any[]>([]);
   const [quota, setQuota] = useState<any>(null);
+  const [loadingReels, setLoadingReels] = useState(true);
+  const [error, setError] = useState('');
+
+  // Show upgrade toast if redirected from checkout
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const urlParams = new URLSearchParams(window.location.search);
+    const upgraded = urlParams.get('upgraded');
+    if (upgraded) {
+      toast.success(`Successfully upgraded to ${upgraded.charAt(0).toUpperCase() + upgraded.slice(1)}! 🎉`);
+      router.replace('/dashboard', { scroll: false });
+    }
+  }, [router]);
 
   useEffect(() => {
     if (!session) return;
-    fetch('/api/reels').then(r => r.json()).then(d => setReels(Array.isArray(d) ? d : [])).catch(() => {});
-    fetch('/api/payments/subscription').then(r => r.json()).then(d => setQuota(d?.quota ?? null)).catch(() => {});
+    setError('');
+    Promise.all([
+      fetch('/api/reels').then(r => { if (!r.ok) throw new Error('Failed to load reels'); return r.json(); }),
+      fetch('/api/payments/subscription').then(r => { if (!r.ok) throw new Error('Failed to load subscription'); return r.json(); }),
+    ])
+      .then(([reelsData, subData]) => {
+        setReels(Array.isArray(reelsData) ? reelsData : []);
+        setQuota(subData?.quota ?? null);
+      })
+      .catch((err) => { setError(err?.message ?? 'Failed to load data'); })
+      .finally(() => setLoadingReels(false));
   }, [session]);
 
   const handleGenerate = async () => {
@@ -46,7 +69,7 @@ export default function DashboardPage() {
       const res = await fetch('/api/reels/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: prompt.trim(), platform: platform.toLowerCase().replace(' ', '-'), style: style.toLowerCase(), voice: voice.toLowerCase(), mood: mood.toLowerCase() }),
+        body: JSON.stringify({ prompt: prompt.trim(), platform: platform.toLowerCase().replace(/\s+/g, '-'), style: style.toLowerCase(), voice: voice.toLowerCase(), mood: mood.toLowerCase() }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -55,7 +78,7 @@ export default function DashboardPage() {
       }
       router.push(`/dashboard/generate/${data?.jobId ?? ''}`);
     } catch {
-      toast.error('Failed to start generation');
+      toast.error('Failed to start generation. Please try again.');
     } finally {
       setGenerating(false);
     }
@@ -88,6 +111,15 @@ export default function DashboardPage() {
         <p className="text-sm text-white/40 mt-1">Type your intention and let AI do the rest.</p>
       </div>
 
+      {/* Error state */}
+      {error && (
+        <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center gap-3">
+          <AlertCircle className="w-5 h-5 text-red-400 shrink-0" />
+          <p className="text-sm text-red-300">{error}</p>
+          <button onClick={() => window.location.reload()} className="ml-auto text-xs text-red-400 hover:text-red-300 underline">Retry</button>
+        </div>
+      )}
+
       {/* Usage */}
       {quota && (
         <div className="flex items-center gap-3 p-3 rounded-lg bg-white/[0.02] border border-white/5">
@@ -96,6 +128,9 @@ export default function DashboardPage() {
             <span className="text-white font-semibold">{quota?.reelsUsed ?? 0}</span> / {quota?.reelsCap ?? 0} reels used
             <span className="text-white/30 ml-2">({(quota?.tier ?? 'free').charAt(0).toUpperCase() + (quota?.tier ?? 'free').slice(1)} plan)</span>
           </span>
+          {!quota?.allowed && (
+            <Link href="/dashboard/settings" className="ml-auto text-xs text-[#D4AF37] hover:underline">Upgrade →</Link>
+          )}
         </div>
       )}
 
@@ -130,9 +165,18 @@ export default function DashboardPage() {
       </motion.div>
 
       {/* Recent reels */}
-      {(reels?.length ?? 0) > 0 && (
-        <div>
-          <h2 className="font-display text-lg font-semibold mb-4">Recent Reels</h2>
+      <div>
+        <h2 className="font-display text-lg font-semibold mb-4">Recent Reels</h2>
+        {loadingReels ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-5 h-5 text-[#D4AF37] animate-spin" />
+          </div>
+        ) : (reels?.length ?? 0) === 0 ? (
+          <div className="text-center py-12 rounded-xl bg-white/[0.01] border border-white/5">
+            <Film className="w-10 h-10 text-white/10 mx-auto mb-3" />
+            <p className="text-white/30 text-sm">No reels yet. Create your first one above! ✨</p>
+          </div>
+        ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {reels.slice(0, 6).map((reel: any) => (
               <Link key={reel?.id ?? ''} href={`/dashboard/reel/${reel?.id ?? ''}`}>
@@ -148,19 +192,19 @@ export default function DashboardPage() {
                   </div>
                   <div className="flex items-center gap-2 text-xs text-white/30">
                     <Clock className="w-3 h-3" />
-                    {new Date(reel?.createdAt ?? Date.now()).toLocaleDateString()}
+                    <HydrationDate date={reel?.createdAt} fallback="—" />
                   </div>
                 </motion.div>
               </Link>
             ))}
           </div>
-          {(reels?.length ?? 0) > 6 && (
-            <div className="mt-4 text-center">
-              <Link href="/dashboard/library" className="text-sm text-[#D4AF37] hover:underline">View all reels →</Link>
-            </div>
-          )}
-        </div>
-      )}
+        )}
+        {(reels?.length ?? 0) > 6 && (
+          <div className="mt-4 text-center">
+            <Link href="/dashboard/library" className="text-sm text-[#D4AF37] hover:underline">View all reels →</Link>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

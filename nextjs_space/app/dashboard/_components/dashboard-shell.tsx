@@ -1,11 +1,10 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
-import { Sparkles, Home, Library, Settings, Shield, LogOut, Menu, X, ChevronRight } from 'lucide-react';
+import { Sparkles, Home, Library, Settings, Shield, LogOut, Menu, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useRouter } from 'next/navigation';
 
 const NAV_ITEMS = [
   { href: '/dashboard', label: 'Create', icon: Home },
@@ -14,13 +13,19 @@ const NAV_ITEMS = [
 ];
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
-  const { data: session } = useSession() || {};
+  const { data: session, status } = useSession() || {};
   const pathname = usePathname() ?? '';
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const isAdmin = (session?.user as any)?.role === 'admin';
 
-  if (!session) {
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.replace('/login');
+    }
+  }, [status, router]);
+
+  if (status === 'loading' || !session) {
     return (
       <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
         <div className="text-center">

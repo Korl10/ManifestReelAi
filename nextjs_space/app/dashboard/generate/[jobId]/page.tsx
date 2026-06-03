@@ -1,8 +1,9 @@
 'use client';
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Check, Loader2, AlertCircle, Sparkles } from 'lucide-react';
+import { Check, Loader2, AlertCircle, Sparkles, ArrowLeft, RotateCcw } from 'lucide-react';
+import Link from 'next/link';
 
 const STEPS = [
   { key: 'script', label: 'Writing Script', emoji: '✍️' },
@@ -19,21 +20,28 @@ export default function GenerationProgressPage() {
   const jobId = params?.jobId as string;
   const [job, setJob] = useState<any>(null);
   const [error, setError] = useState('');
+  const [pollCount, setPollCount] = useState(0);
+  const hasRedirected = useRef(false);
 
   const pollJob = useCallback(async () => {
     try {
       const res = await fetch(`/api/jobs/${jobId}`);
-      if (!res.ok) { setError('Failed to load job status'); return; }
+      if (!res.ok) {
+        if (res.status === 404) { setError('Generation job not found.'); return; }
+        throw new Error('Failed to load job status');
+      }
       const data = await res.json();
       setJob(data);
-      if (data?.status === 'complete' && data?.reelId) {
-        setTimeout(() => router.replace(`/dashboard/reel/${data.reelId}`), 1000);
+      setPollCount(p => p + 1);
+      if (data?.status === 'complete' && data?.reelId && !hasRedirected.current) {
+        hasRedirected.current = true;
+        setTimeout(() => router.replace(`/dashboard/reel/${data.reelId}`), 1200);
       }
       if (data?.status === 'failed') {
-        setError(data?.errorMessage ?? 'Generation failed');
+        setError(data?.errorMessage ?? 'Generation failed. Please try again.');
       }
     } catch {
-      setError('Connection lost');
+      setError('Connection lost. Please check your network.');
     }
   }, [jobId, router]);
 
@@ -57,37 +65,63 @@ export default function GenerationProgressPage() {
   return (
     <div className="max-w-lg mx-auto py-8">
       <div className="text-center mb-10">
-        <motion.div animate={{ rotate: [0, 360] }} transition={{ duration: 3, repeat: Infinity, ease: 'linear' }} className="inline-block mb-4">
-          <Sparkles className="w-10 h-10 text-[#D4AF37]" />
-        </motion.div>
-        <h1 className="font-display text-2xl font-bold tracking-tight mb-2">Creating Your Reel</h1>
-        <p className="text-sm text-white/40">This usually takes about 30 seconds</p>
+        {job?.status === 'complete' ? (
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-500/10 mb-4">
+            <Check className="w-8 h-8 text-emerald-400" />
+          </div>
+        ) : error ? (
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-500/10 mb-4">
+            <AlertCircle className="w-8 h-8 text-red-400" />
+          </div>
+        ) : (
+          <motion.div animate={{ rotate: [0, 360] }} transition={{ duration: 3, repeat: Infinity, ease: 'linear' }} className="inline-block mb-4">
+            <Sparkles className="w-10 h-10 text-[#D4AF37]" />
+          </motion.div>
+        )}
+        <h1 className="font-display text-2xl font-bold tracking-tight mb-2">
+          {job?.status === 'complete' ? 'Reel Ready! ✨' : error ? 'Generation Failed' : 'Creating Your Reel'}
+        </h1>
+        <p className="text-sm text-white/40">
+          {job?.status === 'complete' ? 'Redirecting to preview...' : error ? '' : 'This usually takes about 30 seconds'}
+        </p>
       </div>
 
       {error && (
-        <div className="mb-6 p-4 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center gap-3">
-          <AlertCircle className="w-5 h-5 text-red-400 shrink-0" />
-          <p className="text-sm text-red-300">{error}</p>
+        <div className="mb-6 p-4 rounded-lg bg-red-500/10 border border-red-500/20">
+          <div className="flex items-center gap-3 mb-3">
+            <AlertCircle className="w-5 h-5 text-red-400 shrink-0" />
+            <p className="text-sm text-red-300">{error}</p>
+          </div>
+          <div className="flex gap-2">
+            <Link href="/dashboard" className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white/5 text-xs text-white/50 hover:bg-white/10">
+              <ArrowLeft className="w-3 h-3" /> Back to Dashboard
+            </Link>
+            <button onClick={() => { setError(''); setPollCount(0); pollJob(); }} className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white/5 text-xs text-white/50 hover:bg-white/10">
+              <RotateCcw className="w-3 h-3" /> Retry
+            </button>
+          </div>
         </div>
       )}
 
       {/* Progress bar */}
-      <div className="mb-8">
-        <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
-          <motion.div
-            className="h-full rounded-full gold-gradient"
-            initial={{ width: '0%' }}
-            animate={{ width: `${progress}%` }}
-            transition={{ duration: 0.5 }}
-          />
+      {!error && (
+        <div className="mb-8">
+          <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
+            <motion.div
+              className="h-full rounded-full gold-gradient"
+              initial={{ width: '0%' }}
+              animate={{ width: `${progress}%` }}
+              transition={{ duration: 0.5 }}
+            />
+          </div>
+          <p className="text-xs text-white/30 mt-2 text-right">{progress}%</p>
         </div>
-        <p className="text-xs text-white/30 mt-2 text-right">{progress}%</p>
-      </div>
+      )}
 
       {/* Steps */}
       <div className="space-y-3">
         {STEPS.map((step: any, i: number) => {
-          const status = getStepStatus(i);
+          const status = error && !job?.status ? 'pending' : getStepStatus(i);
           return (
             <motion.div
               key={step.key}

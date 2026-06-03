@@ -1,17 +1,30 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Users, Film, DollarSign, TrendingUp, Loader2 } from 'lucide-react';
+import { Users, Film, DollarSign, TrendingUp, Loader2, AlertCircle } from 'lucide-react';
 
 export default function AdminOverviewPage() {
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    fetch('/api/admin/stats').then(r => r.json()).then(d => setStats(d)).catch(() => {}).finally(() => setLoading(false));
+    fetch('/api/admin/stats')
+      .then(r => { if (!r.ok) throw new Error('Failed to load stats'); return r.json(); })
+      .then(d => setStats(d))
+      .catch(err => setError(err?.message ?? 'Failed to load'))
+      .finally(() => setLoading(false));
   }, []);
 
   if (loading) return <div className="flex items-center justify-center py-20"><Loader2 className="w-6 h-6 text-[#D4AF37] animate-spin" /></div>;
+
+  if (error) return (
+    <div className="flex flex-col items-center justify-center py-20 gap-4">
+      <AlertCircle className="w-10 h-10 text-red-400/50" />
+      <p className="text-white/40 text-sm">{error}</p>
+      <button onClick={() => window.location.reload()} className="px-4 py-2 rounded-lg bg-white/5 text-sm text-white/50 hover:bg-white/10">Retry</button>
+    </div>
+  );
 
   const cards = [
     { label: 'Total Users', value: stats?.totalUsers ?? 0, icon: Users, color: '#D4AF37' },
@@ -38,26 +51,34 @@ export default function AdminOverviewPage() {
       {/* Reels by status */}
       <div className="rounded-xl bg-white/[0.02] border border-white/5 p-5">
         <h2 className="text-sm font-semibold mb-3">Reels by Status</h2>
-        <div className="flex flex-wrap gap-3">
-          {(stats?.reelsByStatus ?? []).map((r: any) => (
-            <div key={r?.status ?? ''} className="px-3 py-2 rounded-lg bg-white/[0.02] border border-white/5">
-              <p className="text-xs text-white/40 capitalize">{r?.status ?? ''}</p>
-              <p className="text-lg font-bold font-mono">{r?.count ?? 0}</p>
-            </div>
-          ))}
-        </div>
+        {(stats?.reelsByStatus ?? []).length === 0 ? (
+          <p className="text-sm text-white/30">No reels created yet.</p>
+        ) : (
+          <div className="flex flex-wrap gap-3">
+            {(stats?.reelsByStatus ?? []).map((r: any) => (
+              <div key={r?.status ?? ''} className="px-3 py-2 rounded-lg bg-white/[0.02] border border-white/5">
+                <p className="text-xs text-white/40 capitalize">{r?.status ?? ''}</p>
+                <p className="text-lg font-bold font-mono">{r?.count ?? 0}</p>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="rounded-xl bg-white/[0.02] border border-white/5 p-5">
         <h2 className="text-sm font-semibold mb-3">Subscriptions by Tier</h2>
-        <div className="flex flex-wrap gap-3">
-          {(stats?.reelsByTier ?? []).map((r: any) => (
-            <div key={r?.tier ?? ''} className="px-3 py-2 rounded-lg bg-white/[0.02] border border-white/5">
-              <p className="text-xs text-white/40 capitalize">{r?.tier ?? ''}</p>
-              <p className="text-lg font-bold font-mono">{r?.count ?? 0}</p>
-            </div>
-          ))}
-        </div>
+        {(stats?.reelsByTier ?? []).length === 0 ? (
+          <p className="text-sm text-white/30">No subscriptions yet.</p>
+        ) : (
+          <div className="flex flex-wrap gap-3">
+            {(stats?.reelsByTier ?? []).map((r: any) => (
+              <div key={r?.tier ?? ''} className="px-3 py-2 rounded-lg bg-white/[0.02] border border-white/5">
+                <p className="text-xs text-white/40 capitalize">{r?.tier ?? ''}</p>
+                <p className="text-lg font-bold font-mono">{r?.count ?? 0}</p>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

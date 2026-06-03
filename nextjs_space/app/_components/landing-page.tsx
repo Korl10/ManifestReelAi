@@ -18,8 +18,8 @@ const FEATURES = [
 
 const TIERS = [
   { name: 'Free', price: '$0', period: 'forever', features: ['1 reel total', 'All styles & moods', 'Watermarked exports', 'Basic script generation'], cta: 'Get Started', tier: 'free', popular: false },
-  { name: 'Pro', price: '$29', period: '/month', features: ['30 reels/month', 'No watermark', 'HD exports', 'All voice presets', 'Priority generation', 'Caption editing'], cta: 'Upgrade to Pro', tier: 'pro', popular: true },
-  { name: 'Premium', price: '$79', period: '/month', features: ['60 reels/month', 'Everything in Pro', '4K exports', 'AI video backgrounds', 'Custom branding', 'Priority support', 'Schedule & auto-post'], cta: 'Go Premium', tier: 'premium', popular: false },
+  { name: 'Pro', price: '$19.99', period: '/month', features: ['30 reels/month', 'No watermark', 'HD exports', 'All voice presets', 'Priority generation', 'Caption editing'], cta: 'Upgrade to Pro', tier: 'pro', popular: true },
+  { name: 'Premium', price: '$49.99', period: '/month', features: ['60 reels/month', 'Everything in Pro', '4K exports', 'AI video backgrounds', 'Custom branding', 'Priority support', 'Schedule & auto-post'], cta: 'Go Premium', tier: 'premium', popular: false },
 ];
 
 const TESTIMONIALS = [

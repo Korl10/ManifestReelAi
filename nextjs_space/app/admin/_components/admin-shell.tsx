@@ -3,7 +3,7 @@ import React from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { usePathname, useRouter } from 'next/navigation';
-import { Shield, BarChart3, Film, Users, TrendingUp, ArrowLeft } from 'lucide-react';
+import { Shield, BarChart3, Film, Users, TrendingUp, ArrowLeft, Loader2 } from 'lucide-react';
 
 const TABS = [
   { href: '/admin', label: 'Overview', icon: BarChart3 },
@@ -13,13 +13,20 @@ const TABS = [
 ];
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
-  const { data: session } = useSession() || {};
+  const { data: session, status } = useSession() || {};
   const pathname = usePathname() ?? '';
   const router = useRouter();
   const isAdmin = (session?.user as any)?.role === 'admin';
 
-  if (!session) {
-    return <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center"><p className="text-white/40">Loading...</p></div>;
+  if (status === 'loading' || !session) {
+    return (
+      <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 text-[#D4AF37] mx-auto mb-4 animate-spin" />
+          <p className="text-white/50 text-sm">Loading admin panel...</p>
+        </div>
+      </div>
+    );
   }
 
   if (!isAdmin) {
@@ -27,8 +34,9 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
         <div className="text-center">
           <Shield className="w-10 h-10 text-red-400 mx-auto mb-3" />
-          <p className="text-white/50 mb-4">Admin access required</p>
-          <button onClick={() => router.push('/dashboard')} className="px-4 py-2 rounded-lg bg-white/5 text-sm text-white/60 hover:bg-white/10">Go to Dashboard</button>
+          <h2 className="text-lg font-semibold mb-2">Access Denied</h2>
+          <p className="text-white/50 text-sm mb-4">You need admin privileges to access this area.</p>
+          <button onClick={() => router.push('/dashboard')} className="px-4 py-2 rounded-lg bg-white/5 text-sm text-white/60 hover:bg-white/10 transition-colors">Go to Dashboard</button>
         </div>
       </div>
     );
@@ -39,7 +47,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       <header className="border-b border-white/5 bg-[#0A0A0A]/90 backdrop-blur-xl sticky top-0 z-50">
         <div className="max-w-[1200px] mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Link href="/dashboard" className="p-1.5 rounded-lg hover:bg-white/5"><ArrowLeft className="w-4 h-4 text-white/40" /></Link>
+            <Link href="/dashboard" className="p-1.5 rounded-lg hover:bg-white/5 transition-colors"><ArrowLeft className="w-4 h-4 text-white/40" /></Link>
             <Shield className="w-5 h-5 text-[#D4AF37]" />
             <span className="font-display text-base font-bold">Admin</span>
           </div>

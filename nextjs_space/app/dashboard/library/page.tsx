@@ -2,9 +2,10 @@
 import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { motion } from 'framer-motion';
-import { Library, Clock, Trash2, Download, Eye, Loader2, Film, Search } from 'lucide-react';
+import { Library, Clock, Trash2, Download, Eye, Loader2, Film, Search, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
+import { HydrationDate } from '@/components/hydration-date';
 
 const STATUS_COLORS: Record<string, string> = {
   draft: 'bg-white/10 text-white/60',
@@ -19,21 +20,27 @@ export default function LibraryPage() {
   const { data: session } = useSession() || {};
   const [reels, setReels] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all');
 
   useEffect(() => {
     if (!session) return;
-    fetch('/api/reels').then(r => r.json()).then(d => setReels(Array.isArray(d) ? d : [])).catch(() => {}).finally(() => setLoading(false));
+    fetch('/api/reels')
+      .then(r => { if (!r.ok) throw new Error('Failed to load reels'); return r.json(); })
+      .then(d => setReels(Array.isArray(d) ? d : []))
+      .catch((err) => setError(err?.message ?? 'Failed to load reels'))
+      .finally(() => setLoading(false));
   }, [session]);
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Delete this reel?')) return;
+    if (!confirm('Delete this reel? This cannot be undone.')) return;
     try {
-      await fetch(`/api/reels/${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/reels/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Delete failed');
       setReels(prev => (prev ?? []).filter((r: any) => r?.id !== id));
       toast.success('Reel deleted');
-    } catch { toast.error('Delete failed'); }
+    } catch { toast.error('Failed to delete reel'); }
   };
 
   const filtered = (reels ?? []).filter((r: any) => {
@@ -50,6 +57,15 @@ export default function LibraryPage() {
         </h1>
         <p className="text-sm text-white/40 mt-1">All your manifestation reels in one place.</p>
       </div>
+
+      {/* Error state */}
+      {error && (
+        <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center gap-3">
+          <AlertCircle className="w-5 h-5 text-red-400 shrink-0" />
+          <p className="text-sm text-red-300">{error}</p>
+          <button onClick={() => window.location.reload()} className="ml-auto text-xs text-red-400 hover:text-red-300 underline">Retry</button>
+        </div>
+      )}
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
@@ -71,8 +87,15 @@ export default function LibraryPage() {
       ) : (filtered?.length ?? 0) === 0 ? (
         <div className="text-center py-20">
           <Film className="w-10 h-10 text-white/10 mx-auto mb-3" />
-          <p className="text-white/30 text-sm">No reels found. Create your first one!</p>
-          <Link href="/dashboard" className="inline-block mt-4 px-4 py-2 rounded-lg gold-gradient text-black text-sm font-semibold">Create Reel</Link>
+          <p className="text-white/30 text-sm">
+            {search || filter !== 'all' ? 'No reels match your filters.' : 'No reels yet. Create your first one!'}
+          </p>
+          {!search && filter === 'all' && (
+            <Link href="/dashboard" className="inline-block mt-4 px-4 py-2 rounded-lg gold-gradient text-black text-sm font-semibold">Create Reel</Link>
+          )}
+          {(search || filter !== 'all') && (
+            <button onClick={() => { setSearch(''); setFilter('all'); }} className="inline-block mt-4 px-4 py-2 rounded-lg bg-white/5 text-sm text-white/50 hover:bg-white/10">Clear Filters</button>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -97,7 +120,7 @@ export default function LibraryPage() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1 text-xs text-white/20">
                     <Clock className="w-3 h-3" />
-                    {new Date(reel?.createdAt ?? Date.now()).toLocaleDateString()}
+                    <HydrationDate date={reel?.createdAt} fallback="—" />
                   </div>
                   <div className="flex gap-1">
                     <Link href={`/dashboard/reel/${reel?.id ?? ''}`} className="p-1.5 rounded hover:bg-white/5 transition-colors"><Eye className="w-3.5 h-3.5 text-white/40" /></Link>

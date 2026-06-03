@@ -4,7 +4,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
 
-const TIER_PRICES: Record<string, number> = { free: 0, pro: 29, premium: 79 };
+const TIER_PRICES: Record<string, number> = { free: 0, pro: 19.99, premium: 49.99 };
 
 export async function GET() {
   const session = await getServerSession(authOptions);
