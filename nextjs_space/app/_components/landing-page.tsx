@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Sparkles, Wand2, Music, Video, Type, Zap, Crown, Star, ArrowRight, Check, Menu, X, Heart, MessageCircle, Share2, Bookmark, ThumbsUp, ThumbsDown, Plus, MoreHorizontal, Music2 } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -184,9 +185,15 @@ const TIERS = [
 ];
 
 const TESTIMONIALS = [
-  { name: 'Sarah M.', role: 'Manifestation Coach', text: 'ManifestReel completely transformed my content game. I went from struggling to post to having a week of reels done in 20 minutes.', stars: 5 },
-  { name: 'David K.', role: 'Spiritual Creator', text: 'The quality of the scripts is incredible. My followers think I hired a professional team. The 528Hz music tracks are chef\'s kiss.', stars: 5 },
-  { name: 'Luna R.', role: 'LOA Influencer', text: 'I\'ve tried every reel tool out there. This is the only one that actually understands the manifestation niche. Game changer.', stars: 5 },
+  { name: 'Sarah M.', role: 'Manifestation Coach', avatar: '/testimonials/sarah.jpg', text: 'ManifestReel completely transformed my content game. I went from struggling to post to having a week of reels done in 20 minutes. My audience has grown 3x since I started using it.', stars: 5 },
+  { name: 'David K.', role: 'Spiritual Creator', avatar: '/testimonials/david.jpg', text: 'The quality of the scripts is incredible. My followers think I hired a professional team. The 528Hz music tracks are chef\'s kiss — my reels actually feel healing.', stars: 5 },
+  { name: 'Luna R.', role: 'LOA Influencer', avatar: '/testimonials/luna.jpg', text: 'I\'ve tried every reel tool out there. This is the only one that actually understands the manifestation niche. 500K views on my first reel. Game changer.', stars: 5 },
+  { name: 'Marcus T.', role: 'Mindset Mentor', avatar: '/testimonials/marcus.jpg', text: 'As someone who coaches high-performers, my content needs to match that energy. ManifestReel delivers polished, professional reels that resonate with my audience every single time.', stars: 5 },
+  { name: 'Priya S.', role: 'Meditation Teacher', avatar: '/testimonials/priya.jpg', text: 'The combination of soothing voiceovers and frequency music is perfect for my guided meditation reels. My students love sharing them. It\'s like having a whole production studio.', stars: 5 },
+  { name: 'Aiden C.', role: 'TikTok Creator', avatar: '/testimonials/aiden.jpg', text: 'I was spending 4+ hours per reel manually. Now I create 5 in under an hour and they perform even better. The captions sync perfectly — my engagement rate doubled.', stars: 5 },
+  { name: 'Jasmine W.', role: 'Abundance Coach', avatar: '/testimonials/jasmine.jpg', text: 'My clients always ask how I make my reels so beautiful. ManifestReel gives me that luxury aesthetic without needing any design skills. The affirmation scripts are pure gold.', stars: 5 },
+  { name: 'Elena V.', role: 'Energy Healer', avatar: '/testimonials/elena.jpg', text: 'What I love most is how the AI truly captures spiritual language. Other tools feel generic, but ManifestReel creates scripts that feel authentic to the healing community.', stars: 5 },
+  { name: 'Tyler M.', role: 'YouTube Shorts Creator', avatar: '/testimonials/tyler.jpg', text: 'I repurpose every reel across TikTok, Instagram, and YouTube Shorts. ManifestReel optimizes for all three platforms automatically. My channel hit 100K subscribers thanks to consistent posting.', stars: 5 },
 ];
 
 export function LandingPage() {
@@ -397,9 +404,9 @@ export function LandingPage() {
         <div className="max-w-[1200px] mx-auto px-4">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} className="text-center mb-16">
             <h2 className="font-display text-3xl md:text-4xl font-bold tracking-tight mb-4">Loved by <span className="text-[#D4AF37]">Creators</span></h2>
-            <p className="text-white/50">See what manifestation creators are saying.</p>
+            <p className="text-white/50 max-w-xl mx-auto">Join thousands of manifestation creators who transformed their content with AI.</p>
           </motion.div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             {TESTIMONIALS.map((t: any, i: number) => (
               <motion.div
                 key={t?.name ?? i}
@@ -407,19 +414,24 @@ export function LandingPage() {
                 whileInView="visible"
                 viewport={{ once: true }}
                 variants={fadeUp}
-                transition={{ delay: i * 0.1 }}
-                className="p-6 rounded-xl bg-white/[0.02] border border-white/5"
+                transition={{ delay: (i % 3) * 0.1 }}
+                className="group p-5 rounded-xl bg-white/[0.02] border border-white/5 hover:border-[#D4AF37]/20 hover:bg-white/[0.04] transition-all duration-300"
               >
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="relative w-11 h-11 rounded-full overflow-hidden border-2 border-[#D4AF37]/30 shrink-0">
+                    <Image src={t.avatar} alt={t.name} fill className="object-cover" sizes="44px" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold truncate">{t?.name ?? ''}</p>
+                    <p className="text-xs text-[#D4AF37]/70 truncate">{t?.role ?? ''}</p>
+                  </div>
+                </div>
                 <div className="flex gap-0.5 mb-3">
                   {Array.from({ length: t?.stars ?? 5 }).map((_: any, j: number) => (
-                    <Star key={j} className="w-4 h-4 fill-[#D4AF37] text-[#D4AF37]" />
+                    <Star key={j} className="w-3.5 h-3.5 fill-[#D4AF37] text-[#D4AF37]" />
                   ))}
                 </div>
-                <p className="text-sm text-white/70 mb-4 leading-relaxed">"{t?.text ?? ''}"</p>
-                <div>
-                  <p className="text-sm font-semibold">{t?.name ?? ''}</p>
-                  <p className="text-xs text-white/40">{t?.role ?? ''}</p>
-                </div>
+                <p className="text-sm text-white/65 leading-relaxed">"{t?.text ?? ''}"</p>
               </motion.div>
             ))}
           </div>
