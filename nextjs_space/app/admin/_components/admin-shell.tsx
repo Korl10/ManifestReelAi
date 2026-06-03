@@ -18,12 +18,29 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const isAdmin = (session?.user as any)?.role === 'admin';
 
-  if (status === 'loading' || !session) {
+  React.useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.replace('/login');
+    }
+  }, [status, router]);
+
+  if (status === 'loading') {
     return (
       <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-8 h-8 text-[#D4AF37] mx-auto mb-4 animate-spin" />
           <p className="text-white/50 text-sm">Loading admin panel...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (status === 'unauthenticated' || !session) {
+    return (
+      <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 text-[#D4AF37] mx-auto mb-4 animate-spin" />
+          <p className="text-white/50 text-sm">Redirecting to sign in...</p>
         </div>
       </div>
     );
