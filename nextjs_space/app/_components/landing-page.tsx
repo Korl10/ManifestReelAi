@@ -296,6 +296,29 @@ export function LandingPage() {
                 See How It Works <ArrowRight className="w-4 h-4" />
               </a>
             </div>
+            <div className="mt-6 flex items-center justify-center gap-2">
+              <div className="flex -space-x-2">
+                {[
+                  { src: '/testimonials/sarah.jpg', alt: 'Happy creator Sarah' },
+                  { src: '/testimonials/david.jpg', alt: 'Happy creator David' },
+                  { src: '/testimonials/jasmine.jpg', alt: 'Happy creator Jasmine' },
+                  { src: '/testimonials/priya.jpg', alt: 'Happy creator Priya' },
+                  { src: '/testimonials/marcus.jpg', alt: 'Happy creator Marcus' },
+                ].map((item, i) => (
+                  <div key={i} className="relative w-8 h-8 rounded-full overflow-hidden border-2 border-[#0A0A0A] ring-1 ring-[#D4AF37]/30">
+                    <Image src={item.src} alt={item.alt} fill className="object-cover" sizes="32px" />
+                  </div>
+                ))}
+              </div>
+              <div className="flex items-center gap-1.5 ml-1">
+                <div className="flex gap-0.5">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Star key={i} className="w-3.5 h-3.5 fill-[#D4AF37] text-[#D4AF37]" />
+                  ))}
+                </div>
+                <span className="text-sm text-white/60">Rated <span className="text-white/90 font-semibold">4.9/5</span> by <span className="text-white/90 font-semibold">2,000+</span> creators</span>
+              </div>
+            </div>
           </motion.div>
 
           {/* Platform showcase reels */}
@@ -423,7 +446,7 @@ export function LandingPage() {
                   </div>
                   <div className="min-w-0">
                     <p className="text-sm font-semibold truncate">{t?.name ?? ''}</p>
-                    <p className="text-xs text-[#D4AF37]/70 truncate">{t?.role ?? ''}</p>
+                    <p className="text-xs text-[#D4AF37] truncate">{t?.role ?? ''}</p>
                   </div>
                 </div>
                 <div className="flex gap-0.5 mb-3">
@@ -464,17 +487,9 @@ export function LandingPage() {
                 <Sparkles className="w-5 h-5 text-[#D4AF37]" />
                 <span className="font-display text-lg font-bold tracking-tight">ManifestReel<span className="text-[#D4AF37]"> AI</span></span>
               </Link>
-              <p className="text-sm text-white/40 leading-relaxed max-w-xs mb-5">
+              <p className="text-sm text-white/40 leading-relaxed max-w-xs">
                 The #1 AI-powered platform for creating viral manifestation reels. Transform your spiritual content with professional scripts, voiceovers, and cinematic visuals.
               </p>
-              <div className="flex items-center gap-1.5">
-                <div className="flex gap-0.5">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <Star key={i} className="w-3.5 h-3.5 fill-[#D4AF37] text-[#D4AF37]" />
-                  ))}
-                </div>
-                <span className="text-xs text-white/50 ml-1">Rated 4.9/5 by 2,000+ creators</span>
-              </div>
             </div>
 
             {/* Product column */}
