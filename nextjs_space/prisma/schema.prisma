@@ -1,0 +1,163 @@
+generator client {
+    provider = "prisma-client-js"
+    binaryTargets = ["native", "linux-musl-arm64-openssl-3.0.x"]
+    output = "/home/ubuntu/manifest_reel_ai/nextjs_space/node_modules/.prisma/client"
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  passwordHash  String    @map("password_hash")
+  name          String?
+  avatarUrl     String?   @map("avatar_url")
+  role          String    @default("user")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  subscription   Subscription?
+  usageCounters  UsageCounter[]
+  credits        Credit?
+  reels          Reel[]
+  generationJobs GenerationJob[]
+  socialAccounts SocialAccount[]
+
+  @@map("users")
+}
+
+model Subscription {
+  id                   String   @id @default(cuid())
+  userId               String   @unique @map("user_id")
+  tier                 String   @default("free")
+  status               String   @default("active")
+  stripeCustomerId     String?  @map("stripe_customer_id")
+  stripeSubscriptionId String?  @map("stripe_subscription_id")
+  currentPeriodStart   DateTime @default(now()) @map("current_period_start")
+  currentPeriodEnd     DateTime @default(dbgenerated("NOW() + interval '30 days'")) @map("current_period_end")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("subscriptions")
+}
+
+model UsageCounter {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  periodStart DateTime @map("period_start")
+  periodEnd   DateTime @map("period_end")
+  reelsUsed   Int      @default(0) @map("reels_used")
+  reelsCap    Int      @map("reels_cap")
+  tier        String
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, periodStart, periodEnd])
+  @@map("usage_counters")
+}
+
+model Credit {
+  id        String   @id @default(cuid())
+  userId    String   @unique @map("user_id")
+  balance   Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("credits")
+}
+
+model Reel {
+  id            String   @id @default(cuid())
+  userId        String   @map("user_id")
+  jobId         String?  @unique @map("job_id")
+  prompt        String
+  style         String
+  platform      String
+  voice         String
+  mood          String
+  title         String?
+  scriptJson    Json?    @map("script_json")
+  caption       String?
+  description   String?
+  hashtags      String[]
+  videoUrl      String?  @map("video_url")
+  audioUrl      String?  @map("audio_url")
+  thumbnailUrl  String?  @map("thumbnail_url")
+  musicUrl      String?  @map("music_url")
+  status        String   @default("draft")
+  costBreakdown Json?    @map("cost_breakdown")
+  totalCost     Float    @default(0) @map("total_cost")
+  watermarked   Boolean  @default(true)
+  scheduledAt   DateTime? @map("scheduled_at")
+  scheduledPlatform String? @map("scheduled_platform")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  generationJob  GenerationJob?
+  assets         Asset[]
+
+  @@index([userId, status])
+  @@map("reels")
+}
+
+model GenerationJob {
+  id           String    @id @default(cuid())
+  userId       String    @map("user_id")
+  reelId       String?   @unique @map("reel_id")
+  status       String    @default("queued")
+  currentStep  String?   @map("current_step")
+  progressPct  Int       @default(0) @map("progress_pct")
+  errorMessage String?   @map("error_message")
+  startedAt    DateTime? @map("started_at")
+  completedAt  DateTime? @map("completed_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  user User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reel Reel? @relation(fields: [reelId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@map("generation_jobs")
+}
+
+model SocialAccount {
+  id                    String    @id @default(cuid())
+  userId                String    @map("user_id")
+  platform              String
+  accessTokenEncrypted  String?   @map("access_token_encrypted")
+  refreshTokenEncrypted String?   @map("refresh_token_encrypted")
+  platformUserId        String?   @map("platform_user_id")
+  connectedAt           DateTime  @default(now()) @map("connected_at")
+  expiresAt             DateTime? @map("expires_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, platform])
+  @@map("social_accounts")
+}
+
+model Asset {
+  id          String   @id @default(cuid())
+  reelId      String   @map("reel_id")
+  type        String
+  url         String
+  fileSize    Int?     @map("file_size")
+  durationSec Float?   @map("duration_sec")
+  metadata    Json?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  reel Reel @relation(fields: [reelId], references: [id], onDelete: Cascade)
+
+  @@index([reelId])
+  @@map("assets")
+}

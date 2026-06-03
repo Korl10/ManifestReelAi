@@ -1,0 +1,156 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 4%;
+    --foreground: 40 20% 95%;
+    --card: 0 0% 7%;
+    --card-foreground: 40 20% 95%;
+    --popover: 0 0% 7%;
+    --popover-foreground: 40 20% 95%;
+    --primary: 43 60% 53%;
+    --primary-foreground: 0 0% 4%;
+    --secondary: 270 50% 30%;
+    --secondary-foreground: 40 20% 95%;
+    --muted: 0 0% 12%;
+    --muted-foreground: 0 0% 55%;
+    --accent: 270 60% 40%;
+    --accent-foreground: 40 20% 95%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 15%;
+    --input: 0 0% 15%;
+    --ring: 43 60% 53%;
+    --radius: 0.625rem;
+    --radius-sm: calc(0.625rem - 4px);
+    --radius-lg: calc(0.625rem + 4px);
+    --radius-full: 9999px;
+    --spacing-xs: 4px;
+    --spacing-sm: 8px;
+    --spacing-md: 16px;
+    --spacing-lg: 24px;
+    --spacing-xl: 32px;
+    --spacing-2xl: 48px;
+    --spacing-3xl: 64px;
+    --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.3);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.5);
+    --duration-fast: 150ms;
+    --duration-normal: 250ms;
+    --duration-slow: 350ms;
+    --chart-1: 43 60% 53%;
+    --chart-2: 270 60% 50%;
+    --chart-3: 280 65% 60%;
+    --chart-4: 160 60% 45%;
+    --chart-5: 30 80% 55%;
+  }
+
+  .dark {
+    --background: 0 0% 4%;
+    --foreground: 40 20% 95%;
+    --card: 0 0% 7%;
+    --card-foreground: 40 20% 95%;
+    --popover: 0 0% 7%;
+    --popover-foreground: 40 20% 95%;
+    --primary: 43 60% 53%;
+    --primary-foreground: 0 0% 4%;
+    --secondary: 270 50% 30%;
+    --secondary-foreground: 40 20% 95%;
+    --muted: 0 0% 12%;
+    --muted-foreground: 0 0% 55%;
+    --accent: 270 60% 40%;
+    --accent-foreground: 40 20% 95%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 15%;
+    --input: 0 0% 15%;
+    --ring: 43 60% 53%;
+    --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.3);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.5);
+    --chart-1: 43 60% 53%;
+    --chart-2: 270 60% 50%;
+    --chart-3: 280 65% 60%;
+    --chart-4: 160 60% 45%;
+    --chart-5: 30 80% 55%;
+  }
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  * {
+    border-color: hsl(var(--border));
+  }
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  ::selection {
+    background-color: hsl(var(--primary) / 0.2);
+    color: hsl(var(--primary));
+  }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background-color: transparent; }
+  ::-webkit-scrollbar-thumb { background-color: hsl(var(--border)); border-radius: 9999px; }
+  ::-webkit-scrollbar-thumb:hover { background-color: hsl(var(--muted-foreground) / 0.5); }
+  [data-hydration-error] { display: none !important; }
+}
+
+@layer utilities {
+  .scrollbar-none::-webkit-scrollbar { display: none; }
+  .scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
+
+  .gold-glow {
+    box-shadow: 0 0 20px hsl(43 60% 53% / 0.3), 0 0 40px hsl(43 60% 53% / 0.1);
+  }
+  .purple-glow {
+    box-shadow: 0 0 20px hsl(270 60% 50% / 0.3), 0 0 40px hsl(270 60% 50% / 0.1);
+  }
+  .gold-gradient {
+    background: linear-gradient(135deg, #D4AF37, #F5D76E, #D4AF37);
+  }
+  .purple-gradient {
+    background: linear-gradient(135deg, #7B2FBE, #4A1A8A);
+  }
+  .text-gold {
+    color: #D4AF37;
+  }
+  .text-gold-light {
+    color: #F5D76E;
+  }
+  .bg-dark-card {
+    background-color: rgba(255, 255, 255, 0.03);
+  }
+  .bg-dark-card-hover {
+    background-color: rgba(255, 255, 255, 0.06);
+  }
+  .hero-gradient {
+    background:
+      radial-gradient(ellipse 60% 50% at 50% -10%, hsl(270 60% 50% / 0.15), transparent),
+      radial-gradient(ellipse 40% 40% at 80% 0%, hsl(43 60% 53% / 0.08), transparent),
+      radial-gradient(ellipse 40% 30% at 20% 10%, hsl(270 80% 60% / 0.06), transparent);
+  }
+  .animate-pulse-gold {
+    animation: pulseGold 2s ease-in-out infinite;
+  }
+}
+
+@keyframes pulseGold {
+  0%, 100% { box-shadow: 0 0 10px hsl(43 60% 53% / 0.2); }
+  50% { box-shadow: 0 0 30px hsl(43 60% 53% / 0.4), 0 0 60px hsl(43 60% 53% / 0.1); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
