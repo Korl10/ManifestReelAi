@@ -1,13 +1,174 @@
 'use client';
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Sparkles, Wand2, Music, Video, Type, Zap, Crown, Star, ArrowRight, Check, Menu, X } from 'lucide-react';
+import { Sparkles, Wand2, Music, Video, Type, Zap, Crown, Star, ArrowRight, Check, Menu, X, Heart, MessageCircle, Share2, Bookmark, ThumbsUp, ThumbsDown, Plus, MoreHorizontal, Music2 } from 'lucide-react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
 const fadeUp = { hidden: { opacity: 0, y: 30 }, visible: { opacity: 1, y: 0 } };
+
+const SHOWCASE = [
+  {
+    platform: 'tiktok',
+    label: 'TikTok',
+    accent: '#69C9D0',
+    affirmation: 'Money flows to me easily & abundantly',
+    keyword: 'abundantly',
+    theme: 'Wealth Manifestation',
+    user: '@abundance.flow',
+    likes: '128.4K', comments: '2,847', saves: '14.2K', shares: '9,312',
+    music: 'Manifest 528Hz · Abundance Frequency',
+    caption: 'Say it with me ✨ money comes from expected & unexpected sources 💰 #manifestation #lawofattraction',
+    gradient: 'from-[#7B2FBE] via-[#4A1A8A] to-[#0A0A0A]',
+  },
+  {
+    platform: 'instagram',
+    label: 'Instagram Reels',
+    accent: '#E1306C',
+    affirmation: 'I am worthy of love & infinite abundance',
+    keyword: 'love',
+    theme: 'Self-Love Manifestation',
+    user: 'soul.alignment',
+    likes: '94,210', comments: '1,932', saves: '22.6K', shares: '7,104',
+    music: 'soul.alignment · Original audio',
+    caption: 'Drop a 🤍 if you receive this ✨ you are SO deserving #selflove #manifest #spiritualtok',
+    gradient: 'from-[#D4AF37]/40 via-[#7B2FBE]/40 to-[#0A0A0A]',
+  },
+  {
+    platform: 'shorts',
+    label: 'YouTube Shorts',
+    accent: '#FF0033',
+    affirmation: 'My dream life is manifesting right now',
+    keyword: 'manifesting',
+    theme: 'Dream Manifestation',
+    user: '@ManifestDaily',
+    likes: '256K', comments: '4.1K', shares: 'Share',
+    music: 'Manifest Daily · 528Hz Healing',
+    caption: 'Watch this every morning ☀️ your dream life is closer than you think',
+    gradient: 'from-[#4A1A8A] via-[#7B2FBE]/60 to-[#0A0A0A]',
+  },
+];
+
+function RailButton({ icon: Icon, count, filled, accent }: any) {
+  return (
+    <div className="flex flex-col items-center gap-0.5">
+      <Icon className="w-5 h-5 drop-shadow-md" style={filled ? { color: accent, fill: accent } : { color: '#fff' }} />
+      {count && <span className="text-[9px] font-semibold text-white drop-shadow-md">{count}</span>}
+    </div>
+  );
+}
+
+function ShowcaseReel({ reel, index }: { reel: any; index: number }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 40 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.7, delay: 0.3 + index * 0.15 }}
+      className="w-full flex flex-col items-center"
+    >
+      <div className="relative w-full aspect-[9/16] max-w-[230px] rounded-[1.5rem] overflow-hidden border border-white/10 shadow-2xl">
+        {/* Reel content background */}
+        <div className={`absolute inset-0 bg-gradient-to-br ${reel.gradient}`} />
+        <div className="absolute inset-0 opacity-30" style={{ backgroundImage: 'radial-gradient(circle at 30% 20%, rgba(212,175,55,0.25), transparent 50%)' }} />
+        {/* Affirmation content */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center px-4 pb-28 text-center">
+          <Sparkles className="w-6 h-6 mb-2.5 animate-float" style={{ color: '#D4AF37' }} />
+          <p className="font-display text-[12.5px] font-bold leading-tight drop-shadow-lg">
+            {reel.affirmation.split(reel.keyword)[0]}
+            <span style={{ color: '#D4AF37' }}>{reel.keyword}</span>
+            {reel.affirmation.split(reel.keyword)[1]}
+          </p>
+          <p className="text-[8px] uppercase tracking-wider text-white/55 mt-2">{reel.theme} · 30s</p>
+        </div>
+        {/* Legibility gradients */}
+        <div className="absolute inset-x-0 bottom-0 h-2/5 bg-gradient-to-t from-black/80 to-transparent" />
+        <div className="absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-black/50 to-transparent" />
+
+        {/* ===== TikTok chrome ===== */}
+        {reel.platform === 'tiktok' && (
+          <>
+            <div className="absolute top-2.5 left-0 right-0 flex items-center justify-center gap-3 text-[10px] font-semibold">
+              <span className="text-white/50">Following</span>
+              <span className="text-white border-b-2 border-white pb-0.5">For You</span>
+            </div>
+            <div className="absolute right-1.5 bottom-14 flex flex-col items-center gap-3.5">
+              <div className="relative mb-1">
+                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#D4AF37] to-[#7B2FBE] border-2 border-white" />
+                <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3.5 h-3.5 rounded-full bg-[#FE2C55] flex items-center justify-center"><Plus className="w-2.5 h-2.5 text-white" /></div>
+              </div>
+              <RailButton icon={Heart} count={reel.likes} filled accent="#FE2C55" />
+              <RailButton icon={MessageCircle} count={reel.comments} />
+              <RailButton icon={Bookmark} count={reel.saves} filled accent="#D4AF37" />
+              <RailButton icon={Share2} count={reel.shares} />
+              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#7B2FBE] to-[#4A1A8A] border border-white/20 flex items-center justify-center animate-spin" style={{ animationDuration: '3s' }}><Music2 className="w-3.5 h-3.5 text-white" /></div>
+            </div>
+            <div className="absolute left-3 right-11 bottom-2.5">
+              <p className="text-[11px] font-bold mb-0.5">{reel.user}</p>
+              <p className="text-[9px] text-white/85 leading-snug line-clamp-1 mb-1">{reel.caption}</p>
+              <div className="flex items-center gap-1"><Music className="w-2.5 h-2.5 text-white shrink-0" /><span className="text-[8px] text-white/80 truncate">{reel.music}</span></div>
+            </div>
+          </>
+        )}
+
+        {/* ===== Instagram Reels chrome ===== */}
+        {reel.platform === 'instagram' && (
+          <>
+            <div className="absolute top-3 left-3 right-3 flex items-center justify-between">
+              <ArrowRight className="w-4 h-4 text-white rotate-180" />
+              <span className="font-display text-sm font-bold">Reels</span>
+              <Heart className="w-4 h-4 text-white" />
+            </div>
+            <div className="absolute right-2 bottom-16 flex flex-col items-center gap-3.5">
+              <RailButton icon={Heart} count={reel.likes} filled accent="#FE2C55" />
+              <RailButton icon={MessageCircle} count={reel.comments} />
+              <RailButton icon={Share2} count={reel.shares} />
+              <RailButton icon={Bookmark} count={reel.saves} filled accent="#D4AF37" />
+              <MoreHorizontal className="w-5 h-5 text-white" />
+              <div className="w-6 h-6 rounded-md bg-gradient-to-br from-[#E1306C] to-[#7B2FBE] border border-white/30" />
+            </div>
+            <div className="absolute left-3 right-12 bottom-3">
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <div className="w-5 h-5 rounded-full bg-gradient-to-tr from-[#F58529] via-[#DD2A7B] to-[#8134AF] p-[1.5px]"><div className="w-full h-full rounded-full bg-[#0A0A0A]" /></div>
+                <p className="text-[10px] font-semibold">{reel.user}</p>
+                <span className="text-[8px] border border-white/50 rounded px-1.5 py-0.5 font-semibold">Follow</span>
+              </div>
+              <p className="text-[9px] text-white/85 leading-snug line-clamp-1 mb-1">{reel.caption}</p>
+              <div className="flex items-center gap-1"><Music className="w-2.5 h-2.5 text-white shrink-0" /><span className="text-[8px] text-white/80 truncate">{reel.music}</span></div>
+            </div>
+          </>
+        )}
+
+        {/* ===== YouTube Shorts chrome ===== */}
+        {reel.platform === 'shorts' && (
+          <>
+            <div className="absolute top-3 left-3 flex items-center gap-1.5">
+              <div className="flex items-center gap-1"><div className="w-5 h-5 rounded-md bg-[#FF0033] flex items-center justify-center"><div className="w-0 h-0 border-y-[4px] border-y-transparent border-l-[6px] border-l-white ml-0.5" /></div><span className="text-sm font-bold">Shorts</span></div>
+            </div>
+            <div className="absolute right-2 bottom-14 flex flex-col items-center gap-3.5">
+              <RailButton icon={ThumbsUp} count={reel.likes} />
+              <RailButton icon={ThumbsDown} count="Dislike" />
+              <RailButton icon={MessageCircle} count={reel.comments} />
+              <RailButton icon={Share2} count={reel.shares} />
+              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#7B2FBE] to-[#4A1A8A] border border-white/20 flex items-center justify-center animate-spin" style={{ animationDuration: '3s' }}><Music2 className="w-3.5 h-3.5 text-white" /></div>
+            </div>
+            <div className="absolute left-3 right-12 bottom-3">
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <div className="w-5 h-5 rounded-full bg-gradient-to-br from-[#FF0033] to-[#D4AF37]" />
+                <p className="text-[10px] font-semibold">{reel.user}</p>
+                <span className="text-[8px] bg-[#FF0033] rounded-full px-2 py-0.5 font-semibold">Subscribe</span>
+              </div>
+              <p className="text-[9px] text-white/85 leading-snug line-clamp-1 mb-1">{reel.caption}</p>
+              <div className="flex items-center gap-1"><Music className="w-2.5 h-2.5 text-white shrink-0" /><span className="text-[8px] text-white/80 truncate">{reel.music}</span></div>
+            </div>
+          </>
+        )}
+      </div>
+      <span className="mt-3 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[11px] font-medium" style={{ color: reel.accent }}>{reel.label}</span>
+    </motion.div>
+  );
+}
 
 const FEATURES = [
   { icon: Type, title: 'AI Script Writing', desc: 'Powerful manifestation scripts crafted by AI, optimized for engagement and spiritual impact.', color: '#D4AF37' },
@@ -130,26 +291,18 @@ export function LandingPage() {
             </div>
           </motion.div>
 
-          {/* Mock reel preview */}
+          {/* Platform showcase reels */}
           <motion.div
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.3 }}
-            className="mt-16 max-w-sm mx-auto"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.6, delay: 0.25 }}
+            className="mt-16"
           >
-            <div className="relative aspect-[9/16] max-h-[420px] rounded-2xl overflow-hidden bg-gradient-to-br from-[#7B2FBE]/30 to-[#4A1A8A]/30 border border-white/10 gold-glow">
-              <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">
-                <div className="animate-float">
-                  <Sparkles className="w-12 h-12 text-[#D4AF37] mb-4 mx-auto" />
-                </div>
-                <p className="text-lg font-display font-bold mb-2">"Money flows to me easily"</p>
-                <p className="text-sm text-white/50">Wealth Manifestation • 30s Reel</p>
-                <div className="mt-6 flex gap-2">
-                  {['TikTok', 'Reels', 'Shorts'].map((p: string) => (
-                    <span key={p} className="px-3 py-1 rounded-full bg-white/10 text-xs text-white/60">{p}</span>
-                  ))}
-                </div>
-              </div>
+            <p className="text-xs uppercase tracking-[0.25em] text-white/40 mb-8">One prompt, ready for every platform</p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-5 max-w-3xl mx-auto">
+              {SHOWCASE.map((reel: any, i: number) => (
+                <ShowcaseReel key={reel.platform} reel={reel} index={i} />
+              ))}
             </div>
           </motion.div>
         </div>
