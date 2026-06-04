@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
+import { resolveReelAssets, isPlaceholderUrl, getVoiceSample } from '@/lib/reel-assets';
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
@@ -10,7 +11,20 @@ export async function GET(request: Request, { params }: { params: { id: string }
   const userId = (session.user as any)?.id;
   const reel = await prisma.reel.findFirst({ where: { id: params.id, userId } });
   if (!reel) return NextResponse.json({ error: 'Reel not found' }, { status: 404 });
-  return NextResponse.json(reel);
+
+  // Backfill real, playable media for reels created before the media pipeline
+  // was wired up (or that still reference placeholder paths).
+  const assets = resolveReelAssets({ style: reel.style, mood: reel.mood, voice: reel.voice });
+  const resolved = {
+    ...reel,
+    videoUrl: isPlaceholderUrl(reel.videoUrl) ? assets.videoUrl : reel.videoUrl,
+    musicUrl: isPlaceholderUrl(reel.musicUrl) ? assets.musicUrl : reel.musicUrl,
+    thumbnailUrl: isPlaceholderUrl(reel.thumbnailUrl) ? assets.posterUrl : reel.thumbnailUrl,
+    audioUrl: isPlaceholderUrl(reel.audioUrl) ? assets.voiceSampleUrl : reel.audioUrl,
+    posterUrl: assets.posterUrl,
+    voiceSampleUrl: getVoiceSample(reel.voice),
+  };
+  return NextResponse.json(resolved);
 }
 
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {

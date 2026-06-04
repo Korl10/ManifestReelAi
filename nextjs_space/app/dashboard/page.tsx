@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
-import { Sparkles, Loader2, Clock, Zap, Film, AlertCircle, Check, Wand2, Play, Pause, Mic, Plus, Trash2 } from 'lucide-react';
+import { Sparkles, Loader2, Clock, Zap, Film, AlertCircle, Check, Wand2, Play, Pause, Mic, Plus, Trash2, Gauge } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { HydrationDate } from '@/components/hydration-date';
@@ -31,8 +31,17 @@ const VOICE_LIBRARY = [
       { id: 'female-jenny', name: 'Jenny', desc: 'Friendly & clear', audio: '/voices/library/female-jenny.mp3' },
       { id: 'female-emma', name: 'Emma', desc: 'Bright & cheerful', audio: '/voices/library/female-emma.mp3' },
       { id: 'female-michelle', name: 'Michelle', desc: 'Soft & gentle', audio: '/voices/library/female-michelle.mp3' },
+      { id: 'female-ava', name: 'Ava', desc: 'Smooth & expressive', audio: '/voices/library/female-ava.mp3' },
       { id: 'female-sonia', name: 'Sonia', desc: 'British elegance', audio: '/voices/library/female-sonia.mp3' },
+      { id: 'female-libby', name: 'Libby', desc: 'British & refined', audio: '/voices/library/female-libby.mp3' },
+      { id: 'female-maisie', name: 'Maisie', desc: 'Youthful & sweet', audio: '/voices/library/female-maisie.mp3' },
       { id: 'female-natasha', name: 'Natasha', desc: 'Aussie warmth', audio: '/voices/library/female-natasha.mp3' },
+      { id: 'female-clara', name: 'Clara', desc: 'Canadian clarity', audio: '/voices/library/female-clara.mp3' },
+      { id: 'female-emily', name: 'Emily', desc: 'Irish charm', audio: '/voices/library/female-emily.mp3' },
+      { id: 'female-leah', name: 'Leah', desc: 'Calm & grounded', audio: '/voices/library/female-leah.mp3' },
+      { id: 'female-ana', name: 'Ana', desc: 'Light & youthful', audio: '/voices/library/female-ana.mp3' },
+      { id: 'female-aria-soft', name: 'Aria Soft', desc: 'Soothing & mellow', audio: '/voices/library/female-aria-soft.mp3' },
+      { id: 'female-sonia-bright', name: 'Sonia Bright', desc: 'Crisp & upbeat', audio: '/voices/library/female-sonia-bright.mp3' },
     ],
   },
   {
@@ -42,16 +51,45 @@ const VOICE_LIBRARY = [
       { id: 'male-andrew', name: 'Andrew', desc: 'Warm & sincere', audio: '/voices/library/male-andrew.mp3' },
       { id: 'male-brian', name: 'Brian', desc: 'Casual & calm', audio: '/voices/library/male-brian.mp3' },
       { id: 'male-christopher', name: 'Christopher', desc: 'Authority & power', audio: '/voices/library/male-christopher.mp3' },
+      { id: 'male-eric', name: 'Eric', desc: 'Smooth & steady', audio: '/voices/library/male-eric.mp3' },
+      { id: 'male-roger', name: 'Roger', desc: 'Rich & resonant', audio: '/voices/library/male-roger.mp3' },
+      { id: 'male-steffan', name: 'Steffan', desc: 'Crisp narrator', audio: '/voices/library/male-steffan.mp3' },
       { id: 'male-ryan', name: 'Ryan', desc: 'British charm', audio: '/voices/library/male-ryan.mp3' },
+      { id: 'male-thomas', name: 'Thomas', desc: 'British gravitas', audio: '/voices/library/male-thomas.mp3' },
       { id: 'male-william', name: 'William', desc: 'Aussie depth', audio: '/voices/library/male-william.mp3' },
+      { id: 'male-liam', name: 'Liam', desc: 'Canadian ease', audio: '/voices/library/male-liam.mp3' },
+      { id: 'male-connor', name: 'Connor', desc: 'Irish warmth', audio: '/voices/library/male-connor.mp3' },
+      { id: 'male-luke', name: 'Luke', desc: 'Smooth & grounded', audio: '/voices/library/male-luke.mp3' },
+      { id: 'male-guy-deep', name: 'Guy Deep', desc: 'Extra deep & bold', audio: '/voices/library/male-guy-deep.mp3' },
+      { id: 'male-roger-warm', name: 'Roger Warm', desc: 'Warm & reassuring', audio: '/voices/library/male-roger-warm.mp3' },
     ],
   },
   {
-    category: 'Meditation', img: '/voices/meditation.jpg',
+    category: 'Mysterious', img: '/voices/mysterious.jpg',
     variations: [
-      { id: 'med-ava', name: 'Ava', desc: 'Soft female whisper', audio: '/voices/library/med-ava.mp3' },
-      { id: 'med-eric', name: 'Eric', desc: 'Calm male guide', audio: '/voices/library/med-eric.mp3' },
-      { id: 'med-libby', name: 'Libby', desc: 'Gentle & tranquil', audio: '/voices/library/med-libby.mp3' },
+      { id: 'mys-aria', name: 'Aria', desc: 'Hushed & enigmatic', audio: '/voices/library/mys-aria.mp3' },
+      { id: 'mys-brian', name: 'Brian', desc: 'Dark & secretive', audio: '/voices/library/mys-brian.mp3' },
+      { id: 'mys-sonia', name: 'Sonia', desc: 'Velvet whisper', audio: '/voices/library/mys-sonia.mp3' },
+      { id: 'mys-thomas', name: 'Thomas', desc: 'Brooding & deep', audio: '/voices/library/mys-thomas.mp3' },
+      { id: 'mys-natasha', name: 'Natasha', desc: 'Sultry & intriguing', audio: '/voices/library/mys-natasha.mp3' },
+    ],
+  },
+  {
+    category: 'Historical', img: '/voices/historical.jpg',
+    variations: [
+      { id: 'his-thomas', name: 'Thomas', desc: 'Stately narrator', audio: '/voices/library/his-thomas.mp3' },
+      { id: 'his-ryan', name: 'Ryan', desc: 'Measured & classic', audio: '/voices/library/his-ryan.mp3' },
+      { id: 'his-libby', name: 'Libby', desc: 'Refined chronicler', audio: '/voices/library/his-libby.mp3' },
+      { id: 'his-roger', name: 'Roger', desc: 'Documentary gravitas', audio: '/voices/library/his-roger.mp3' },
+    ],
+  },
+  {
+    category: 'Biblical', img: '/voices/biblical.jpg',
+    variations: [
+      { id: 'bib-guy', name: 'Guy', desc: 'Reverent & deep', audio: '/voices/library/bib-guy.mp3' },
+      { id: 'bib-christopher', name: 'Christopher', desc: 'Prophetic power', audio: '/voices/library/bib-christopher.mp3' },
+      { id: 'bib-andrew', name: 'Andrew', desc: 'Solemn & sacred', audio: '/voices/library/bib-andrew.mp3' },
+      { id: 'bib-william', name: 'William', desc: 'Scripture narrator', audio: '/voices/library/bib-william.mp3' },
     ],
   },
   {
@@ -60,6 +98,27 @@ const VOICE_LIBRARY = [
       { id: 'mot-guy', name: 'Guy', desc: 'Bold & driven', audio: '/voices/library/mot-guy.mp3' },
       { id: 'mot-aria', name: 'Aria', desc: 'Energetic & fierce', audio: '/voices/library/mot-aria.mp3' },
       { id: 'mot-andrew', name: 'Andrew', desc: 'Hype & powerful', audio: '/voices/library/mot-andrew.mp3' },
+      { id: 'mot-brian', name: 'Brian', desc: 'Coach & cheerleader', audio: '/voices/library/mot-brian.mp3' },
+      { id: 'mot-emma', name: 'Emma', desc: 'Uplifting & bright', audio: '/voices/library/mot-emma.mp3' },
+    ],
+  },
+  {
+    category: 'Educated', img: '/voices/educated.jpg',
+    variations: [
+      { id: 'edu-michelle', name: 'Michelle', desc: 'Articulate & clear', audio: '/voices/library/edu-michelle.mp3' },
+      { id: 'edu-eric', name: 'Eric', desc: 'Professor calm', audio: '/voices/library/edu-eric.mp3' },
+      { id: 'edu-libby', name: 'Libby', desc: 'Polished lecturer', audio: '/voices/library/edu-libby.mp3' },
+      { id: 'edu-thomas', name: 'Thomas', desc: 'Scholarly & precise', audio: '/voices/library/edu-thomas.mp3' },
+    ],
+  },
+  {
+    category: 'Meditation', img: '/voices/meditation.jpg',
+    variations: [
+      { id: 'med-ava', name: 'Ava', desc: 'Soft female whisper', audio: '/voices/library/med-ava.mp3' },
+      { id: 'med-eric', name: 'Eric', desc: 'Calm male guide', audio: '/voices/library/med-eric.mp3' },
+      { id: 'med-libby', name: 'Libby', desc: 'Gentle & tranquil', audio: '/voices/library/med-libby.mp3' },
+      { id: 'med-sonia', name: 'Sonia', desc: 'Serene & slow', audio: '/voices/library/med-sonia.mp3' },
+      { id: 'med-emily', name: 'Emily', desc: 'Dreamy & peaceful', audio: '/voices/library/med-emily.mp3' },
     ],
   },
 ];
@@ -102,6 +161,7 @@ export default function DashboardPage() {
   const [style, setStyle] = useState('Spiritual');
   const [voice, setVoice] = useState('female-aria');
   const [voiceCategory, setVoiceCategory] = useState('Female');
+  const [speed, setSpeed] = useState('normal');
   const [customVoices, setCustomVoices] = useState<any[]>([]);
   const [showVoiceModal, setShowVoiceModal] = useState(false);
   const [mood, setMood] = useState('Manifestation');
@@ -217,7 +277,7 @@ export default function DashboardPage() {
       const res = await fetch('/api/reels/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: prompt.trim(), platform: platform.toLowerCase().replace(/\s+/g, '-'), style: style.toLowerCase(), voice, mood: mood.toLowerCase() }),
+        body: JSON.stringify({ prompt: prompt.trim(), platform: platform.toLowerCase().replace(/\s+/g, '-'), style: style.toLowerCase(), voice: speed === 'normal' ? voice : `${voice}@${speed}`, mood: mood.toLowerCase() }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -317,7 +377,7 @@ export default function DashboardPage() {
           <h2 className="font-display text-base font-semibold">Pick a Voice</h2>
           <span className="text-xs text-[#D4AF37] font-semibold">{selectedVoiceName}</span>
         </div>
-        <p className="text-xs text-white/40 mb-3 -mt-1">Choose from {ALL_PRESET_VOICES.length} pro voices — or add your own. Tap play to preview. 🔊</p>
+        <p className="text-xs text-white/40 mb-3 -mt-1">{ALL_PRESET_VOICES.length} natural AI voices across styles — mysterious, historical, biblical, motivational, educated & more. Or add your own. Tap play to preview. 🔊</p>
 
         {/* Category tabs */}
         <div className="flex gap-2 overflow-x-auto scrollbar-none -mx-4 px-4 pb-1 mb-3">
@@ -476,6 +536,33 @@ export default function DashboardPage() {
             })}
           </div>
         )}
+
+        {/* Speed control */}
+        <div className="mt-4 flex flex-col sm:flex-row sm:items-center gap-3">
+          <div className="flex items-center gap-2">
+            <Gauge className="w-4 h-4 text-[#D4AF37]" />
+            <span className="text-sm font-medium text-white">Speaking Speed</span>
+          </div>
+          <div className="inline-flex rounded-xl bg-white/5 border border-white/10 p-1">
+            {[
+              { key: 'slow', label: 'Slower' },
+              { key: 'normal', label: 'Normal' },
+              { key: 'fast', label: 'Faster' },
+            ].map((opt) => (
+              <button
+                key={opt.key}
+                type="button"
+                onClick={() => setSpeed(opt.key)}
+                className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  speed === opt.key ? 'gold-gradient text-black' : 'text-white/55 hover:text-white'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+          <span className="text-[11px] text-white/40">Controls how fast the narration is spoken in your reel.</span>
+        </div>
 
         {/* Hidden audio elements (rendered once so playback survives tab switches) */}
         <div className="hidden">

@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { getScriptProvider, getVoiceProvider, getMusicProvider, getVideoProvider, getRenderProvider } from '@/lib/providers';
+import { resolveReelAssets } from '@/lib/reel-assets';
 
 const STEPS = ['script', 'voice', 'music', 'visuals', 'captions', 'rendering'] as const;
 const STEP_PCT: Record<string, number> = { script: 15, voice: 35, music: 50, visuals: 70, captions: 85, rendering: 100 };
@@ -66,10 +67,16 @@ export async function runGenerationPipeline(jobId: string, reelId: string, userI
 
     const totalCost = Object.values(costBreakdown).reduce((a: number, b: number) => a + b, 0);
 
+    // Resolve real, bundled media assets so the finished reel is fully playable.
+    const assets = resolveReelAssets({ style: reel.style, mood: reel.mood, voice: reel.voice });
+
     await prisma.reel.update({
       where: { id: reelId },
       data: {
-        videoUrl: render.videoUrl,
+        videoUrl: assets.videoUrl,
+        musicUrl: assets.musicUrl,
+        thumbnailUrl: assets.posterUrl,
+        audioUrl: assets.voiceSampleUrl ?? render.videoUrl,
         status: 'ready',
         watermarked: watermark,
         costBreakdown,

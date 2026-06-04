@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { Sparkles, Download, Calendar, RotateCcw, Copy, Edit3, Save, Loader2, ArrowLeft, Hash, FileText, Type, MessageSquare, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
+import ReelPlayer from '@/components/reel-player';
 
 export default function ReelPreviewPage() {
   const params = useParams();
@@ -80,6 +81,18 @@ export default function ReelPreviewPage() {
     finally { setRegenerating(''); }
   };
 
+  const handleDownload = () => {
+    const url = reel?.videoUrl;
+    if (!url) { toast.error('Video not ready yet'); return; }
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${(reel?.title ?? 'manifestreel').replace(/[^a-z0-9]+/gi, '-').toLowerCase()}.mp4`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    toast.success('Download started');
+  };
+
   const copyToClipboard = (text: string) => {
     navigator?.clipboard?.writeText?.(text ?? '')?.then(() => toast.success('Copied to clipboard!'))?.catch(() => toast.error('Copy failed'));
   };
@@ -124,16 +137,20 @@ export default function ReelPreviewPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Video preview */}
         <div className="lg:col-span-1">
-          <div className="aspect-[9/16] rounded-xl overflow-hidden bg-gradient-to-br from-[#7B2FBE]/20 to-[#4A1A8A]/20 border border-white/10 flex items-center justify-center">
-            <div className="text-center p-6">
-              <Sparkles className="w-10 h-10 text-[#D4AF37] mx-auto mb-3 animate-float" />
-              <p className="text-sm font-medium mb-1">{scriptJson?.hook ?? reel?.prompt?.slice(0, 50) ?? ''}</p>
-              <p className="text-xs text-white/30">Preview</p>
-              {reel?.watermarked && <p className="text-[10px] text-[#D4AF37]/60 mt-2">WATERMARKED • Upgrade to remove</p>}
-            </div>
-          </div>
+          <ReelPlayer
+            videoUrl={reel?.videoUrl}
+            posterUrl={reel?.posterUrl ?? reel?.thumbnailUrl}
+            musicUrl={reel?.musicUrl}
+            hook={scriptJson?.hook}
+            script={scriptJson?.fullScript ?? []}
+            watermarked={reel?.watermarked}
+            title={reel?.title}
+          />
+          {reel?.watermarked && (
+            <p className="mt-2 text-center text-[10px] text-[#D4AF37]/80">Watermarked • Upgrade to remove</p>
+          )}
           <div className="mt-4 flex gap-2">
-            <button onClick={() => toast.success('Download started (demo mode)')} className="flex-1 py-2.5 rounded-lg gold-gradient text-black font-semibold text-sm flex items-center justify-center gap-2 hover:opacity-90 transition-all">
+            <button onClick={handleDownload} className="flex-1 py-2.5 rounded-lg gold-gradient text-black font-semibold text-sm flex items-center justify-center gap-2 hover:opacity-90 transition-all">
               <Download className="w-4 h-4" /> Download
             </button>
             <Link href={`/dashboard/reel/${reelId}/schedule`} className="flex-1 py-2.5 rounded-lg bg-white/5 border border-white/10 text-white font-medium text-sm flex items-center justify-center gap-2 hover:bg-white/10 transition-all">
