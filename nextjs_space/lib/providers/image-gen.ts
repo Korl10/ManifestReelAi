@@ -2,8 +2,9 @@ import { Provider, ImageInput, ImageOutput } from './types';
 import { uploadPublicBuffer, dataUrlToBuffer } from '@/lib/media-storage';
 
 const LLM_URL = 'https://apps.abacus.ai/v1/chat/completions';
-// 9:16 aspect ratio is supported by Gemini image models.
-const IMAGE_MODEL = process.env.IMAGE_MODEL || 'gemini-3.1-pro';
+// gpt-5.4 supports modalities:["image"] with 9:16 aspect ratio. Can also use
+// flux_pro_ultra, nano_banana_pro, or gemini multimodal models via env override.
+const IMAGE_MODEL = process.env.IMAGE_MODEL || 'gpt-5.4';
 
 const STYLE_SUFFIX =
   'Ultra-detailed cinematic photograph, vertical 9:16 composition, dreamy ethereal spiritual atmosphere, ' +
