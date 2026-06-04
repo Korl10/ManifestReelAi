@@ -125,7 +125,7 @@ export function PaywallModal({ open, onClose, tier, reelsUsed, reelsCap }: Paywa
             <p className="text-sm text-white/50 mt-1">
               {isPaid
                 ? `You've used all ${reelsCap} reels. Top up with extra coins or upgrade.`
-                : 'Start your 3-day free trial. Cancel anytime.'}
+                : 'Upgrade now to unlock the full power of ManifestReel.'}
             </p>
           </div>
 
@@ -207,7 +207,7 @@ export function PaywallModal({ open, onClose, tier, reelsUsed, reelsCap }: Paywa
                       </span>
                     </div>
                     <div className="space-y-1">
-                      {['30 reels per month', '3-day free trial', 'All styles & voices', 'HD export'].map(f => (
+                      {['30 reels per month', 'All styles & voices', 'HD export', 'Priority generation'].map(f => (
                         <div key={f} className="flex items-center gap-2 text-xs text-white/50">
                           <Check className="w-3 h-3 text-[#D4AF37]" />{f}
                         </div>
@@ -235,7 +235,7 @@ export function PaywallModal({ open, onClose, tier, reelsUsed, reelsCap }: Paywa
                     </span>
                   </div>
                   <div className="space-y-1">
-                    {['60 reels per month', '3-day free trial', 'Priority rendering', '4K export + no watermark'].map(f => (
+                    {['60 reels per month', 'Priority rendering', '4K export + no watermark', 'Custom branding'].map(f => (
                       <div key={f} className="flex items-center gap-2 text-xs text-white/50">
                         <Check className="w-3 h-3 text-[#A855F7]" />{f}
                       </div>

@@ -45,7 +45,6 @@ export async function POST(request: Request) {
   const unitAmount = isAnnual
     ? plan.annualPrice
     : (isIntro ? plan.introMonthlyPrice : plan.monthlyPrice);
-  const showTrial = !sub?.trialUsed;
 
   // Build checkout session params
   const params: any = {
@@ -70,11 +69,6 @@ export async function POST(request: Request) {
       metadata: { userId, tier, isIntro: isIntro ? 'true' : 'false', billing },
     },
   };
-
-  // Add 3-day free trial (card required upfront)
-  if (showTrial) {
-    params.subscription_data.trial_period_days = plan.trialDays;
-  }
 
   const checkoutSession = await stripe.checkout.sessions.create(params);
 

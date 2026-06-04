@@ -8,7 +8,6 @@ export const PLANS = {
     monthlyPrice: 1999, // cents
     annualPrice: 11994, // cents billed once per year = 1999 * 12 * 0.5 (50% off)
     reelsCap: 30,
-    trialDays: 3,
     introMonthlyPrice: 999, // cents – first 3 months discount
     introDurationMonths: 3,
   },
@@ -17,7 +16,6 @@ export const PLANS = {
     monthlyPrice: 4999, // cents
     annualPrice: 29994, // cents billed once per year = 4999 * 12 * 0.5 (50% off)
     reelsCap: 60,
-    trialDays: 3,
     introMonthlyPrice: 2500, // cents – first 3 months discount
     introDurationMonths: 3,
   },

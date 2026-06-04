@@ -218,8 +218,8 @@ const FEATURES = [
 
 const TIERS = [
   { name: '3-Day Free Trial', monthly: 0, features: ['1 reel included', 'All styles & moods', 'Watermarked export', 'No card required to browse'], cta: 'Start Free Trial', tier: 'free', popular: false },
-  { name: 'Pro', monthly: 19.99, features: ['30 reels/month', '3-day free trial', 'HD exports, no watermark', 'All voice presets', 'Priority generation', 'Buy extra coin bundles'], cta: 'Start Pro Trial', tier: 'pro', popular: true },
-  { name: 'Premium', monthly: 49.99, features: ['60 reels/month', '3-day free trial', '4K exports, no watermark', 'AI video backgrounds', 'Custom branding', 'Priority support', 'Schedule & auto-post'], cta: 'Start Premium Trial', tier: 'premium', popular: false },
+  { name: 'Pro', monthly: 19.99, features: ['30 reels/month', 'HD exports, no watermark', 'All voice presets', 'Priority generation', 'Buy extra coin bundles'], cta: 'Get Pro', tier: 'pro', popular: true },
+  { name: 'Premium', monthly: 49.99, features: ['60 reels/month', '4K exports, no watermark', 'AI video backgrounds', 'Custom branding', 'Priority support', 'Schedule & auto-post'], cta: 'Get Premium', tier: 'premium', popular: false },
 ];
 
 const TESTIMONIALS = [
