@@ -11,7 +11,7 @@ const STYLE_SUFFIX =
   'volumetric god-rays, glowing particles and bokeh, luxurious gold and deep royal-purple color grade, ' +
   'soft film grain, shallow depth of field, hyper-real, awe-inspiring, premium, NO text, NO words, NO letters, NO watermark.';
 
-async function generateOne(prompt: string, apiKey: string): Promise<string> {
+async function generateOnce(prompt: string, apiKey: string): Promise<string> {
   const res = await fetch(LLM_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
@@ -32,6 +32,25 @@ async function generateOne(prompt: string, apiKey: string): Promise<string> {
   if (!url || !url.startsWith('data:')) throw new Error('Image generation returned no image data.');
   const { buffer, contentType } = dataUrlToBuffer(url);
   return uploadPublicBuffer(buffer, `scene.${contentType.includes('png') ? 'png' : 'jpg'}`, contentType);
+}
+
+/**
+ * Generate a single scene image with a few retries. The Abacus image endpoint
+ * occasionally returns a transient 400/429/5xx under load; without retries a
+ * single hiccup would otherwise force the whole reel onto bundled stills.
+ */
+async function generateOne(prompt: string, apiKey: string): Promise<string> {
+  let lastErr: any;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      return await generateOnce(prompt, apiKey);
+    } catch (e) {
+      lastErr = e;
+      console.error(`[image-gen] attempt ${attempt + 1} failed: ${(e as any)?.message}`);
+      await new Promise((r) => setTimeout(r, 1500 * (attempt + 1)));
+    }
+  }
+  throw lastErr;
 }
 
 export class AbacusImageProvider implements Provider<ImageInput, ImageOutput> {

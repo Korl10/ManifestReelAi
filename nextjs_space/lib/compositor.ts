@@ -18,6 +18,12 @@ export interface CompositeInput {
   voiceUrl: string | null;
   musicUrl: string | null; // public URL
   watermark: boolean;
+  /**
+   * Optional pre-rendered motion clip URL per scene (aligned to scene index).
+   * When a scene has a clip URL, the compositor uses that animated video as the
+   * background instead of a Ken Burns still. null/undefined → Ken Burns still.
+   */
+  sceneClipUrls?: (string | null)[];
 }
 
 export interface CompositeResult {
@@ -53,9 +59,15 @@ export async function compositeReel(input: CompositeInput): Promise<CompositeRes
   const ass = buildAss(input.lineTexts, input.words, { watermark: input.watermark, totalDuration: T });
   const assUrl = await uploadPublicText(ass, 'captions.ass', 'text/plain');
 
+  // Per-scene motion clips (optional). A scene is "animated" only when it has
+  // a clip URL; otherwise it stays a Ken Burns still.
+  const clips = (input.sceneClipUrls || []).slice(0, n);
+  const isMotion = (i: number): boolean => Boolean(clips[i]);
+
   // ---- Assemble input_files ----
+  // For motion scenes we feed the video clip; for stills we feed the image.
   const input_files: Record<string, string> = {};
-  images.forEach((url, i) => { input_files[`in_${i + 1}`] = url; });
+  images.forEach((url, i) => { input_files[`in_${i + 1}`] = isMotion(i) ? (clips[i] as string) : url; });
   if (input.musicUrl) input_files['in_music'] = input.musicUrl;
   if (input.voiceUrl) input_files['in_voice'] = input.voiceUrl;
   input_files['in_ass'] = assUrl;
@@ -63,16 +75,33 @@ export async function compositeReel(input: CompositeInput): Promise<CompositeRes
   // ---- Build the ffmpeg argument string ----
   const args: string[] = [];
   durs.forEach((d, i) => {
-    args.push(`-loop 1 -t ${d.toFixed(2)} -i {{in_${i + 1}}}`);
+    if (isMotion(i)) {
+      // Video clip: let it play natively; trimmed/padded to scene duration below.
+      args.push(`-i {{in_${i + 1}}}`);
+    } else {
+      args.push(`-loop 1 -t ${d.toFixed(2)} -i {{in_${i + 1}}}`);
+    }
   });
   let musicIdx = -1;
   if (input.musicUrl) { musicIdx = n; args.push(`-stream_loop 4 -i {{in_music}}`); }
   let voiceIdx = -1;
   if (input.voiceUrl) { voiceIdx = musicIdx >= 0 ? n + 1 : n; args.push(`-i {{in_voice}}`); }
 
-  // Per-scene Ken Burns. Scale up first to reduce zoompan jitter.
+  // Per-scene background: real motion video for hero scenes, Ken Burns on stills
+  // for the rest. Both are normalized to 1080x1920 @ 30fps, exactly `d` seconds.
   const fc: string[] = [];
   durs.forEach((d, i) => {
+    if (isMotion(i)) {
+      // Scale/crop the clip to vertical, normalize fps, then clone-pad the last
+      // frame (in case the clip is slightly shorter than the scene) and trim to
+      // exactly the scene duration so the xfade offsets stay correct.
+      fc.push(
+        `[${i}:v]scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H},` +
+        `fps=${FPS},tpad=stop_mode=clone:stop_duration=${d.toFixed(2)},` +
+        `trim=duration=${d.toFixed(2)},setpts=PTS-STARTPTS,setsar=1,format=yuv420p[v${i}]`,
+      );
+      return;
+    }
     const f = frames(d);
     const zoomIn = i % 2 === 0;
     const z = zoomIn

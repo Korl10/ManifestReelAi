@@ -104,3 +104,33 @@ export interface RenderOutput {
   durationSec: number;
   fileSize: number;
 }
+
+// ── Image-to-video (motion) provider ────────────────────────────
+// Generates short cinematic motion clips from selected "hero" scene
+// images. Non-hero scenes stay as Ken Burns stills in the compositor.
+export interface VideoClipInput {
+  /** Public scene image URLs (one per scene). */
+  sceneImageUrls: string[];
+  /** 0-based indices of the scenes to animate. */
+  heroIndices: number[];
+  /** Per-scene image prompts (used for per-scene motion theming). */
+  imagePrompts: string[];
+  /** Reel style (fallback motion theming). */
+  style: string;
+  /** Clip duration in seconds (5 or 10). */
+  durationSec: number;
+}
+
+export interface VideoClipOutput {
+  /**
+   * Motion clip URLs aligned to scene index (length === sceneImageUrls.length).
+   * null means "no motion for this scene" (non-hero, or generation failed →
+   * the compositor falls back to a Ken Burns still).
+   */
+  clipUrls: (string | null)[];
+  /** Number of clips actually generated successfully. */
+  generatedCount: number;
+  provider: string;
+  /** Measured cost (USD) for the clips that were generated. */
+  cost: number;
+}

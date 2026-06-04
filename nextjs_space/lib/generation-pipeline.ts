@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma';
-import { getScriptProvider, getImageProvider, getVoiceProvider, getMusicProvider } from '@/lib/providers';
+import { getScriptProvider, getImageProvider, getVoiceProvider, getMusicProvider, getVideoProvider } from '@/lib/providers';
+import { selectHeroScenes } from '@/lib/providers/motion-prompts';
 import { buildTemplateScript, fallbackSceneImages } from '@/lib/providers/fallback';
 import { estimateTimestamps } from '@/lib/providers/elevenlabs-voice';
 import { compositeReel } from '@/lib/compositor';
@@ -123,6 +124,39 @@ export async function runGenerationPipeline(
     await prisma.reel.update({ where: { id: reelId }, data: { thumbnailUrl } });
 
     // ----------------------------------------------------------------
+    // STEP 2.5 — Cinematic motion (HYBRID): animate only hero scenes
+    // (hook + emotional peaks) into real video clips; everything else
+    // stays a Ken Burns still. Premium-only, never in preview mode.
+    // Fails gracefully: any clip that errors → Ken Burns still for it.
+    // ----------------------------------------------------------------
+    let sceneClipUrls: (string | null)[] | undefined;
+    let motionProviderName = 'none';
+    let motionClipCount = 0;
+    costBreakdown['video_cost'] = 0;
+    if (!isPreview && reel.motion && process.env.FAL_KEY) {
+      try {
+        const heroIndices = selectHeroScenes(sceneCount, 4);
+        const vp = getVideoProvider();
+        const motion = await vp.generate({
+          sceneImageUrls,
+          heroIndices,
+          imagePrompts: script.scenes.map((s) => s.imagePrompt),
+          style: reel.style,
+          durationSec: 5,
+        });
+        sceneClipUrls = motion.clipUrls;
+        motionClipCount = (motion as any).generatedCount ?? motion.clipUrls.filter(Boolean).length;
+        motionProviderName = motion.provider;
+        costBreakdown['video_cost'] = (motion as any).cost ?? 0;
+        console.log(`[pipeline] motion: ${motionClipCount}/${heroIndices.length} hero clips generated, video_cost=$${costBreakdown['video_cost']}`);
+      } catch (e) {
+        console.error('[pipeline] motion generation failed, all scenes stay Ken Burns:', (e as any)?.message);
+        sceneClipUrls = undefined;
+        costBreakdown['video_cost'] = 0;
+      }
+    }
+
+    // ----------------------------------------------------------------
     // STEP 3 — Voiceover (ElevenLabs; graceful null when no key)
     // ----------------------------------------------------------------
     await updateJob(jobId, 'voice', STEP_PCT['voice']);
@@ -196,6 +230,7 @@ export async function runGenerationPipeline(
         voiceUrl,
         musicUrl: musicPublicUrl,
         watermark,
+        sceneClipUrls,
       });
       finalVideoUrl = result.videoUrl;
       finalDuration = result.durationSec;
@@ -222,9 +257,12 @@ export async function runGenerationPipeline(
           scriptProvider: scriptProviderName,
           imageProvider: imageProviderName,
           voiceProvider: voiceProviderName,
+          motionProvider: motionProviderName,
+          motionClipCount,
           scenes: script.scenes.map((s, i) => ({
             text: s.text,
             imageUrl: sceneImageUrls[i] ?? null,
+            clipUrl: sceneClipUrls?.[i] ?? null,
             durationSec: sceneDurations[i] ?? null,
           })),
         } as any,

@@ -146,3 +146,65 @@ export function selectHeroScenes(
   const sorted = Array.from(heroes).sort((a, b) => a - b);
   return sorted.slice(0, maxMotionScenes);
 }
+
+// ── Image-prompt keyword → motion theme detection ───────────────
+// Detects the best-fit motion theme directly from a scene's IMAGE PROMPT
+// text (per user request), so each animated scene gets motion that matches
+// what it actually depicts — not just the overall reel style.
+
+const THEME_KEYWORDS: Record<MotionTheme, string[]> = {
+  water: [
+    'water', 'ocean', 'sea', 'wave', 'river', 'lake', 'waterfall', 'rain',
+    'mist', 'reflection', 'ripple', 'splash', 'droplet', 'shore', 'beach',
+    'underwater', 'pool', 'fountain', 'stream',
+  ],
+  wealth: [
+    'gold', 'golden', 'money', 'cash', 'coin', 'wealth', 'rich', 'luxury',
+    'luxurious', 'mansion', 'diamond', 'crystal', 'jewel', 'opulent', 'velvet',
+    'marble', 'champagne', 'treasure', 'abundance', 'prosper', 'fortune',
+  ],
+  nature: [
+    'forest', 'tree', 'garden', 'flower', 'leaf', 'foliage', 'meadow', 'field',
+    'mountain', 'sunrise', 'sunset', 'butterfly', 'firefly', 'bird', 'grass',
+    'bloom', 'petal', 'woods', 'jungle', 'valley', 'dawn', 'morning light',
+  ],
+  cosmic: [
+    'cosmic', 'galaxy', 'universe', 'star', 'nebula', 'space', 'celestial',
+    'divine', 'sacred', 'geometry', 'aura', 'energy', 'spirit', 'soul',
+    'meditat', 'chakra', 'light', 'glow', 'ethereal', 'heaven', 'angel',
+    'portal', 'mandala', 'infinite',
+  ],
+};
+
+/**
+ * Detect the motion theme from a scene's image prompt text by keyword
+ * scoring. Falls back to the style-based theme (then cosmic) when the
+ * image prompt has no decisive keywords.
+ */
+export function resolveMotionThemeFromPrompt(imagePrompt: string, style?: string): MotionTheme {
+  const text = (imagePrompt || '').toLowerCase();
+  const scores: Record<MotionTheme, number> = { cosmic: 0, wealth: 0, water: 0, nature: 0 };
+  (Object.keys(THEME_KEYWORDS) as MotionTheme[]).forEach((theme) => {
+    for (const kw of THEME_KEYWORDS[theme]) {
+      if (text.includes(kw)) scores[theme] += 1;
+    }
+  });
+  let best: MotionTheme | null = null;
+  let bestScore = 0;
+  (Object.keys(scores) as MotionTheme[]).forEach((theme) => {
+    if (scores[theme] > bestScore) { bestScore = scores[theme]; best = theme; }
+  });
+  if (best && bestScore > 0) return best;
+  // No decisive keywords — fall back to the reel style's theme.
+  return style ? resolveMotionTheme(style) : 'cosmic';
+}
+
+/**
+ * Build a motion video prompt using per-scene theme detection from the
+ * IMAGE PROMPT (preferred), falling back to the reel style.
+ */
+export function buildMotionVideoPromptFromImage(imagePrompt: string, style: string): string {
+  const theme = resolveMotionThemeFromPrompt(imagePrompt, style);
+  const motion = MOTION_THEMES[theme];
+  return `${imagePrompt.replace(/[.\s]+$/, '')}. ${motion}`;
+}

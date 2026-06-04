@@ -2,12 +2,14 @@ import { LLMScriptProvider } from './llm-script';
 import { AbacusImageProvider } from './image-gen';
 import { ElevenLabsVoiceProvider } from './elevenlabs-voice';
 import { LibraryMusicProvider } from './library-music';
+import { FalaiVideoProvider } from './falai-video';
 import type {
   Provider,
   ScriptInput, ScriptOutput,
   ImageInput, ImageOutput,
   VoiceInput, VoiceOutput,
   MusicInput, MusicOutput,
+  VideoClipInput, VideoClipOutput,
 } from './types';
 
 /** Real LLM-powered manifestation script writer (with template fallback in the pipeline). */
@@ -28,6 +30,11 @@ export function getVoiceProvider(): Provider<VoiceInput, VoiceOutput> {
 /** Curated royalty-free ambient / solfeggio music library. */
 export function getMusicProvider(): Provider<MusicInput, MusicOutput> {
   return new LibraryMusicProvider();
+}
+
+/** Cinematic image-to-video motion (fal.ai Kling). Fails gracefully to stills. */
+export function getVideoProvider(): Provider<VideoClipInput, VideoClipOutput> {
+  return new FalaiVideoProvider();
 }
 
 export * from './types';
