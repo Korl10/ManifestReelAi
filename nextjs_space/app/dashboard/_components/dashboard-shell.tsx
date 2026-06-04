@@ -57,35 +57,35 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-[#0A0A0A]">
       {/* Top bar */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-[#0A0A0A]/90 backdrop-blur-xl border-b border-white/5 h-14">
-        <div className="h-full px-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="h-full px-3 sm:px-4 flex items-center justify-between">
+          <div className="flex items-center gap-2 sm:gap-3">
             <button className="lg:hidden p-1.5" onClick={() => setSidebarOpen(!sidebarOpen)}>
               {sidebarOpen ? <X className="w-5 h-5 text-white/60" /> : <Menu className="w-5 h-5 text-white/60" />}
             </button>
-            <Link href="/" className="flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-[#D4AF37]" />
-              <span className="font-display text-base font-bold hidden sm:block">ManifestReel<span className="text-[#D4AF37]"> AI</span></span>
+            <Link href="/" className="flex items-center gap-1.5 sm:gap-2">
+              <Sparkles className="w-5 h-5 text-[#D4AF37] shrink-0" />
+              <span className="font-display text-sm sm:text-base font-bold whitespace-nowrap">ManifestReel<span className="text-[#D4AF37]"> AI</span></span>
             </Link>
           </div>
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-3">
             {/* Membership tier badge */}
             {quota && (() => {
               const t = TIER_LABELS[quota.tier] ?? TIER_LABELS['free'];
               return (
-                <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full ${t.bg} border border-white/5`}>
-                  <Crown className={`w-3.5 h-3.5 ${t.color}`} />
-                  <span className={`text-[11px] font-bold ${t.color} hidden sm:inline`}>{t.label}</span>
+                <div className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 rounded-full ${t.bg} border border-white/5`}>
+                  <Crown className={`w-3 h-3 sm:w-3.5 sm:h-3.5 ${t.color} shrink-0`} />
+                  <span className={`text-[10px] sm:text-[11px] font-bold ${t.color} whitespace-nowrap`}>{t.label}</span>
                 </div>
               );
             })()}
             {/* Credits pill */}
             {quota && (
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gradient-to-r from-[#D4AF37]/15 to-[#7B2FBE]/15 border border-[#D4AF37]/25">
-                <Zap className="w-3.5 h-3.5 text-[#D4AF37]" />
-                <span className="text-[11px] font-bold text-[#D4AF37]">{Math.max(0, (quota.reelsCap ?? 0) - (quota.reelsUsed ?? 0))}</span>
+              <div className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 rounded-full bg-gradient-to-r from-[#D4AF37]/15 to-[#7B2FBE]/15 border border-[#D4AF37]/25">
+                <Zap className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-[#D4AF37] shrink-0" />
+                <span className="text-[10px] sm:text-[11px] font-bold text-[#D4AF37]">{Math.max(0, (quota.reelsCap ?? 0) - (quota.reelsUsed ?? 0))}</span>
               </div>
             )}
-            <button onClick={() => signOut({ callbackUrl: '/' })} className="p-2 rounded-lg hover:bg-white/5 transition-colors" title="Sign out">
+            <button onClick={() => signOut({ callbackUrl: '/' })} className="p-1.5 sm:p-2 rounded-lg hover:bg-white/5 transition-colors" title="Sign out">
               <LogOut className="w-4 h-4 text-white/40" />
             </button>
           </div>
