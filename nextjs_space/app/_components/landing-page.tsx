@@ -93,26 +93,26 @@ function ShowcaseReel({ reel, index }: { reel: any; index: number }) {
         onTouchStart={handleEnter}
         className="group relative w-full aspect-[9/16] max-w-[230px] rounded-[1.5rem] overflow-hidden border border-white/10 shadow-2xl cursor-pointer"
       >
-        {/* Real reel video background (plays on hover) */}
+        {/* Video — always visible as a poster frame; plays on hover */}
         <video
           ref={videoRef}
           src={reel.video}
           muted
           loop
           playsInline
-          preload="metadata"
-          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${active ? 'opacity-100' : 'opacity-0'}`}
+          preload="auto"
+          className="absolute inset-0 w-full h-full object-cover"
         />
-        {/* Reel content background (gradient fallback / tint over video) */}
-        <div className={`absolute inset-0 bg-gradient-to-br ${reel.gradient} transition-opacity duration-500 ${active ? 'opacity-40' : 'opacity-100'}`} />
-        <div className="absolute inset-0 opacity-30" style={{ backgroundImage: 'radial-gradient(circle at 30% 20%, rgba(212,175,55,0.25), transparent 50%)' }} />
-        {/* Hover hint badge */}
+        {/* Light tint overlay — stronger when paused, lighter when playing */}
+        <div className={`absolute inset-0 bg-gradient-to-br ${reel.gradient} transition-opacity duration-500 ${active ? 'opacity-20' : 'opacity-50'}`} />
+        <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 30% 20%, rgba(212,175,55,0.25), transparent 50%)' }} />
+        {/* Play hint badge — disappears on hover */}
         <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/55 backdrop-blur-md border border-[#D4AF37]/40 transition-opacity duration-300 ${active ? 'opacity-0' : 'opacity-100 group-hover:opacity-0'}`}>
           <div className="w-0 h-0 border-y-[5px] border-y-transparent border-l-[8px] border-l-[#D4AF37]" />
           <span className="text-[9px] font-semibold text-[#D4AF37] uppercase tracking-wide">Hover to play</span>
         </div>
-        {/* Affirmation content */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center px-4 pb-28 text-center">
+        {/* Affirmation text — fades out a bit when video plays */}
+        <div className={`absolute inset-0 flex flex-col items-center justify-center px-4 pb-28 text-center transition-opacity duration-500 ${active ? 'opacity-0' : 'opacity-100'}`}>
           <Sparkles className="w-6 h-6 mb-2.5 animate-float" style={{ color: '#D4AF37' }} />
           <p className="font-display text-[12.5px] font-bold leading-tight drop-shadow-lg">
             {reel.affirmation.split(reel.keyword)[0]}
@@ -121,9 +121,9 @@ function ShowcaseReel({ reel, index }: { reel: any; index: number }) {
           </p>
           <p className="text-[8px] uppercase tracking-wider text-white/55 mt-2">{reel.theme} · 30s</p>
         </div>
-        {/* Legibility gradients */}
-        <div className="absolute inset-x-0 bottom-0 h-2/5 bg-gradient-to-t from-black/80 to-transparent" />
-        <div className="absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-black/50 to-transparent" />
+        {/* Legibility gradients — soften when playing */}
+        <div className={`absolute inset-x-0 bottom-0 h-2/5 bg-gradient-to-t from-black/80 to-transparent transition-opacity duration-500 ${active ? 'opacity-30' : 'opacity-100'}`} />
+        <div className={`absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-black/50 to-transparent transition-opacity duration-500 ${active ? 'opacity-20' : 'opacity-100'}`} />
 
         {/* ===== TikTok chrome ===== */}
         {reel.platform === 'tiktok' && (
