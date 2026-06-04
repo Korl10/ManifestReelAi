@@ -119,19 +119,32 @@ export default function SettingsPage() {
             <div className="flex items-center gap-3">
               <Crown className="w-5 h-5 text-[#D4AF37]" />
               <div>
-                <p className="text-sm font-semibold capitalize">{currentTier === 'free' ? 'Free Trial' : currentTier} Plan</p>
+                <p className="text-sm font-semibold capitalize">{currentTier === 'free' ? 'Free' : currentTier} Plan</p>
                 <p className="text-xs text-white/40">{sub?.status === 'active' ? 'Active' : sub?.status ?? 'Active'}{sub?.cancelAtPeriodEnd ? ' • Cancels at period end' : ''}</p>
               </div>
             </div>
             {quota && (
               <div className="p-3 rounded-lg bg-white/[0.02]">
-                <div className="flex justify-between text-xs text-white/50 mb-1">
-                  <span>Reels used</span>
-                  <span>{quota?.reelsUsed ?? 0} / {quota?.reelsCap ?? 0}{(quota?.bonusReels ?? 0) > 0 ? ` (+${quota.bonusReels} bonus)` : ''}</span>
-                </div>
-                <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
-                  <div className="h-full rounded-full gold-gradient" style={{ width: `${Math.min(100, ((quota?.reelsUsed ?? 0) / Math.max(1, quota?.reelsCap ?? 1)) * 100)}%` }} />
-                </div>
+                {currentTier === 'free' ? (
+                  <div className="flex justify-between text-xs text-white/50">
+                    <span>Free preview</span>
+                    <span>{quota?.reelsUsed ?? 0} / 1 used</span>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex justify-between text-xs text-white/50 mb-1">
+                      <span>Coins available</span>
+                      <span className="font-semibold text-[#D4AF37]">{quota?.coinsAvailable ?? 0}{(quota?.bundleCoins ?? 0) > 0 ? ` (incl. ${quota.bundleCoins} bundle)` : ''}</span>
+                    </div>
+                    <div className="flex justify-between text-[10px] text-white/35 mb-1">
+                      <span>Monthly plan coins</span>
+                      <span>{quota?.subscriptionRemaining ?? 0} / {quota?.subscriptionCoins ?? 0} left</span>
+                    </div>
+                    <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
+                      <div className="h-full rounded-full gold-gradient" style={{ width: `${Math.min(100, ((quota?.subscriptionRemaining ?? 0) / Math.max(1, quota?.subscriptionCoins ?? 1)) * 100)}%` }} />
+                    </div>
+                  </>
+                )}
               </div>
             )}
 
@@ -178,7 +191,7 @@ export default function SettingsPage() {
       {isPaid && (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }} className="rounded-xl bg-white/[0.02] border border-white/5 p-5">
           <h2 className="text-sm font-semibold flex items-center gap-2 mb-3"><Zap className="w-4 h-4 text-[#D4AF37]" /> Buy Extra Coins</h2>
-          <p className="text-xs text-white/40 mb-4">Need more reels this month? Top up with a one-time coin bundle.</p>
+          <p className="text-xs text-white/40 mb-4">Top up with a one-time coin bundle. Bundle coins stack on your plan and stay valid for 12 months. Static reel = 1 coin, motion reel = 4 coins.</p>
           <div className="space-y-2">
             {COIN_BUNDLES.map(bundle => (
               <button
@@ -192,12 +205,14 @@ export default function SettingsPage() {
                     <Zap className="w-4 h-4 text-black" />
                   </div>
                   <div className="text-left">
-                    <p className="text-sm font-semibold">{bundle.label}</p>
-                    <p className="text-[10px] text-white/40">{bundle.reels} extra reel credits</p>
+                    <p className="text-sm font-semibold flex items-center gap-2">{bundle.label}
+                      {(bundle as any).popular && <span className="px-1.5 py-0.5 rounded-full bg-[#D4AF37]/15 text-[#D4AF37] text-[9px] font-bold uppercase tracking-wide">Most Popular</span>}
+                    </p>
+                    <p className="text-[10px] text-white/40">{bundle.coins} coins • valid 12 months</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-bold text-[#D4AF37]">${(bundle.price / 100).toFixed(0)}</span>
+                  <span className="text-sm font-bold text-[#D4AF37]">${(bundle.price / 100).toFixed(2)}</span>
                   {buyingCoins === bundle.id && <Loader2 className="w-4 h-4 animate-spin text-[#D4AF37]" />}
                 </div>
               </button>

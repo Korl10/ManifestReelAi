@@ -292,7 +292,12 @@ export default function DashboardPage() {
     }
   };
 
-  const remaining = quota ? Math.max(0, (quota?.reelsCap ?? 0) - (quota?.reelsUsed ?? 0)) : null;
+  const isFreeTier = (quota?.tier ?? 'free') === 'free';
+  const remaining = quota
+    ? (isFreeTier
+        ? Math.max(0, 1 - (quota?.reelsUsed ?? 0))
+        : (quota?.coinsAvailable ?? Math.max(0, (quota?.reelsCap ?? 0) - (quota?.reelsUsed ?? 0))))
+    : null;
 
   return (
     <div className="space-y-8 pb-24 lg:pb-8">
@@ -306,7 +311,7 @@ export default function DashboardPage() {
           <div className="shrink-0 flex items-center gap-2 px-3.5 py-2 rounded-full bg-gradient-to-r from-[#D4AF37]/15 to-[#7B2FBE]/15 border border-[#D4AF37]/30">
             <Zap className="w-4 h-4 text-[#D4AF37]" />
             <span className="text-sm font-bold text-[#D4AF37]">{remaining ?? 0}</span>
-            <span className="text-xs text-white/50 hidden sm:inline">credits left</span>
+            <span className="text-xs text-white/50 hidden sm:inline">{isFreeTier ? 'preview left' : 'coins left'}</span>
           </div>
         )}
       </div>
@@ -626,12 +631,34 @@ export default function DashboardPage() {
         </div>
       </section>
 
+      {/* Cinematic Motion (Premium) */}
+      <div className="flex items-center gap-3 p-3.5 rounded-xl bg-gradient-to-r from-[#7B2FBE]/10 to-[#D4AF37]/5 border border-[#7B2FBE]/20">
+        <div className="w-9 h-9 rounded-xl bg-[#7B2FBE]/20 flex items-center justify-center shrink-0">
+          <Sparkles className="w-4 h-4 text-[#A855F7]" />
+        </div>
+        <div className="min-w-0">
+          <p className="text-sm font-semibold flex items-center gap-2 flex-wrap">
+            Cinematic Motion
+            <span className="px-1.5 py-0.5 rounded-full bg-[#D4AF37]/15 text-[#D4AF37] text-[9px] font-bold uppercase tracking-wide">Premium</span>
+            <span className="px-1.5 py-0.5 rounded-full bg-white/10 text-white/60 text-[9px] font-bold uppercase tracking-wide">Coming soon</span>
+          </p>
+          <p className="text-[11px] text-white/45 mt-0.5">AI-animated hero scenes for next-level reels — 4 coins each. Available to Premium members.</p>
+        </div>
+        {quota?.tier !== 'premium' && (
+          <Link href="/dashboard/settings" className="ml-auto shrink-0 text-xs text-[#A855F7] hover:underline whitespace-nowrap">Go Premium →</Link>
+        )}
+      </div>
+
       {/* Usage bar */}
       {quota && (
         <div className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/5">
           <Zap className="w-4 h-4 text-[#D4AF37]" />
           <span className="text-sm text-white/60">
-            <span className="text-white font-semibold">{quota?.reelsUsed ?? 0}</span> / {quota?.reelsCap ?? 0} reels used
+            {isFreeTier ? (
+              <><span className="text-white font-semibold">{Math.max(0, 1 - (quota?.reelsUsed ?? 0))}</span> free preview left</>
+            ) : (
+              <><span className="text-white font-semibold">{quota?.coinsAvailable ?? 0}</span> coins available{(quota?.bundleCoins ?? 0) > 0 ? ` (incl. ${quota.bundleCoins} bundle)` : ''}</>
+            )}
             <span className="text-white/30 ml-2">({(quota?.tier ?? 'free').charAt(0).toUpperCase() + (quota?.tier ?? 'free').slice(1)} plan)</span>
           </span>
           {!quota?.allowed && (

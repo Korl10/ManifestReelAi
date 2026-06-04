@@ -217,9 +217,9 @@ const FEATURES = [
 ];
 
 const TIERS = [
-  { name: '3-Day Free Trial', monthly: 0, features: ['1 reel included', 'All styles & moods', 'Watermarked export', 'No card required to browse'], cta: 'Start Free Trial', tier: 'free', popular: false },
-  { name: 'Pro', monthly: 19.99, features: ['30 reels/month', 'HD exports, no watermark', 'All voice presets', 'Priority generation', 'Buy extra coin bundles'], cta: 'Get Pro', tier: 'pro', popular: true },
-  { name: 'Premium', monthly: 49.99, features: ['60 reels/month', '4K exports, no watermark', 'AI video backgrounds', 'Custom branding', 'Priority support', 'Schedule & auto-post'], cta: 'Get Premium', tier: 'premium', popular: false },
+  { name: 'Free', monthly: 0, features: ['Demo gallery access', '1 watermarked preview', 'Explore all styles & moods', 'No card required'], cta: 'Start Free', tier: 'free', popular: false },
+  { name: 'Pro', monthly: 19.99, features: ['30 coins / month', 'Static reels (1 coin each)', 'HD exports, no watermark', 'All 57 premium voices', 'Buy extra coin bundles'], cta: 'Get Pro', tier: 'pro', popular: true },
+  { name: 'Premium', monthly: 49.99, features: ['60 coins / month', 'Cinematic motion reels (4 coins)', 'Static reels too (1 coin)', '4K exports, no watermark', 'Priority generation', 'Schedule & auto-post'], cta: 'Get Premium', tier: 'premium', popular: false },
 ];
 
 const TESTIMONIALS = [
@@ -462,7 +462,7 @@ export function LandingPage() {
                   {t?.monthly === 0 ? (
                     <div className="flex items-baseline gap-1">
                       <span className="text-3xl font-bold text-[#D4AF37]">$0</span>
-                      <span className="text-sm text-white/40">for 3 days</span>
+                      <span className="text-sm text-white/40">forever</span>
                     </div>
                   ) : (
                     <div>

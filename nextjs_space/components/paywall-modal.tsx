@@ -124,7 +124,7 @@ export function PaywallModal({ open, onClose, tier, reelsUsed, reelsCap }: Paywa
             </h2>
             <p className="text-sm text-white/50 mt-1">
               {isPaid
-                ? `You've used all ${reelsCap} reels. Top up with extra coins or upgrade.`
+                ? `You're out of coins. Top up a bundle or upgrade your plan.`
                 : 'Upgrade now to unlock the full power of ManifestReel.'}
             </p>
           </div>
@@ -207,7 +207,7 @@ export function PaywallModal({ open, onClose, tier, reelsUsed, reelsCap }: Paywa
                       </span>
                     </div>
                     <div className="space-y-1">
-                      {['30 reels per month', 'All styles & voices', 'HD export', 'Priority generation'].map(f => (
+                      {['30 coins / month', 'Static reels (1 coin each)', 'All 57 premium voices', 'HD export, no watermark'].map(f => (
                         <div key={f} className="flex items-center gap-2 text-xs text-white/50">
                           <Check className="w-3 h-3 text-[#D4AF37]" />{f}
                         </div>
@@ -235,7 +235,7 @@ export function PaywallModal({ open, onClose, tier, reelsUsed, reelsCap }: Paywa
                     </span>
                   </div>
                   <div className="space-y-1">
-                    {['60 reels per month', 'Priority rendering', '4K export + no watermark', 'Custom branding'].map(f => (
+                    {['60 coins / month', 'Cinematic motion reels (4 coins)', '4K export + no watermark', 'Priority rendering'].map(f => (
                       <div key={f} className="flex items-center gap-2 text-xs text-white/50">
                         <Check className="w-3 h-3 text-[#A855F7]" />{f}
                       </div>
@@ -262,12 +262,12 @@ export function PaywallModal({ open, onClose, tier, reelsUsed, reelsCap }: Paywa
                         <Zap className="w-4 h-4 text-black" />
                       </div>
                       <div className="text-left">
-                        <p className="text-sm font-semibold">{bundle.label}</p>
-                        <p className="text-[10px] text-white/40">{bundle.reels} extra reel credits</p>
+                        <p className="text-sm font-semibold flex items-center gap-1.5">{bundle.label}{(bundle as any).popular && <span className="px-1.5 py-0.5 rounded-full bg-[#D4AF37]/15 text-[#D4AF37] text-[9px] font-bold uppercase">Popular</span>}</p>
+                        <p className="text-[10px] text-white/40">{bundle.coins} coins • valid 12 months</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold text-[#D4AF37]">${(bundle.price / 100).toFixed(0)}</span>
+                      <span className="text-sm font-bold text-[#D4AF37]">${(bundle.price / 100).toFixed(2)}</span>
                       {loading === `coins-${bundle.id}` && <Loader2 className="w-4 h-4 animate-spin text-[#D4AF37]" />}
                     </div>
                   </button>

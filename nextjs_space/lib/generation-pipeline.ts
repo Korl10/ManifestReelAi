@@ -39,15 +39,23 @@ function sceneDurationsFromWords(lineTexts: string[], words: WordTimestamp[], fa
   return out;
 }
 
-export async function runGenerationPipeline(jobId: string, reelId: string, userId: string): Promise<void> {
+export async function runGenerationPipeline(
+  jobId: string,
+  reelId: string,
+  userId: string,
+  mode: 'full' | 'preview' = 'full',
+): Promise<void> {
   const costBreakdown: Record<string, number> = {};
+  // Preview mode (free tier): build entirely from cached/sample assets with
+  // NO live paid API calls (no LLM, no AI images, no premium voice).
+  const isPreview = mode === 'preview';
   try {
     const reel = await prisma.reel.findUnique({ where: { id: reelId } });
     if (!reel) throw new Error('Reel not found');
 
     const sub = await prisma.subscription.findUnique({ where: { userId } });
     const tier = sub?.tier ?? 'free';
-    const watermark = tier === 'free';
+    const watermark = isPreview || tier === 'free';
 
     // ----------------------------------------------------------------
     // STEP 1 — Script (LLM, with template fallback)
@@ -55,7 +63,10 @@ export async function runGenerationPipeline(jobId: string, reelId: string, userI
     await updateJob(jobId, 'script', STEP_PCT['script']);
     let script: ScriptOutput;
     let scriptProviderName = 'template';
-    try {
+    if (isPreview) {
+      script = buildTemplateScript({ prompt: reel.prompt, platform: reel.platform, style: reel.style, mood: reel.mood });
+      costBreakdown['script_cost'] = 0;
+    } else try {
       const sp = getScriptProvider();
       script = await sp.generate({ prompt: reel.prompt, platform: reel.platform, style: reel.style, mood: reel.mood });
       scriptProviderName = sp.getName();
@@ -86,7 +97,11 @@ export async function runGenerationPipeline(jobId: string, reelId: string, userI
     await updateJob(jobId, 'visuals', STEP_PCT['visuals']);
     let sceneImageUrls: string[] = [];
     let imageProviderName = 'fallback-stills';
-    try {
+    if (isPreview) {
+      sceneImageUrls = await fallbackSceneImages(reel.style, sceneCount);
+      imageProviderName = 'fallback-stills';
+      costBreakdown['image_cost'] = 0;
+    } else try {
       const ip = getImageProvider();
       const imgs = await ip.generate({ scenes: script.scenes.map((s) => ({ imagePrompt: s.imagePrompt })), style: reel.style, mood: reel.mood });
       sceneImageUrls = imgs.sceneImageUrls.filter(Boolean);
@@ -114,7 +129,11 @@ export async function runGenerationPipeline(jobId: string, reelId: string, userI
     let voiceUrl: string | null = null;
     let words: WordTimestamp[] = [];
     let voiceProviderName = 'none';
-    try {
+    if (isPreview) {
+      const est = estimateTimestamps(script.fullScript, script.rawText);
+      words = est.timestamps;
+      costBreakdown['voice_cost'] = 0;
+    } else try {
       const vp = getVoiceProvider();
       const v = await vp.generate({ scriptText: script.rawText, voicePreset: reel.voice, lines: script.fullScript });
       voiceUrl = v.audioUrl;

@@ -94,6 +94,8 @@ model Reel {
   scriptJson    Json?    @map("script_json")
   scenesJson    Json?    @map("scenes_json")
   durationSec   Float?   @map("duration_sec")
+  motion        Boolean  @default(false)
+  coinCost      Int      @default(1) @map("coin_cost")
   caption       String?
   description   String?
   hashtags      String[]
@@ -159,6 +161,8 @@ model CoinPurchase {
   userId            String   @map("user_id")
   bundleId          String   @map("bundle_id")
   reelsAdded        Int      @map("reels_added")
+  coinsRemaining    Int      @default(0) @map("coins_remaining")
+  expiresAt         DateTime? @map("expires_at")
   amountCents       Int      @map("amount_cents")
   stripeSessionId   String?  @map("stripe_session_id")
   status            String   @default("pending")

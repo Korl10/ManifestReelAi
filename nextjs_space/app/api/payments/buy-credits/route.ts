@@ -43,7 +43,7 @@ export async function POST(request: Request) {
         currency: 'usd',
         product_data: {
           name: `${bundle.label} — ManifestReel AI`,
-          description: `${bundle.reels} extra reel credits`,
+          description: `${bundle.coins} coins • valid 12 months`,
         },
         unit_amount: bundle.price,
       },
@@ -51,7 +51,7 @@ export async function POST(request: Request) {
     }],
     success_url: `${origin}/dashboard?coins=purchased`,
     cancel_url: `${origin}/dashboard/settings`,
-    metadata: { userId, bundleId: bundle.id, reels: String(bundle.reels), type: 'coin_purchase' },
+    metadata: { userId, bundleId: bundle.id, coins: String(bundle.coins), type: 'coin_purchase' },
   });
 
   // Create pending purchase record
@@ -59,7 +59,7 @@ export async function POST(request: Request) {
     data: {
       userId,
       bundleId: bundle.id,
-      reelsAdded: bundle.reels,
+      reelsAdded: bundle.coins,
       amountCents: bundle.price,
       stripeSessionId: checkoutSession.id,
       status: 'pending',

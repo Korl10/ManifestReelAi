@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { stripe } from '@/lib/stripe';
-import { PLANS } from '@/lib/pricing';
+import { PLANS, BUNDLE_EXPIRY_MONTHS } from '@/lib/pricing';
 import Stripe from 'stripe';
 
 export async function POST(request: Request) {
@@ -88,11 +88,13 @@ export async function POST(request: Request) {
             where: { stripeSessionId: checkoutSession.id, status: 'pending' },
           });
           if (purchase) {
+            const expiresAt = new Date();
+            expiresAt.setMonth(expiresAt.getMonth() + BUNDLE_EXPIRY_MONTHS);
             await prisma.coinPurchase.update({
               where: { id: purchase.id },
-              data: { status: 'completed' },
+              data: { status: 'completed', coinsRemaining: purchase.reelsAdded, expiresAt },
             });
-            console.log(`[Webhook] Coin purchase completed: ${purchase.reelsAdded} reels for user ${meta.userId}`);
+            console.log(`[Webhook] Coin purchase completed: ${purchase.reelsAdded} coins for user ${meta.userId} (expires ${expiresAt.toISOString()})`);
           }
         }
         break;
