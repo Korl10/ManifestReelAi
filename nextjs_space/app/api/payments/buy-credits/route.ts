@@ -4,20 +4,18 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
 import { stripe } from '@/lib/stripe';
-import { PLANS, type PlanTier } from '@/lib/pricing';
+import { COIN_BUNDLES } from '@/lib/pricing';
 
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const userId = (session.user as any)?.id;
   const body = await request.json();
-  const { tier, useIntro } = body ?? {};
+  const { bundleId } = body ?? {};
 
-  if (!tier || !['pro', 'premium'].includes(tier)) {
-    return NextResponse.json({ error: 'Invalid tier' }, { status: 400 });
-  }
+  const bundle = COIN_BUNDLES.find(b => b.id === bundleId);
+  if (!bundle) return NextResponse.json({ error: 'Invalid bundle' }, { status: 400 });
 
-  const plan = PLANS[tier as PlanTier];
   const origin = request.headers.get('origin') || process.env.NEXTAUTH_URL || 'http://localhost:3000';
 
   // Get or create Stripe customer
@@ -30,48 +28,43 @@ export async function POST(request: Request) {
       metadata: { userId },
     });
     customerId = customer.id;
-    sub = await prisma.subscription.upsert({
+    await prisma.subscription.upsert({
       where: { userId },
       create: { userId, tier: 'free', status: 'active', stripeCustomerId: customerId },
       update: { stripeCustomerId: customerId },
     });
   }
 
-  // Determine price and trial
-  const isIntro = useIntro && !sub?.introUsed;
-  const unitAmount = isIntro ? plan.introMonthlyPrice : plan.monthlyPrice;
-  const showTrial = !sub?.trialUsed;
-
-  // Build checkout session params
-  const params: any = {
-    mode: 'subscription' as const,
+  const checkoutSession = await stripe.checkout.sessions.create({
+    mode: 'payment',
     customer: customerId,
     line_items: [{
       price_data: {
         currency: 'usd',
         product_data: {
-          name: `ManifestReel AI ${plan.name}`,
-          description: `${plan.reelsCap} reels/month${isIntro ? ' (introductory offer)' : ''}`,
+          name: `${bundle.label} — ManifestReel AI`,
+          description: `${bundle.reels} extra reel credits`,
         },
-        unit_amount: unitAmount,
-        recurring: { interval: 'month' as const },
+        unit_amount: bundle.price,
       },
       quantity: 1,
     }],
-    success_url: `${origin}/dashboard?upgraded=${tier}`,
+    success_url: `${origin}/dashboard?coins=purchased`,
     cancel_url: `${origin}/dashboard/settings`,
-    metadata: { userId, tier, isIntro: isIntro ? 'true' : 'false' },
-    subscription_data: {
-      metadata: { userId, tier, isIntro: isIntro ? 'true' : 'false' },
+    metadata: { userId, bundleId: bundle.id, reels: String(bundle.reels), type: 'coin_purchase' },
+  });
+
+  // Create pending purchase record
+  await prisma.coinPurchase.create({
+    data: {
+      userId,
+      bundleId: bundle.id,
+      reelsAdded: bundle.reels,
+      amountCents: bundle.price,
+      stripeSessionId: checkoutSession.id,
+      status: 'pending',
     },
-  };
-
-  // Add 3-day free trial (card required upfront)
-  if (showTrial) {
-    params.subscription_data.trial_period_days = plan.trialDays;
-  }
-
-  const checkoutSession = await stripe.checkout.sessions.create(params);
+  });
 
   return NextResponse.json({ url: checkoutSession.url });
 }

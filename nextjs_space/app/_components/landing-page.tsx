@@ -179,9 +179,9 @@ const FEATURES = [
 ];
 
 const TIERS = [
-  { name: 'Free', price: '$0', period: 'forever', features: ['1 reel total', 'All styles & moods', 'Watermarked exports', 'Basic script generation'], cta: 'Get Started', tier: 'free', popular: false },
-  { name: 'Pro', price: '$19.99', period: '/month', features: ['30 reels/month', 'No watermark', 'HD exports', 'All voice presets', 'Priority generation', 'Caption editing'], cta: 'Upgrade to Pro', tier: 'pro', popular: true },
-  { name: 'Premium', price: '$49.99', period: '/month', features: ['60 reels/month', 'Everything in Pro', '4K exports', 'AI video backgrounds', 'Custom branding', 'Priority support', 'Schedule & auto-post'], cta: 'Go Premium', tier: 'premium', popular: false },
+  { name: '3-Day Free Trial', price: '$0', period: 'for 3 days', features: ['1 reel included', 'All styles & moods', 'Watermarked export', 'No card required to browse'], cta: 'Start Free Trial', tier: 'free', popular: false, badge: '' },
+  { name: 'Pro', price: '$19.99', period: '/month', features: ['30 reels/month', '3-day free trial', 'HD exports, no watermark', 'All voice presets', 'Priority generation', 'Buy extra coin bundles'], cta: 'Start Pro Trial', tier: 'pro', popular: true, badge: '' },
+  { name: 'Premium', price: '$49.99', period: '/month', features: ['60 reels/month', '3-day free trial', '4K exports, no watermark', 'AI video backgrounds', 'Custom branding', 'Priority support', 'Schedule & auto-post'], cta: 'Start Premium Trial', tier: 'premium', popular: false, badge: 'Save 50% vs 2× Pro' },
 ];
 
 const TESTIMONIALS = [
@@ -218,8 +218,7 @@ export function LandingPage() {
       });
       const data = await res.json();
       if (data?.url) {
-        router.push(data.url);
-        toast.success(`Upgraded to ${tier}!`);
+        window.location.href = data.url;
       }
     } catch {
       toast.error('Failed to process upgrade');
@@ -395,7 +394,10 @@ export function LandingPage() {
                   </div>
                 )}
                 <div className="mb-6">
-                  <h3 className="font-display text-lg font-semibold mb-1">{t?.name ?? ''}</h3>
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="font-display text-lg font-semibold">{t?.name ?? ''}</h3>
+                    {t?.badge && <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 text-[10px] font-bold">{t.badge}</span>}
+                  </div>
                   <div className="flex items-baseline gap-1">
                     <span className="text-3xl font-bold text-[#D4AF37]">{t?.price ?? ''}</span>
                     <span className="text-sm text-white/40">{t?.period ?? ''}</span>

@@ -1,17 +1,19 @@
 import { prisma } from '@/lib/prisma';
+import { PLANS, FREE_TRIAL_CAP } from '@/lib/pricing';
 
 export interface QuotaCheckResult {
   allowed: boolean;
   message: string;
   reelsUsed: number;
   reelsCap: number;
+  bonusReels: number; // from coin purchases
   tier: string;
 }
 
 const TIER_CAPS: Record<string, number> = {
-  free: 1,
-  pro: 30,
-  premium: 60,
+  free: FREE_TRIAL_CAP,
+  pro: PLANS.pro.reelsCap,
+  premium: PLANS.premium.reelsCap,
 };
 
 export async function checkQuota(userId: string): Promise<QuotaCheckResult> {
@@ -19,25 +21,34 @@ export async function checkQuota(userId: string): Promise<QuotaCheckResult> {
   const tier = sub?.tier ?? 'free';
   const status = sub?.status ?? 'active';
 
+  // Count bonus reels from completed coin purchases
+  const bonusAgg = await prisma.coinPurchase.aggregate({
+    where: { userId, status: 'completed' },
+    _sum: { reelsAdded: true },
+  });
+  const bonusReels = bonusAgg._sum.reelsAdded ?? 0;
+
   if (status !== 'active') {
-    return { allowed: false, message: 'Your subscription is not active. Please renew to continue.', reelsUsed: 0, reelsCap: 0, tier };
+    return { allowed: false, message: 'Your subscription is not active. Please renew to continue.', reelsUsed: 0, reelsCap: 0, bonusReels, tier };
   }
 
-  const cap = TIER_CAPS[tier] ?? 1;
+  const cap = TIER_CAPS[tier] ?? FREE_TRIAL_CAP;
 
   if (tier === 'free') {
-    // Free tier: 1 reel LIFETIME
+    // Free/trial: 1 reel LIFETIME + any purchased bonus
     const totalReels = await prisma.reel.count({ where: { userId, status: { not: 'failed' } } });
+    const totalCap = cap + bonusReels;
     return {
-      allowed: totalReels < 1,
-      message: totalReels >= 1 ? 'Free tier allows 1 reel total. Upgrade to Pro for 30 reels/month.' : 'OK',
+      allowed: totalReels < totalCap,
+      message: totalReels >= totalCap ? 'You have used all your credits. Upgrade to Pro for 30 reels/month.' : 'OK',
       reelsUsed: totalReels,
-      reelsCap: 1,
+      reelsCap: totalCap,
+      bonusReels,
       tier,
     };
   }
 
-  // Pro/Premium: monthly cap
+  // Pro/Premium: monthly cap + bonus
   const now = new Date();
   let counter = await prisma.usageCounter.findFirst({
     where: { userId, tier, periodStart: { lte: now }, periodEnd: { gte: now } },
@@ -52,11 +63,16 @@ export async function checkQuota(userId: string): Promise<QuotaCheckResult> {
     });
   }
 
+  const totalCap = cap + bonusReels;
+
   return {
-    allowed: counter.reelsUsed < cap,
-    message: counter.reelsUsed >= cap ? `You've used all ${cap} reels this month. ${tier === 'pro' ? 'Upgrade to Premium for 60/month.' : 'Wait for next billing cycle.'}` : 'OK',
+    allowed: counter.reelsUsed < totalCap,
+    message: counter.reelsUsed >= totalCap
+      ? `You've used all ${totalCap} reels this month. ${tier === 'pro' ? 'Upgrade to Premium for 60/month or buy extra coins.' : 'Buy extra coins to keep creating.'}`
+      : 'OK',
     reelsUsed: counter.reelsUsed,
-    reelsCap: cap,
+    reelsCap: totalCap,
+    bonusReels,
     tier,
   };
 }

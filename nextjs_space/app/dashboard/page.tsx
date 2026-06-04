@@ -8,6 +8,7 @@ import { Sparkles, Loader2, Clock, Zap, Film, AlertCircle, Check, Wand2 } from '
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { HydrationDate } from '@/components/hydration-date';
+import { PaywallModal } from '@/components/paywall-modal';
 
 const PLATFORMS = ['TikTok', 'Instagram Reels', 'YouTube Shorts'];
 
@@ -52,6 +53,7 @@ export default function DashboardPage() {
   const [quota, setQuota] = useState<any>(null);
   const [loadingReels, setLoadingReels] = useState(true);
   const [error, setError] = useState('');
+  const [showPaywall, setShowPaywall] = useState(false);
 
   // Show upgrade toast if redirected from checkout
   useEffect(() => {
@@ -81,6 +83,11 @@ export default function DashboardPage() {
 
   const handleGenerate = async () => {
     if (!prompt?.trim()) { toast.error('Enter a prompt to start'); return; }
+    // Check quota — show paywall if out
+    if (quota && !quota.allowed) {
+      setShowPaywall(true);
+      return;
+    }
     setGenerating(true);
     try {
       const res = await fetch('/api/reels/generate', {
@@ -332,6 +339,14 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
+      {/* Paywall Modal */}
+      <PaywallModal
+        open={showPaywall}
+        onClose={() => setShowPaywall(false)}
+        tier={quota?.tier ?? 'free'}
+        reelsUsed={quota?.reelsUsed ?? 0}
+        reelsCap={quota?.reelsCap ?? 0}
+      />
     </div>
   );
 }

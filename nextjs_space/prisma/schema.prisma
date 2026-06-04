@@ -19,10 +19,12 @@ model User {
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
 
-  subscription   Subscription?
-  usageCounters  UsageCounter[]
-  credits        Credit?
-  reels          Reel[]
+  subscription    Subscription?
+  usageCounters   UsageCounter[]
+  credits         Credit?
+  coinPurchases   CoinPurchase[]
+  analyticsEvents AnalyticsEvent[]
+  reels           Reel[]
   generationJobs GenerationJob[]
   socialAccounts SocialAccount[]
 
@@ -36,6 +38,9 @@ model Subscription {
   status               String   @default("active")
   stripeCustomerId     String?  @map("stripe_customer_id")
   stripeSubscriptionId String?  @map("stripe_subscription_id")
+  cancelAtPeriodEnd    Boolean  @default(false) @map("cancel_at_period_end")
+  trialUsed            Boolean  @default(false) @map("trial_used")
+  introUsed            Boolean  @default(false) @map("intro_used")
   currentPeriodStart   DateTime @default(now()) @map("current_period_start")
   currentPeriodEnd     DateTime @default(dbgenerated("NOW() + interval '30 days'")) @map("current_period_end")
   createdAt            DateTime @default(now()) @map("created_at")
@@ -144,6 +149,36 @@ model SocialAccount {
 
   @@unique([userId, platform])
   @@map("social_accounts")
+}
+
+model CoinPurchase {
+  id                String   @id @default(cuid())
+  userId            String   @map("user_id")
+  bundleId          String   @map("bundle_id")
+  reelsAdded        Int      @map("reels_added")
+  amountCents       Int      @map("amount_cents")
+  stripeSessionId   String?  @map("stripe_session_id")
+  status            String   @default("pending")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("coin_purchases")
+}
+
+model AnalyticsEvent {
+  id        String   @id @default(cuid())
+  userId    String?  @map("user_id")
+  event     String
+  metadata  Json?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([event, createdAt])
+  @@index([userId])
+  @@map("analytics_events")
 }
 
 model Asset {
