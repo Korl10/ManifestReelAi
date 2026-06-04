@@ -3,15 +3,32 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { motion } from 'framer-motion';
-import { Sparkles, Loader2, Clock, Zap, Film, AlertCircle } from 'lucide-react';
+import Image from 'next/image';
+import { Sparkles, Loader2, Clock, Zap, Film, AlertCircle, Check, Wand2 } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { HydrationDate } from '@/components/hydration-date';
 
 const PLATFORMS = ['TikTok', 'Instagram Reels', 'YouTube Shorts'];
-const STYLES = ['Spiritual', 'Motivational', 'Wealth', 'Luxury', 'Meditation', 'Abundance', 'Law of Attraction'];
-const VOICES = ['Female', 'Male', 'Meditation', 'Motivational'];
-const MOODS = ['Manifestation', 'Meditation', 'Wealth-Frequency', 'Cinematic'];
+
+const STYLES = [
+  { name: 'Spiritual', img: '/styles/spiritual.jpg', desc: 'Sacred & ethereal' },
+  { name: 'Motivational', img: '/styles/motivational.jpg', desc: 'Bold & inspiring' },
+  { name: 'Wealth', img: '/styles/wealth.jpg', desc: 'Money magnetism' },
+  { name: 'Luxury', img: '/styles/luxury.jpg', desc: 'Opulent vibes' },
+  { name: 'Meditation', img: '/styles/meditation.jpg', desc: 'Calm & zen' },
+  { name: 'Abundance', img: '/styles/abundance.jpg', desc: 'Overflowing growth' },
+  { name: 'Law of Attraction', img: '/styles/law-of-attraction.jpg', desc: 'Cosmic energy' },
+];
+
+const VOICES = [
+  { name: 'Female', img: '/voices/female.jpg', desc: 'Warm & soothing' },
+  { name: 'Male', img: '/voices/male.jpg', desc: 'Deep & confident' },
+  { name: 'Meditation', img: '/voices/meditation.jpg', desc: 'Soft whisper' },
+  { name: 'Motivational', img: '/voices/motivational.jpg', desc: 'High energy' },
+];
+
+const MOODS = ['Manifestation', 'Meditation', 'Wealth-Frequency', 'Cinematic', 'Dreamy', 'Uplifting', 'Powerful', 'Serene'];
 
 const STATUS_COLORS: Record<string, string> = {
   draft: 'bg-white/10 text-white/60',
@@ -84,31 +101,23 @@ export default function DashboardPage() {
     }
   };
 
-  const ChipSelect = ({ label, options, value, onChange }: { label: string; options: string[]; value: string; onChange: (v: string) => void }) => (
-    <div>
-      <label className="text-xs text-white/40 mb-2 block">{label}</label>
-      <div className="flex flex-wrap gap-2">
-        {options.map((opt: string) => (
-          <button
-            key={opt}
-            onClick={() => onChange(opt)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-              value === opt ? 'gold-gradient text-black' : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/5'
-            }`}
-          >
-            {opt}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
+  const remaining = quota ? Math.max(0, (quota?.reelsCap ?? 0) - (quota?.reelsUsed ?? 0)) : null;
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div>
-        <h1 className="font-display text-2xl md:text-3xl font-bold tracking-tight">Create a <span className="text-[#D4AF37]">Reel</span></h1>
-        <p className="text-sm text-white/40 mt-1">Type your intention and let AI do the rest.</p>
+    <div className="space-y-8 pb-24 lg:pb-8">
+      {/* Header with credits pill */}
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="font-display text-2xl md:text-3xl font-bold tracking-tight">Create a <span className="text-[#D4AF37]">Reel</span></h1>
+          <p className="text-sm text-white/40 mt-1">Design your manifestation. Pick a vibe, set the voice, hit create.</p>
+        </div>
+        {quota && (
+          <div className="shrink-0 flex items-center gap-2 px-3.5 py-2 rounded-full bg-gradient-to-r from-[#D4AF37]/15 to-[#7B2FBE]/15 border border-[#D4AF37]/30">
+            <Zap className="w-4 h-4 text-[#D4AF37]" />
+            <span className="text-sm font-bold text-[#D4AF37]">{remaining ?? 0}</span>
+            <span className="text-xs text-white/50 hidden sm:inline">credits left</span>
+          </div>
+        )}
       </div>
 
       {/* Error state */}
@@ -120,9 +129,144 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Usage */}
+      {/* Prompt */}
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl bg-white/[0.03] border border-white/8 p-5 md:p-6">
+        <div className="flex items-center gap-2 mb-3">
+          <Wand2 className="w-4 h-4 text-[#D4AF37]" />
+          <label className="text-sm font-semibold text-white">Your Intention</label>
+        </div>
+        <textarea
+          value={prompt}
+          onChange={e => setPrompt(e.target.value)}
+          placeholder='e.g. "A viral manifestation reel about attracting wealth, success and abundance into my life"'
+          rows={3}
+          className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-white/25 focus:outline-none focus:border-[#D4AF37]/50 transition-colors text-sm resize-none"
+        />
+      </motion.div>
+
+      {/* Pick Style — image cards */}
+      <section>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="font-display text-base font-semibold">Pick a Style</h2>
+          <span className="text-xs text-[#D4AF37]">{style}</span>
+        </div>
+        <div className="flex gap-3 overflow-x-auto scrollbar-none -mx-4 px-4 pb-1 snap-x">
+          {STYLES.map((item) => {
+            const selected = style === item.name;
+            return (
+              <button
+                key={item.name}
+                onClick={() => setStyle(item.name)}
+                className={`group relative shrink-0 w-32 sm:w-36 snap-start rounded-2xl overflow-hidden border-2 transition-all ${
+                  selected ? 'border-[#D4AF37] gold-glow' : 'border-white/8 hover:border-white/20'
+                }`}
+              >
+                <div className="relative aspect-[3/4] bg-white/5">
+                  <Image src={item.img} alt={`${item.name} manifestation reel style`} fill className="object-cover transition-transform duration-300 group-hover:scale-105" sizes="144px" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
+                  {selected && (
+                    <div className="absolute top-2 right-2 w-6 h-6 rounded-full gold-gradient flex items-center justify-center">
+                      <Check className="w-3.5 h-3.5 text-black" strokeWidth={3} />
+                    </div>
+                  )}
+                  <div className="absolute bottom-0 left-0 right-0 p-2.5 text-left">
+                    <p className={`text-sm font-bold leading-tight ${selected ? 'text-[#D4AF37]' : 'text-white'}`}>{item.name}</p>
+                    <p className="text-[10px] text-white/60 mt-0.5">{item.desc}</p>
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* Pick Voice — image cards */}
+      <section>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="font-display text-base font-semibold">Pick a Voice</h2>
+          <span className="text-xs text-[#D4AF37]">{voice}</span>
+        </div>
+        <div className="flex gap-3 overflow-x-auto scrollbar-none -mx-4 px-4 pb-1 snap-x">
+          {VOICES.map((item) => {
+            const selected = voice === item.name;
+            return (
+              <button
+                key={item.name}
+                onClick={() => setVoice(item.name)}
+                className={`group relative shrink-0 w-32 sm:w-36 snap-start rounded-2xl overflow-hidden border-2 transition-all ${
+                  selected ? 'border-[#D4AF37] gold-glow' : 'border-white/8 hover:border-white/20'
+                }`}
+              >
+                <div className="relative aspect-square bg-white/5">
+                  <Image src={item.img} alt={`${item.name} narration voice`} fill className="object-cover transition-transform duration-300 group-hover:scale-105" sizes="144px" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
+                  {selected && (
+                    <div className="absolute top-2 right-2 w-6 h-6 rounded-full gold-gradient flex items-center justify-center">
+                      <Check className="w-3.5 h-3.5 text-black" strokeWidth={3} />
+                    </div>
+                  )}
+                  <div className="absolute bottom-0 left-0 right-0 p-2.5 text-left">
+                    <p className={`text-sm font-bold leading-tight ${selected ? 'text-[#D4AF37]' : 'text-white'}`}>{item.name}</p>
+                    <p className="text-[10px] text-white/60 mt-0.5">{item.desc}</p>
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* Pick Mood — chips */}
+      <section>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="font-display text-base font-semibold">Pick a Mood</h2>
+          <span className="text-xs text-[#D4AF37]">{mood}</span>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {MOODS.map((opt) => {
+            const selected = mood === opt;
+            return (
+              <button
+                key={opt}
+                onClick={() => setMood(opt)}
+                className={`px-4 py-2 rounded-full text-xs font-semibold transition-all ${
+                  selected ? 'purple-gradient text-white purple-glow' : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/8'
+                }`}
+              >
+                {opt}
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* Platform — chips */}
+      <section>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="font-display text-base font-semibold">Platform</h2>
+          <span className="text-xs text-[#D4AF37]">{platform}</span>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {PLATFORMS.map((opt) => {
+            const selected = platform === opt;
+            return (
+              <button
+                key={opt}
+                onClick={() => setPlatform(opt)}
+                className={`px-4 py-2 rounded-full text-xs font-semibold transition-all ${
+                  selected ? 'gold-gradient text-black' : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/8'
+                }`}
+              >
+                {opt}
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* Usage bar */}
       {quota && (
-        <div className="flex items-center gap-3 p-3 rounded-lg bg-white/[0.02] border border-white/5">
+        <div className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/5">
           <Zap className="w-4 h-4 text-[#D4AF37]" />
           <span className="text-sm text-white/60">
             <span className="text-white font-semibold">{quota?.reelsUsed ?? 0}</span> / {quota?.reelsCap ?? 0} reels used
@@ -134,35 +278,18 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Creation form */}
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="rounded-xl bg-white/[0.02] border border-white/5 p-6 space-y-5">
-        <div>
-          <label className="text-xs text-white/40 mb-2 block">Your Prompt</label>
-          <textarea
-            value={prompt}
-            onChange={e => setPrompt(e.target.value)}
-            placeholder='e.g. "Create a viral manifestation reel about attracting wealth and abundance"'
-            rows={3}
-            className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:outline-none focus:border-[#D4AF37]/50 transition-colors text-sm resize-none"
-          />
-        </div>
-        <ChipSelect label="Platform" options={PLATFORMS} value={platform} onChange={setPlatform} />
-        <ChipSelect label="Style" options={STYLES} value={style} onChange={setStyle} />
-        <ChipSelect label="Voice" options={VOICES} value={voice} onChange={setVoice} />
-        <ChipSelect label="Mood" options={MOODS} value={mood} onChange={setMood} />
-
-        <button
-          onClick={handleGenerate}
-          disabled={generating || !prompt?.trim()}
-          className="w-full py-3.5 rounded-xl gold-gradient text-black font-bold text-sm hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2 gold-glow"
-        >
-          {generating ? (
-            <><Loader2 className="w-5 h-5 animate-spin" /> Generating...</>
-          ) : (
-            <><Sparkles className="w-5 h-5" /> Generate Reel ✨</>
-          )}
-        </button>
-      </motion.div>
+      {/* Create button */}
+      <button
+        onClick={handleGenerate}
+        disabled={generating || !prompt?.trim()}
+        className="w-full py-4 rounded-2xl gold-gradient text-black font-bold text-base hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2 gold-glow"
+      >
+        {generating ? (
+          <><Loader2 className="w-5 h-5 animate-spin" /> Generating...</>
+        ) : (
+          <><Sparkles className="w-5 h-5" /> Generate Reel ✨</>
+        )}
+      </button>
 
       {/* Recent reels */}
       <div>

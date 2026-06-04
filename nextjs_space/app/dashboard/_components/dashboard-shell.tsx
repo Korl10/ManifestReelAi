@@ -100,6 +100,38 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           {children}
         </div>
       </main>
+
+      {/* Mobile bottom tab bar */}
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#0A0A0A]/95 backdrop-blur-xl border-t border-white/8">
+        <div className="relative flex items-end justify-around px-2 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+          {(() => {
+            const rest = navItems.filter((n: any) => n?.href !== '/dashboard');
+            const create = navItems.find((n: any) => n?.href === '/dashboard');
+            const mid = Math.ceil(rest.length / 2);
+            const ordered = [...rest.slice(0, mid), create, ...rest.slice(mid)].filter(Boolean);
+            return ordered;
+          })().map((item: any) => {
+            const isActive = item?.href === '/dashboard' ? pathname === '/dashboard' : pathname?.startsWith(item?.href ?? '');
+            const isCreate = item?.href === '/dashboard';
+            if (isCreate) {
+              return (
+                <Link key={item?.href} href={item?.href} className="flex flex-col items-center -mt-7 w-16">
+                  <span className={`w-14 h-14 rounded-2xl gold-gradient flex items-center justify-center shadow-lg transition-transform ${isActive ? 'gold-glow scale-105' : ''}`}>
+                    <item.icon className="w-6 h-6 text-black" strokeWidth={2.5} />
+                  </span>
+                  <span className={`text-[10px] mt-1 font-semibold ${isActive ? 'text-[#D4AF37]' : 'text-white/50'}`}>{item?.label}</span>
+                </Link>
+              );
+            }
+            return (
+              <Link key={item?.href} href={item?.href} className="flex flex-col items-center gap-1 w-16 py-1">
+                <item.icon className={`w-5 h-5 ${isActive ? 'text-[#D4AF37]' : 'text-white/45'}`} />
+                <span className={`text-[10px] font-medium ${isActive ? 'text-[#D4AF37]' : 'text-white/45'}`}>{item?.label}</span>
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
     </div>
   );
 }

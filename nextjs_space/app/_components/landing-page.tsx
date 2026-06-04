@@ -296,7 +296,7 @@ export function LandingPage() {
                 See How It Works <ArrowRight className="w-4 h-4" />
               </a>
             </div>
-            <div className="mt-6 flex items-center justify-center gap-2">
+            <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-2">
               <div className="flex -space-x-2">
                 {[
                   { src: '/testimonials/sarah.jpg', alt: 'Happy creator Sarah' },
@@ -310,7 +310,7 @@ export function LandingPage() {
                   </div>
                 ))}
               </div>
-              <div className="flex items-center gap-1.5 ml-1">
+              <div className="flex items-center gap-1.5 sm:ml-1">
                 <div className="flex gap-0.5">
                   {Array.from({ length: 5 }).map((_, i) => (
                     <Star key={i} className="w-3.5 h-3.5 fill-[#D4AF37] text-[#D4AF37]" />
