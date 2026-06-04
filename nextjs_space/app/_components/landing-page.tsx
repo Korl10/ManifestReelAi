@@ -1,5 +1,5 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Sparkles, Wand2, Music, Video, Type, Zap, Crown, Star, ArrowRight, Check, Menu, X, Heart, MessageCircle, Share2, Bookmark, ThumbsUp, ThumbsDown, Plus, MoreHorizontal, Music2 } from 'lucide-react';
 import Link from 'next/link';
@@ -23,6 +23,7 @@ const SHOWCASE = [
     music: 'Manifest 528Hz · Abundance Frequency',
     caption: 'Say it with me ✨ money comes from expected & unexpected sources 💰 #manifestation #lawofattraction',
     gradient: 'from-[#7B2FBE] via-[#4A1A8A] to-[#0A0A0A]',
+    video: '/showcase/wealth.mp4',
   },
   {
     platform: 'instagram',
@@ -36,6 +37,7 @@ const SHOWCASE = [
     music: 'soul.alignment · Original audio',
     caption: 'Drop a 🤍 if you receive this ✨ you are SO deserving #selflove #manifest #spiritualtok',
     gradient: 'from-[#D4AF37]/40 via-[#7B2FBE]/40 to-[#0A0A0A]',
+    video: '/showcase/selflove.mp4',
   },
   {
     platform: 'shorts',
@@ -49,6 +51,7 @@ const SHOWCASE = [
     music: 'Manifest Daily · 528Hz Healing',
     caption: 'Watch this every morning ☀️ your dream life is closer than you think',
     gradient: 'from-[#4A1A8A] via-[#7B2FBE]/60 to-[#0A0A0A]',
+    video: '/showcase/dream.mp4',
   },
 ];
 
@@ -62,6 +65,21 @@ function RailButton({ icon: Icon, count, filled, accent }: any) {
 }
 
 function ShowcaseReel({ reel, index }: { reel: any; index: number }) {
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const [active, setActive] = useState(false);
+
+  const handleEnter = () => {
+    const v = videoRef.current;
+    if (!v) return;
+    setActive(true);
+    v.play().catch(() => {});
+  };
+  const handleLeave = () => {
+    const v = videoRef.current;
+    setActive(false);
+    if (v) { v.pause(); v.currentTime = 0; }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 40 }}
@@ -69,10 +87,30 @@ function ShowcaseReel({ reel, index }: { reel: any; index: number }) {
       transition={{ duration: 0.7, delay: 0.3 + index * 0.15 }}
       className="w-full flex flex-col items-center"
     >
-      <div className="relative w-full aspect-[9/16] max-w-[230px] rounded-[1.5rem] overflow-hidden border border-white/10 shadow-2xl">
-        {/* Reel content background */}
-        <div className={`absolute inset-0 bg-gradient-to-br ${reel.gradient}`} />
+      <div
+        onMouseEnter={handleEnter}
+        onMouseLeave={handleLeave}
+        onTouchStart={handleEnter}
+        className="group relative w-full aspect-[9/16] max-w-[230px] rounded-[1.5rem] overflow-hidden border border-white/10 shadow-2xl cursor-pointer"
+      >
+        {/* Real reel video background (plays on hover) */}
+        <video
+          ref={videoRef}
+          src={reel.video}
+          muted
+          loop
+          playsInline
+          preload="metadata"
+          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${active ? 'opacity-100' : 'opacity-0'}`}
+        />
+        {/* Reel content background (gradient fallback / tint over video) */}
+        <div className={`absolute inset-0 bg-gradient-to-br ${reel.gradient} transition-opacity duration-500 ${active ? 'opacity-40' : 'opacity-100'}`} />
         <div className="absolute inset-0 opacity-30" style={{ backgroundImage: 'radial-gradient(circle at 30% 20%, rgba(212,175,55,0.25), transparent 50%)' }} />
+        {/* Hover hint badge */}
+        <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/55 backdrop-blur-md border border-[#D4AF37]/40 transition-opacity duration-300 ${active ? 'opacity-0' : 'opacity-100 group-hover:opacity-0'}`}>
+          <div className="w-0 h-0 border-y-[5px] border-y-transparent border-l-[8px] border-l-[#D4AF37]" />
+          <span className="text-[9px] font-semibold text-[#D4AF37] uppercase tracking-wide">Hover to play</span>
+        </div>
         {/* Affirmation content */}
         <div className="absolute inset-0 flex flex-col items-center justify-center px-4 pb-28 text-center">
           <Sparkles className="w-6 h-6 mb-2.5 animate-float" style={{ color: '#D4AF37' }} />

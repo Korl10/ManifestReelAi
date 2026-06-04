@@ -4,11 +4,12 @@ import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
-import { Sparkles, Loader2, Clock, Zap, Film, AlertCircle, Check, Wand2, Play, Pause } from 'lucide-react';
+import { Sparkles, Loader2, Clock, Zap, Film, AlertCircle, Check, Wand2, Play, Pause, Mic, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { HydrationDate } from '@/components/hydration-date';
 import { PaywallModal } from '@/components/paywall-modal';
+import { AddVoiceModal } from '@/components/add-voice-modal';
 
 const PLATFORMS = ['TikTok', 'Instagram Reels', 'YouTube Shorts'];
 
@@ -22,12 +23,49 @@ const STYLES = [
   { name: 'Law of Attraction', img: '/styles/law-of-attraction.jpg', desc: 'Cosmic energy' },
 ];
 
-const VOICES = [
-  { name: 'Female', img: '/voices/female.jpg', audio: '/voices/female.mp3', desc: 'Warm & soothing' },
-  { name: 'Male', img: '/voices/male.jpg', audio: '/voices/male.mp3', desc: 'Deep & confident' },
-  { name: 'Meditation', img: '/voices/meditation.jpg', audio: '/voices/meditation.mp3', desc: 'Soft whisper' },
-  { name: 'Motivational', img: '/voices/motivational.jpg', audio: '/voices/motivational.mp3', desc: 'High energy' },
+const VOICE_LIBRARY = [
+  {
+    category: 'Female', img: '/voices/female.jpg',
+    variations: [
+      { id: 'female-aria', name: 'Aria', desc: 'Warm & confident', audio: '/voices/library/female-aria.mp3' },
+      { id: 'female-jenny', name: 'Jenny', desc: 'Friendly & clear', audio: '/voices/library/female-jenny.mp3' },
+      { id: 'female-emma', name: 'Emma', desc: 'Bright & cheerful', audio: '/voices/library/female-emma.mp3' },
+      { id: 'female-michelle', name: 'Michelle', desc: 'Soft & gentle', audio: '/voices/library/female-michelle.mp3' },
+      { id: 'female-sonia', name: 'Sonia', desc: 'British elegance', audio: '/voices/library/female-sonia.mp3' },
+      { id: 'female-natasha', name: 'Natasha', desc: 'Aussie warmth', audio: '/voices/library/female-natasha.mp3' },
+    ],
+  },
+  {
+    category: 'Male', img: '/voices/male.jpg',
+    variations: [
+      { id: 'male-guy', name: 'Guy', desc: 'Deep & confident', audio: '/voices/library/male-guy.mp3' },
+      { id: 'male-andrew', name: 'Andrew', desc: 'Warm & sincere', audio: '/voices/library/male-andrew.mp3' },
+      { id: 'male-brian', name: 'Brian', desc: 'Casual & calm', audio: '/voices/library/male-brian.mp3' },
+      { id: 'male-christopher', name: 'Christopher', desc: 'Authority & power', audio: '/voices/library/male-christopher.mp3' },
+      { id: 'male-ryan', name: 'Ryan', desc: 'British charm', audio: '/voices/library/male-ryan.mp3' },
+      { id: 'male-william', name: 'William', desc: 'Aussie depth', audio: '/voices/library/male-william.mp3' },
+    ],
+  },
+  {
+    category: 'Meditation', img: '/voices/meditation.jpg',
+    variations: [
+      { id: 'med-ava', name: 'Ava', desc: 'Soft female whisper', audio: '/voices/library/med-ava.mp3' },
+      { id: 'med-eric', name: 'Eric', desc: 'Calm male guide', audio: '/voices/library/med-eric.mp3' },
+      { id: 'med-libby', name: 'Libby', desc: 'Gentle & tranquil', audio: '/voices/library/med-libby.mp3' },
+    ],
+  },
+  {
+    category: 'Motivational', img: '/voices/motivational.jpg',
+    variations: [
+      { id: 'mot-guy', name: 'Guy', desc: 'Bold & driven', audio: '/voices/library/mot-guy.mp3' },
+      { id: 'mot-aria', name: 'Aria', desc: 'Energetic & fierce', audio: '/voices/library/mot-aria.mp3' },
+      { id: 'mot-andrew', name: 'Andrew', desc: 'Hype & powerful', audio: '/voices/library/mot-andrew.mp3' },
+    ],
+  },
 ];
+
+const ALL_PRESET_VOICES = VOICE_LIBRARY.flatMap((c) => c.variations.map((v) => ({ ...v, category: c.category })));
+const VOICE_CATEGORIES = VOICE_LIBRARY.map((c) => c.category);
 
 const MOODS = [
   { name: 'Manifestation', img: '/moods/manifestation.jpg' },
@@ -62,7 +100,10 @@ export default function DashboardPage() {
   const [prompt, setPrompt] = useState('');
   const [platform, setPlatform] = useState('TikTok');
   const [style, setStyle] = useState('Spiritual');
-  const [voice, setVoice] = useState('Female');
+  const [voice, setVoice] = useState('female-aria');
+  const [voiceCategory, setVoiceCategory] = useState('Female');
+  const [customVoices, setCustomVoices] = useState<any[]>([]);
+  const [showVoiceModal, setShowVoiceModal] = useState(false);
   const [mood, setMood] = useState('Manifestation');
   const [generating, setGenerating] = useState(false);
   const [reels, setReels] = useState<any[]>([]);
@@ -75,23 +116,45 @@ export default function DashboardPage() {
   const audioRefs = useRef<Record<string, HTMLAudioElement | null>>({});
   const videoRefs = useRef<Record<string, HTMLVideoElement | null>>({});
 
-  const toggleVoicePreview = (e: React.MouseEvent, item: { name: string; audio: string }) => {
+  const toggleVoicePreview = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    const current = audioRefs.current[item.name];
+    const current = audioRefs.current[id];
     if (!current) return;
     // Stop any other playing audio
     Object.entries(audioRefs.current).forEach(([key, el]) => {
-      if (key !== item.name && el) { el.pause(); el.currentTime = 0; }
+      if (key !== id && el) { el.pause(); el.currentTime = 0; }
     });
-    if (playingVoice === item.name) {
+    if (playingVoice === id) {
       current.pause();
       setPlayingVoice(null);
     } else {
       current.currentTime = 0;
       current.play().catch(() => {});
-      setPlayingVoice(item.name);
+      setPlayingVoice(id);
     }
   };
+
+  const deleteCustomVoice = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    const current = audioRefs.current[id];
+    if (current) { current.pause(); }
+    try {
+      const res = await fetch(`/api/voices/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error();
+      setCustomVoices((prev) => prev.filter((v) => v.id !== id));
+      if (voice === id) setVoice('female-aria');
+      if (playingVoice === id) setPlayingVoice(null);
+      toast.success('Voice removed');
+    } catch { toast.error('Failed to remove voice'); }
+  };
+
+  const selectedVoiceName = (() => {
+    const preset = ALL_PRESET_VOICES.find((v) => v.id === voice);
+    if (preset) return preset.name;
+    const custom = customVoices.find((v) => v.id === voice);
+    if (custom) return `${custom.name} (yours)`;
+    return voice;
+  })();
 
   const toggleReel = (title: string) => {
     const current = videoRefs.current[title];
@@ -134,6 +197,14 @@ export default function DashboardPage() {
       .finally(() => setLoadingReels(false));
   }, [session]);
 
+  useEffect(() => {
+    if (!session) return;
+    fetch('/api/voices')
+      .then((r) => (r.ok ? r.json() : []))
+      .then((d) => setCustomVoices(Array.isArray(d) ? d : []))
+      .catch(() => {});
+  }, [session]);
+
   const handleGenerate = async () => {
     if (!prompt?.trim()) { toast.error('Enter a prompt to start'); return; }
     // Check quota — show paywall if out
@@ -146,7 +217,7 @@ export default function DashboardPage() {
       const res = await fetch('/api/reels/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: prompt.trim(), platform: platform.toLowerCase().replace(/\s+/g, '-'), style: style.toLowerCase(), voice: voice.toLowerCase(), mood: mood.toLowerCase() }),
+        body: JSON.stringify({ prompt: prompt.trim(), platform: platform.toLowerCase().replace(/\s+/g, '-'), style: style.toLowerCase(), voice, mood: mood.toLowerCase() }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -240,68 +311,180 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      {/* Pick Voice — image cards with audio preview */}
+      {/* Pick Voice — category tabs + variation library + your own voice */}
       <section>
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-display text-base font-semibold">Pick a Voice</h2>
-          <span className="text-xs text-[#D4AF37]">{voice}</span>
+          <span className="text-xs text-[#D4AF37] font-semibold">{selectedVoiceName}</span>
         </div>
-        <p className="text-xs text-white/40 mb-3 -mt-1">Tap the play button to hear a real sample of each voice.</p>
-        <div className="flex gap-3 overflow-x-auto scrollbar-none -mx-4 px-4 pb-1 snap-x">
-          {VOICES.map((item) => {
-            const selected = voice === item.name;
-            const isPlaying = playingVoice === item.name;
+        <p className="text-xs text-white/40 mb-3 -mt-1">Choose from {ALL_PRESET_VOICES.length} pro voices — or add your own. Tap play to preview. 🔊</p>
+
+        {/* Category tabs */}
+        <div className="flex gap-2 overflow-x-auto scrollbar-none -mx-4 px-4 pb-1 mb-3">
+          {VOICE_CATEGORIES.map((cat) => {
+            const active = voiceCategory === cat;
             return (
-              <div
-                key={item.name}
-                onClick={() => setVoice(item.name)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setVoice(item.name); }}
-                className={`group relative shrink-0 w-32 sm:w-36 snap-start rounded-2xl overflow-hidden border-2 transition-all cursor-pointer ${
-                  selected ? 'border-[#D4AF37] gold-glow' : 'border-white/8 hover:border-white/20'
+              <button
+                key={cat}
+                onClick={() => setVoiceCategory(cat)}
+                className={`shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                  active ? 'gold-gradient text-black' : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/8'
                 }`}
               >
-                <div className="relative aspect-square bg-white/5">
-                  <Image src={item.img} alt={`${item.name} narration voice`} fill className="object-cover transition-transform duration-300 group-hover:scale-105" sizes="144px" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
-                  {selected && (
-                    <div className="absolute top-2 right-2 w-6 h-6 rounded-full gold-gradient flex items-center justify-center">
-                      <Check className="w-3.5 h-3.5 text-black" strokeWidth={3} />
-                    </div>
-                  )}
-                  {/* Play / pause preview button */}
-                  <button
-                    type="button"
-                    onClick={(e) => toggleVoicePreview(e, item)}
-                    aria-label={isPlaying ? `Pause ${item.name} voice sample` : `Play ${item.name} voice sample`}
-                    className={`absolute top-2 left-2 w-9 h-9 rounded-full flex items-center justify-center backdrop-blur-md transition-all ${
-                      isPlaying ? 'gold-gradient text-black' : 'bg-black/55 text-[#D4AF37] hover:bg-black/75 border border-[#D4AF37]/40'
-                    }`}
-                  >
-                    {isPlaying ? <Pause className="w-4 h-4" strokeWidth={2.5} /> : <Play className="w-4 h-4 ml-0.5" strokeWidth={2.5} />}
-                  </button>
-                  {isPlaying && (
-                    <div className="absolute bottom-12 left-2 flex items-end gap-0.5 h-4">
-                      {[0,1,2,3].map((b) => (
-                        <span key={b} className="w-1 rounded-full bg-[#D4AF37] animate-soundbar" style={{ animationDelay: `${b * 0.15}s` }} />
-                      ))}
-                    </div>
-                  )}
-                  <div className="absolute bottom-0 left-0 right-0 p-2.5 text-left">
-                    <p className={`text-sm font-bold leading-tight ${selected ? 'text-[#D4AF37]' : 'text-white'}`}>{item.name}</p>
-                    <p className="text-[10px] text-white/60 mt-0.5">{item.desc}</p>
-                  </div>
-                </div>
-                <audio
-                  ref={(el) => { audioRefs.current[item.name] = el; }}
-                  src={item.audio}
-                  preload="none"
-                  onEnded={() => setPlayingVoice((p) => (p === item.name ? null : p))}
-                />
-              </div>
+                {cat}
+              </button>
             );
           })}
+          <button
+            onClick={() => setVoiceCategory('My Voices')}
+            className={`shrink-0 flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${
+              voiceCategory === 'My Voices' ? 'purple-gradient text-white purple-glow' : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/8'
+            }`}
+          >
+            <Mic className="w-3.5 h-3.5" /> My Voices{customVoices.length > 0 ? ` (${customVoices.length})` : ''}
+          </button>
+        </div>
+
+        {/* Variation cards for preset categories */}
+        {voiceCategory !== 'My Voices' && (() => {
+          const activeCat = VOICE_LIBRARY.find((c) => c.category === voiceCategory);
+          if (!activeCat) return null;
+          return (
+            <div className="flex gap-3 overflow-x-auto scrollbar-none -mx-4 px-4 pb-1 snap-x">
+              {activeCat.variations.map((item) => {
+                const selected = voice === item.id;
+                const isPlaying = playingVoice === item.id;
+                return (
+                  <div
+                    key={item.id}
+                    onClick={() => setVoice(item.id)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setVoice(item.id); }}
+                    className={`group relative shrink-0 w-32 sm:w-36 snap-start rounded-2xl overflow-hidden border-2 transition-all cursor-pointer ${
+                      selected ? 'border-[#D4AF37] gold-glow' : 'border-white/8 hover:border-white/20'
+                    }`}
+                  >
+                    <div className="relative aspect-square bg-white/5">
+                      <Image src={activeCat.img} alt={`${item.name} narration voice`} fill className="object-cover transition-transform duration-300 group-hover:scale-105" sizes="144px" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
+                      {selected && (
+                        <div className="absolute top-2 right-2 w-6 h-6 rounded-full gold-gradient flex items-center justify-center">
+                          <Check className="w-3.5 h-3.5 text-black" strokeWidth={3} />
+                        </div>
+                      )}
+                      <button
+                        type="button"
+                        onClick={(e) => toggleVoicePreview(e, item.id)}
+                        aria-label={isPlaying ? `Pause ${item.name} voice sample` : `Play ${item.name} voice sample`}
+                        className={`absolute top-2 left-2 w-9 h-9 rounded-full flex items-center justify-center backdrop-blur-md transition-all ${
+                          isPlaying ? 'gold-gradient text-black' : 'bg-black/55 text-[#D4AF37] hover:bg-black/75 border border-[#D4AF37]/40'
+                        }`}
+                      >
+                        {isPlaying ? <Pause className="w-4 h-4" strokeWidth={2.5} /> : <Play className="w-4 h-4 ml-0.5" strokeWidth={2.5} />}
+                      </button>
+                      {isPlaying && (
+                        <div className="absolute bottom-12 left-2 flex items-end gap-0.5 h-4">
+                          {[0,1,2,3].map((b) => (
+                            <span key={b} className="w-1 rounded-full bg-[#D4AF37] animate-soundbar" style={{ animationDelay: `${b * 0.15}s` }} />
+                          ))}
+                        </div>
+                      )}
+                      <div className="absolute bottom-0 left-0 right-0 p-2.5 text-left">
+                        <p className={`text-sm font-bold leading-tight ${selected ? 'text-[#D4AF37]' : 'text-white'}`}>{item.name}</p>
+                        <p className="text-[10px] text-white/60 mt-0.5">{item.desc}</p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })()}
+
+        {/* My Voices tab */}
+        {voiceCategory === 'My Voices' && (
+          <div className="flex gap-3 overflow-x-auto scrollbar-none -mx-4 px-4 pb-1 snap-x">
+            {/* Add your own voice card */}
+            <button
+              type="button"
+              onClick={() => setShowVoiceModal(true)}
+              className="group shrink-0 w-32 sm:w-36 snap-start rounded-2xl overflow-hidden border-2 border-dashed border-[#D4AF37]/40 hover:border-[#D4AF37] bg-white/[0.02] hover:bg-[#D4AF37]/5 transition-all"
+            >
+              <div className="aspect-square flex flex-col items-center justify-center gap-2 p-3 text-center">
+                <span className="w-11 h-11 rounded-full gold-gradient flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Plus className="w-5 h-5 text-black" strokeWidth={3} />
+                </span>
+                <p className="text-xs font-bold text-[#D4AF37] leading-tight">Add Your Own Voice</p>
+                <p className="text-[10px] text-white/50 leading-tight">Record or upload</p>
+              </div>
+            </button>
+
+            {customVoices.map((item) => {
+              const selected = voice === item.id;
+              const isPlaying = playingVoice === item.id;
+              return (
+                <div
+                  key={item.id}
+                  onClick={() => setVoice(item.id)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setVoice(item.id); }}
+                  className={`group relative shrink-0 w-32 sm:w-36 snap-start rounded-2xl overflow-hidden border-2 transition-all cursor-pointer ${
+                    selected ? 'border-[#D4AF37] gold-glow' : 'border-white/8 hover:border-white/20'
+                  }`}
+                >
+                  <div className="relative aspect-square bg-gradient-to-br from-[#7B2FBE]/40 to-[#0A0A0A] flex items-center justify-center">
+                    <Mic className="w-10 h-10 text-white/15" />
+                    {selected && (
+                      <div className="absolute top-2 right-2 w-6 h-6 rounded-full gold-gradient flex items-center justify-center">
+                        <Check className="w-3.5 h-3.5 text-black" strokeWidth={3} />
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={(e) => toggleVoicePreview(e, item.id)}
+                      aria-label={isPlaying ? `Pause ${item.name}` : `Play ${item.name}`}
+                      className={`absolute top-2 left-2 w-9 h-9 rounded-full flex items-center justify-center backdrop-blur-md transition-all ${
+                        isPlaying ? 'gold-gradient text-black' : 'bg-black/55 text-[#D4AF37] hover:bg-black/75 border border-[#D4AF37]/40'
+                      }`}
+                    >
+                      {isPlaying ? <Pause className="w-4 h-4" strokeWidth={2.5} /> : <Play className="w-4 h-4 ml-0.5" strokeWidth={2.5} />}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => deleteCustomVoice(e, item.id)}
+                      aria-label={`Delete ${item.name}`}
+                      className="absolute bottom-2 right-2 w-8 h-8 rounded-full flex items-center justify-center bg-black/55 text-red-400 hover:bg-red-500/30 hover:text-red-300 backdrop-blur-md border border-white/10 transition-all"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" strokeWidth={2.5} />
+                    </button>
+                    {isPlaying && (
+                      <div className="absolute bottom-12 left-2 flex items-end gap-0.5 h-4">
+                        {[0,1,2,3].map((b) => (
+                          <span key={b} className="w-1 rounded-full bg-[#D4AF37] animate-soundbar" style={{ animationDelay: `${b * 0.15}s` }} />
+                        ))}
+                      </div>
+                    )}
+                    <div className="absolute bottom-0 left-0 right-0 p-2.5 pr-10 text-left bg-gradient-to-t from-black/85 to-transparent">
+                      <p className={`text-sm font-bold leading-tight truncate ${selected ? 'text-[#D4AF37]' : 'text-white'}`}>{item.name}</p>
+                      <p className="text-[10px] text-white/60 mt-0.5 capitalize">{item.source === 'record' ? 'Recorded' : 'Uploaded'}</p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Hidden audio elements (rendered once so playback survives tab switches) */}
+        <div className="hidden">
+          {ALL_PRESET_VOICES.map((v) => (
+            <audio key={v.id} ref={(el) => { audioRefs.current[v.id] = el; }} src={v.audio} preload="none" onEnded={() => setPlayingVoice((p) => (p === v.id ? null : p))} />
+          ))}
+          {customVoices.map((v) => (
+            <audio key={v.id} ref={(el) => { audioRefs.current[v.id] = el; }} src={v.audio} preload="none" onEnded={() => setPlayingVoice((p) => (p === v.id ? null : p))} />
+          ))}
         </div>
       </section>
 
@@ -484,6 +667,12 @@ export default function DashboardPage() {
         tier={quota?.tier ?? 'free'}
         reelsUsed={quota?.reelsUsed ?? 0}
         reelsCap={quota?.reelsCap ?? 0}
+      />
+      {/* Add Your Own Voice Modal */}
+      <AddVoiceModal
+        open={showVoiceModal}
+        onClose={() => setShowVoiceModal(false)}
+        onAdded={(v) => { setCustomVoices((prev) => [v, ...prev]); setVoice(v.id); setVoiceCategory('My Voices'); }}
       />
     </div>
   );
