@@ -1,11 +1,46 @@
 import { prisma } from '@/lib/prisma';
-import { getScriptProvider, getVoiceProvider, getMusicProvider, getVideoProvider, getRenderProvider } from '@/lib/providers';
+import { getScriptProvider, getImageProvider, getVoiceProvider, getMusicProvider } from '@/lib/providers';
+import { buildTemplateScript, fallbackSceneImages } from '@/lib/providers/fallback';
+import { estimateTimestamps } from '@/lib/providers/elevenlabs-voice';
+import { compositeReel } from '@/lib/compositor';
+import { ensurePublicLocalAsset } from '@/lib/media-storage';
 import { resolveReelAssets } from '@/lib/reel-assets';
+import type { ScriptOutput, WordTimestamp } from '@/lib/providers/types';
 
-const STEPS = ['script', 'voice', 'music', 'visuals', 'captions', 'rendering'] as const;
-const STEP_PCT: Record<string, number> = { script: 15, voice: 35, music: 50, visuals: 70, captions: 85, rendering: 100 };
+// Progress milestones for each pipeline stage.
+const STEP_PCT: Record<string, number> = {
+  script: 12,
+  visuals: 45,
+  voice: 60,
+  music: 70,
+  rendering: 90,
+  complete: 100,
+};
+
+/**
+ * Greedily map a flat word-timestamp list onto the ordered scene texts and
+ * derive a real per-scene duration from the actual narration timing.
+ */
+function sceneDurationsFromWords(lineTexts: string[], words: WordTimestamp[], fallback: number[]): number[] {
+  if (!words || words.length === 0) return fallback;
+  const out: number[] = [];
+  let cursor = 0;
+  for (let s = 0; s < lineTexts.length; s++) {
+    const count = (lineTexts[s] || '').trim().split(/\s+/).filter(Boolean).length;
+    const slice = words.slice(cursor, cursor + count);
+    cursor += count;
+    if (slice.length === 0) { out.push(fallback[s] ?? 4); continue; }
+    const start = slice[0].start;
+    const end = slice[slice.length - 1].end;
+    // Add a little breathing room before/after the line.
+    const dur = Math.max(2.4, (end - start) + 0.7);
+    out.push(+dur.toFixed(2));
+  }
+  return out;
+}
 
 export async function runGenerationPipeline(jobId: string, reelId: string, userId: string): Promise<void> {
+  const costBreakdown: Record<string, number> = {};
   try {
     const reel = await prisma.reel.findUnique({ where: { id: reelId } });
     if (!reel) throw new Error('Reel not found');
@@ -13,13 +48,23 @@ export async function runGenerationPipeline(jobId: string, reelId: string, userI
     const sub = await prisma.subscription.findUnique({ where: { userId } });
     const tier = sub?.tier ?? 'free';
     const watermark = tier === 'free';
-    const costBreakdown: Record<string, number> = {};
 
-    // Step 1: Script
+    // ----------------------------------------------------------------
+    // STEP 1 — Script (LLM, with template fallback)
+    // ----------------------------------------------------------------
     await updateJob(jobId, 'script', STEP_PCT['script']);
-    const scriptProvider = getScriptProvider();
-    costBreakdown['script_cost'] = scriptProvider.estimateCost({ prompt: reel.prompt, platform: reel.platform, style: reel.style });
-    const script = await scriptProvider.generate({ prompt: reel.prompt, platform: reel.platform, style: reel.style });
+    let script: ScriptOutput;
+    let scriptProviderName = 'template';
+    try {
+      const sp = getScriptProvider();
+      script = await sp.generate({ prompt: reel.prompt, platform: reel.platform, style: reel.style, mood: reel.mood });
+      scriptProviderName = sp.getName();
+      costBreakdown['script_cost'] = sp.estimateCost({ prompt: reel.prompt, platform: reel.platform, style: reel.style });
+    } catch (e) {
+      console.error('[pipeline] LLM script failed, using template fallback:', (e as any)?.message);
+      script = buildTemplateScript({ prompt: reel.prompt, platform: reel.platform, style: reel.style, mood: reel.mood });
+      costBreakdown['script_cost'] = 0;
+    }
 
     await prisma.reel.update({
       where: { id: reelId },
@@ -32,51 +77,138 @@ export async function runGenerationPipeline(jobId: string, reelId: string, userI
       },
     });
 
-    // Step 2: Voice
-    await updateJob(jobId, 'voice', STEP_PCT['voice']);
-    const voiceProvider = getVoiceProvider();
-    costBreakdown['voice_cost'] = voiceProvider.estimateCost({ scriptText: script.rawText, voicePreset: reel.voice });
-    const voice = await voiceProvider.generate({ scriptText: script.rawText, voicePreset: reel.voice });
-    await prisma.reel.update({ where: { id: reelId }, data: { audioUrl: voice.audioUrl } });
+    const lineTexts = script.scenes.map((s) => s.text);
+    const sceneCount = script.scenes.length;
 
-    // Step 3: Music
-    await updateJob(jobId, 'music', STEP_PCT['music']);
-    const musicProvider = getMusicProvider();
-    costBreakdown['music_cost'] = musicProvider.estimateCost({ mood: reel.mood, durationSec: voice.durationSec });
-    const music = await musicProvider.generate({ mood: reel.mood, durationSec: voice.durationSec });
-    await prisma.reel.update({ where: { id: reelId }, data: { musicUrl: music.musicUrl } });
-
-    // Step 4: Visuals
+    // ----------------------------------------------------------------
+    // STEP 2 — Cinematic visuals (AI images, with bundled-still fallback)
+    // ----------------------------------------------------------------
     await updateJob(jobId, 'visuals', STEP_PCT['visuals']);
-    const videoProvider = getVideoProvider();
-    const themes = script.fullScript?.map((l: any) => l?.text ?? '').slice(0, 3) ?? [];
-    costBreakdown['image_cost'] = videoProvider.estimateCost({ style: reel.style, mood: reel.mood, themes });
-    const visuals = await videoProvider.generate({ style: reel.style, mood: reel.mood, themes });
-    await prisma.reel.update({ where: { id: reelId }, data: { thumbnailUrl: visuals.thumbnailUrl } });
+    let sceneImageUrls: string[] = [];
+    let imageProviderName = 'fallback-stills';
+    try {
+      const ip = getImageProvider();
+      const imgs = await ip.generate({ scenes: script.scenes.map((s) => ({ imagePrompt: s.imagePrompt })), style: reel.style, mood: reel.mood });
+      sceneImageUrls = imgs.sceneImageUrls.filter(Boolean);
+      imageProviderName = imgs.provider;
+      costBreakdown['image_cost'] = ip.estimateCost({ scenes: script.scenes.map((s) => ({ imagePrompt: s.imagePrompt })), style: reel.style, mood: reel.mood });
+      if (sceneImageUrls.length === 0) throw new Error('no images returned');
+    } catch (e) {
+      console.error('[pipeline] AI image generation failed, using bundled stills:', (e as any)?.message);
+      sceneImageUrls = await fallbackSceneImages(reel.style, sceneCount);
+      imageProviderName = 'fallback-stills';
+      costBreakdown['image_cost'] = 0;
+    }
+    // Ensure one image per scene.
+    if (sceneImageUrls.length < sceneCount) {
+      const base = sceneImageUrls.length ? sceneImageUrls : await fallbackSceneImages(reel.style, sceneCount);
+      sceneImageUrls = Array.from({ length: sceneCount }, (_, i) => base[i % base.length]);
+    }
+    const thumbnailUrl = sceneImageUrls[0];
+    await prisma.reel.update({ where: { id: reelId }, data: { thumbnailUrl } });
 
-    // Step 5: Captions
-    await updateJob(jobId, 'captions', STEP_PCT['captions']);
-    await new Promise(r => setTimeout(r, 500)); // Simulated caption sync
+    // ----------------------------------------------------------------
+    // STEP 3 — Voiceover (ElevenLabs; graceful null when no key)
+    // ----------------------------------------------------------------
+    await updateJob(jobId, 'voice', STEP_PCT['voice']);
+    let voiceUrl: string | null = null;
+    let words: WordTimestamp[] = [];
+    let voiceProviderName = 'none';
+    try {
+      const vp = getVoiceProvider();
+      const v = await vp.generate({ scriptText: script.rawText, voicePreset: reel.voice, lines: script.fullScript });
+      voiceUrl = v.audioUrl;
+      words = v.timestamps;
+      voiceProviderName = v.provider;
+      costBreakdown['voice_cost'] = voiceUrl ? vp.estimateCost({ scriptText: script.rawText, voicePreset: reel.voice }) : 0;
+    } catch (e) {
+      console.error('[pipeline] Voice generation failed, continuing music-only:', (e as any)?.message);
+      const est = estimateTimestamps(script.fullScript, script.rawText);
+      words = est.timestamps;
+      costBreakdown['voice_cost'] = 0;
+    }
+    if (!words || words.length === 0) {
+      words = estimateTimestamps(script.fullScript, script.rawText).timestamps;
+    }
+    await prisma.reel.update({ where: { id: reelId }, data: { audioUrl: voiceUrl } });
 
-    // Step 6: Render
+    // Per-scene durations: lock to real narration timing when we have a voice.
+    const fallbackDurs = script.scenes.map((s) => Math.max(2.4, s.endTime - s.startTime));
+    const sceneDurations = voiceUrl
+      ? sceneDurationsFromWords(lineTexts, words, fallbackDurs)
+      : fallbackDurs;
+
+    // ----------------------------------------------------------------
+    // STEP 4 — Music
+    // ----------------------------------------------------------------
+    await updateJob(jobId, 'music', STEP_PCT['music']);
+    const totalDur = sceneDurations.reduce((a, b) => a + b, 0);
+    let musicUrlLocal = resolveReelAssets({ style: reel.style, mood: reel.mood, voice: reel.voice }).musicUrl;
+    let musicPublicUrl: string | null = null;
+    try {
+      const mp = getMusicProvider();
+      const m = await mp.generate({ mood: reel.mood, durationSec: totalDur });
+      musicUrlLocal = m.musicUrl;
+      musicPublicUrl = m.publicMusicUrl;
+      costBreakdown['music_cost'] = mp.estimateCost({ mood: reel.mood, durationSec: totalDur });
+    } catch (e) {
+      console.error('[pipeline] Music provider failed, using bundled default:', (e as any)?.message);
+      try { musicPublicUrl = await ensurePublicLocalAsset(musicUrlLocal, 'audio/mpeg'); } catch { musicPublicUrl = null; }
+      costBreakdown['music_cost'] = 0;
+    }
+    await prisma.reel.update({ where: { id: reelId }, data: { musicUrl: musicUrlLocal } });
+
+    // ----------------------------------------------------------------
+    // STEP 5 — Render / composite the final reel
+    // ----------------------------------------------------------------
     await updateJob(jobId, 'rendering', STEP_PCT['rendering']);
-    const renderProvider = getRenderProvider();
-    costBreakdown['render_cost'] = renderProvider.estimateCost({ voiceover: voice, music, visuals, timestamps: voice.timestamps, watermark });
+    costBreakdown['render_cost'] = 0.02;
     costBreakdown['storage_cost'] = 0.01;
-    const render = await renderProvider.generate({ voiceover: voice, music, visuals, timestamps: voice.timestamps, watermark });
 
-    const totalCost = Object.values(costBreakdown).reduce((a: number, b: number) => a + b, 0);
+    let finalVideoUrl: string;
+    let finalDuration = totalDur;
+    let composited = false;
+    try {
+      const result = await compositeReel({
+        sceneImageUrls,
+        sceneDurations,
+        lineTexts,
+        words,
+        voiceUrl,
+        musicUrl: musicPublicUrl,
+        watermark,
+      });
+      finalVideoUrl = result.videoUrl;
+      finalDuration = result.durationSec;
+      composited = true;
+    } catch (e) {
+      console.error('[pipeline] Compositing failed, falling back to stock background:', (e as any)?.message);
+      const assets = resolveReelAssets({ style: reel.style, mood: reel.mood, voice: reel.voice });
+      finalVideoUrl = assets.videoUrl;
+      composited = false;
+    }
 
-    // Resolve real, bundled media assets so the finished reel is fully playable.
-    const assets = resolveReelAssets({ style: reel.style, mood: reel.mood, voice: reel.voice });
+    const totalCost = Object.values(costBreakdown).reduce((a, b) => a + b, 0);
 
     await prisma.reel.update({
       where: { id: reelId },
       data: {
-        videoUrl: assets.videoUrl,
-        musicUrl: assets.musicUrl,
-        thumbnailUrl: assets.posterUrl,
-        audioUrl: assets.voiceSampleUrl ?? render.videoUrl,
+        videoUrl: finalVideoUrl,
+        thumbnailUrl,
+        audioUrl: voiceUrl,
+        musicUrl: musicUrlLocal,
+        durationSec: +finalDuration.toFixed(2),
+        scenesJson: {
+          composited,
+          scriptProvider: scriptProviderName,
+          imageProvider: imageProviderName,
+          voiceProvider: voiceProviderName,
+          scenes: script.scenes.map((s, i) => ({
+            text: s.text,
+            imageUrl: sceneImageUrls[i] ?? null,
+            durationSec: sceneDurations[i] ?? null,
+          })),
+        } as any,
         status: 'ready',
         watermarked: watermark,
         costBreakdown,
@@ -89,6 +221,7 @@ export async function runGenerationPipeline(jobId: string, reelId: string, userI
       data: { status: 'complete', currentStep: 'complete', progressPct: 100, completedAt: new Date() },
     });
   } catch (err: any) {
+    console.error('[pipeline] fatal error:', err?.message, err?.stack);
     await prisma.generationJob.update({
       where: { id: jobId },
       data: { status: 'failed', errorMessage: err?.message ?? 'Unknown error' },
@@ -104,7 +237,5 @@ async function updateJob(jobId: string, step: string, pct: number) {
   await prisma.generationJob.update({
     where: { id: jobId },
     data: { status: step, currentStep: step, progressPct: pct, startedAt: new Date() },
-  });
-  // Simulate processing time
-  await new Promise(r => setTimeout(r, 1500 + Math.random() * 1000));
+  }).catch(() => {});
 }

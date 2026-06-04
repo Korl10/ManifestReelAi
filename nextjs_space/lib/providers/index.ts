@@ -1,29 +1,33 @@
-import { MockScriptProvider } from './mock-script';
-import { MockVoiceProvider } from './mock-voice';
-import { MockMusicProvider } from './mock-music';
-import { MockVideoProvider } from './mock-video';
-import { MockRenderProvider } from './mock-render';
-import type { Provider, ScriptInput, ScriptOutput, VoiceInput, VoiceOutput, MusicInput, MusicOutput, VideoInput, VideoOutput, RenderInput, RenderOutput } from './types';
+import { LLMScriptProvider } from './llm-script';
+import { AbacusImageProvider } from './image-gen';
+import { ElevenLabsVoiceProvider } from './elevenlabs-voice';
+import { LibraryMusicProvider } from './library-music';
+import type {
+  Provider,
+  ScriptInput, ScriptOutput,
+  ImageInput, ImageOutput,
+  VoiceInput, VoiceOutput,
+  MusicInput, MusicOutput,
+} from './types';
 
+/** Real LLM-powered manifestation script writer (with template fallback in the pipeline). */
 export function getScriptProvider(): Provider<ScriptInput, ScriptOutput> {
-  // Future: check process.env.OPENAI_API_KEY and return real provider
-  return new MockScriptProvider();
+  return new LLMScriptProvider();
 }
 
+/** Cinematic AI image generation (with bundled-still fallback in the pipeline). */
+export function getImageProvider(): Provider<ImageInput, ImageOutput> {
+  return new AbacusImageProvider();
+}
+
+/** Premium voiceover. Gracefully returns audioUrl=null when no ELEVENLABS_API_KEY is set. */
 export function getVoiceProvider(): Provider<VoiceInput, VoiceOutput> {
-  return new MockVoiceProvider();
+  return new ElevenLabsVoiceProvider();
 }
 
+/** Curated royalty-free ambient / solfeggio music library. */
 export function getMusicProvider(): Provider<MusicInput, MusicOutput> {
-  return new MockMusicProvider();
-}
-
-export function getVideoProvider(): Provider<VideoInput, VideoOutput> {
-  return new MockVideoProvider();
-}
-
-export function getRenderProvider(): Provider<RenderInput, RenderOutput> {
-  return new MockRenderProvider();
+  return new LibraryMusicProvider();
 }
 
 export * from './types';

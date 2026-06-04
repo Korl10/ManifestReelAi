@@ -113,6 +113,8 @@ export default function ReelPreviewPage() {
   );
 
   const scriptJson = reel?.scriptJson as any;
+  const scenesJson = reel?.scenesJson as any;
+  const isComposited = !!scenesJson?.composited;
   const costBreakdown = reel?.costBreakdown as any;
 
   const TABS = [
@@ -145,6 +147,7 @@ export default function ReelPreviewPage() {
             script={scriptJson?.fullScript ?? []}
             watermarked={reel?.watermarked}
             title={reel?.title}
+            composited={isComposited}
           />
           {reel?.watermarked && (
             <p className="mt-2 text-center text-[10px] text-[#D4AF37]/80">Watermarked • Upgrade to remove</p>

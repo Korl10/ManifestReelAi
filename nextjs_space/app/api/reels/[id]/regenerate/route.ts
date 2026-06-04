@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
 import { getScriptProvider, getVoiceProvider, getMusicProvider } from '@/lib/providers';
+import { buildTemplateScript } from '@/lib/providers/fallback';
 
 export async function POST(request: Request, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
@@ -15,8 +16,13 @@ export async function POST(request: Request, { params }: { params: { id: string 
   if (!reel) return NextResponse.json({ error: 'Reel not found' }, { status: 404 });
 
   if (section === 'script') {
-    const provider = getScriptProvider();
-    const result = await provider.generate({ prompt: reel.prompt, platform: reel.platform, style: reel.style });
+    let result;
+    try {
+      const provider = getScriptProvider();
+      result = await provider.generate({ prompt: reel.prompt, platform: reel.platform, style: reel.style, mood: reel.mood });
+    } catch (e) {
+      result = buildTemplateScript({ prompt: reel.prompt, platform: reel.platform, style: reel.style, mood: reel.mood });
+    }
     await prisma.reel.update({
       where: { id: params.id },
       data: { scriptJson: result as any, caption: result.caption, description: result.description, hashtags: result.hashtags },

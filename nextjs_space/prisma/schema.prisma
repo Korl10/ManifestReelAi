@@ -92,6 +92,8 @@ model Reel {
   mood          String
   title         String?
   scriptJson    Json?    @map("script_json")
+  scenesJson    Json?    @map("scenes_json")
+  durationSec   Float?   @map("duration_sec")
   caption       String?
   description   String?
   hashtags      String[]

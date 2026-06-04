@@ -8,6 +8,7 @@ export interface ScriptInput {
   prompt: string;
   platform: string;
   style: string;
+  mood?: string;
 }
 
 export interface ScriptLine {
@@ -16,19 +17,29 @@ export interface ScriptLine {
   endTime: number;
 }
 
+export interface ScriptScene {
+  text: string;
+  imagePrompt: string;
+  startTime: number;
+  endTime: number;
+}
+
 export interface ScriptOutput {
   hook: string;
   fullScript: ScriptLine[];
+  scenes: ScriptScene[];
   caption: string;
   description: string;
   hashtags: string[];
   suggestedTitle: string;
   rawText: string;
+  estimatedDurationSec: number;
 }
 
 export interface VoiceInput {
   scriptText: string;
   voicePreset: string;
+  lines?: ScriptLine[];
 }
 
 export interface WordTimestamp {
@@ -38,9 +49,22 @@ export interface WordTimestamp {
 }
 
 export interface VoiceOutput {
-  audioUrl: string;
+  audioUrl: string | null;
   timestamps: WordTimestamp[];
   durationSec: number;
+  provider: string;
+}
+
+export interface ImageInput {
+  scenes: { imagePrompt: string }[];
+  style: string;
+  mood: string;
+}
+
+export interface ImageOutput {
+  sceneImageUrls: string[];
+  thumbnailUrl: string;
+  provider: string;
 }
 
 export interface MusicInput {
@@ -50,9 +74,12 @@ export interface MusicInput {
 
 export interface MusicOutput {
   musicUrl: string;
+  publicMusicUrl: string | null;
   durationSec: number;
+  provider: string;
 }
 
+// Legacy video provider types kept for backward compatibility.
 export interface VideoInput {
   style: string;
   mood: string;
