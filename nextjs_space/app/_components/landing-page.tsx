@@ -217,9 +217,9 @@ const FEATURES = [
 ];
 
 const TIERS = [
-  { name: '3-Day Free Trial', price: '$0', period: 'for 3 days', features: ['1 reel included', 'All styles & moods', 'Watermarked export', 'No card required to browse'], cta: 'Start Free Trial', tier: 'free', popular: false, badge: '' },
-  { name: 'Pro', price: '$19.99', period: '/month', features: ['30 reels/month', '3-day free trial', 'HD exports, no watermark', 'All voice presets', 'Priority generation', 'Buy extra coin bundles'], cta: 'Start Pro Trial', tier: 'pro', popular: true, badge: '' },
-  { name: 'Premium', price: '$49.99', period: '/month', features: ['60 reels/month', '3-day free trial', '4K exports, no watermark', 'AI video backgrounds', 'Custom branding', 'Priority support', 'Schedule & auto-post'], cta: 'Start Premium Trial', tier: 'premium', popular: false, badge: 'Save 50% vs 2× Pro' },
+  { name: '3-Day Free Trial', monthly: 0, features: ['1 reel included', 'All styles & moods', 'Watermarked export', 'No card required to browse'], cta: 'Start Free Trial', tier: 'free', popular: false },
+  { name: 'Pro', monthly: 19.99, features: ['30 reels/month', '3-day free trial', 'HD exports, no watermark', 'All voice presets', 'Priority generation', 'Buy extra coin bundles'], cta: 'Start Pro Trial', tier: 'pro', popular: true },
+  { name: 'Premium', monthly: 49.99, features: ['60 reels/month', '3-day free trial', '4K exports, no watermark', 'AI video backgrounds', 'Custom branding', 'Priority support', 'Schedule & auto-post'], cta: 'Start Premium Trial', tier: 'premium', popular: false },
 ];
 
 const TESTIMONIALS = [
@@ -238,6 +238,7 @@ export function LandingPage() {
   const { data: session } = useSession() || {};
   const router = useRouter();
   const [mobileMenu, setMobileMenu] = useState(false);
+  const [billing, setBilling] = useState<'monthly' | 'annual'>('annual');
 
   const handlePricing = async (tier: string) => {
     if (!session) {
@@ -252,7 +253,7 @@ export function LandingPage() {
       const res = await fetch('/api/payments/create-checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tier }),
+        body: JSON.stringify({ tier, billing }),
       });
       const data = await res.json();
       if (data?.url) {
@@ -409,10 +410,30 @@ export function LandingPage() {
       {/* Pricing */}
       <section id="pricing" className="py-20 md:py-32 bg-white/[0.01]">
         <div className="max-w-[1200px] mx-auto px-4">
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} className="text-center mb-16">
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} className="text-center mb-10">
             <h2 className="font-display text-3xl md:text-4xl font-bold tracking-tight mb-4">Simple, Transparent Pricing</h2>
             <p className="text-white/50 max-w-xl mx-auto">Start free. Upgrade when you're ready to scale your manifestation content.</p>
           </motion.div>
+
+          {/* Billing toggle */}
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} className="flex justify-center mb-12">
+            <div className="inline-flex items-center gap-1 p-1 rounded-full bg-white/[0.04] border border-white/10">
+              <button
+                onClick={() => setBilling('monthly')}
+                className={`px-5 py-2 rounded-full text-sm font-semibold transition-all ${billing === 'monthly' ? 'bg-white text-black' : 'text-white/60 hover:text-white'}`}
+              >
+                Monthly
+              </button>
+              <button
+                onClick={() => setBilling('annual')}
+                className={`px-5 py-2 rounded-full text-sm font-semibold transition-all flex items-center gap-2 ${billing === 'annual' ? 'bg-white text-black' : 'text-white/60 hover:text-white'}`}
+              >
+                Annually
+                <span className="text-[11px] font-bold text-[#D4AF37]">50% OFF</span>
+              </button>
+            </div>
+          </motion.div>
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
             {TIERS.map((t: any, i: number) => (
               <motion.div
@@ -432,14 +453,35 @@ export function LandingPage() {
                   </div>
                 )}
                 <div className="mb-6">
-                  <div className="flex items-center gap-2 mb-1">
+                  <div className="flex items-center gap-2 mb-2">
                     <h3 className="font-display text-lg font-semibold">{t?.name ?? ''}</h3>
-                    {t?.badge && <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 text-[10px] font-bold">{t.badge}</span>}
+                    {billing === 'annual' && t?.monthly > 0 && (
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 text-[10px] font-bold">50% OFF</span>
+                    )}
                   </div>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-3xl font-bold text-[#D4AF37]">{t?.price ?? ''}</span>
-                    <span className="text-sm text-white/40">{t?.period ?? ''}</span>
-                  </div>
+                  {t?.monthly === 0 ? (
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-3xl font-bold text-[#D4AF37]">$0</span>
+                      <span className="text-sm text-white/40">for 3 days</span>
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="flex items-baseline gap-1.5">
+                        {billing === 'annual' && (
+                          <span className="text-lg font-semibold text-white/30 line-through">${t.monthly}</span>
+                        )}
+                        <span className="text-3xl font-bold text-[#D4AF37]">
+                          ${billing === 'annual' ? (t.monthly / 2).toFixed(2) : t.monthly}
+                        </span>
+                        <span className="text-sm text-white/40">/mo</span>
+                      </div>
+                      <p className="text-xs text-white/40 mt-1">
+                        {billing === 'annual'
+                          ? `Billed $${(t.monthly * 6).toFixed(2)} yearly`
+                          : 'Billed monthly'}
+                      </p>
+                    </div>
+                  )}
                 </div>
                 <ul className="space-y-3 mb-6">
                   {(t?.features ?? []).map((f: string) => (

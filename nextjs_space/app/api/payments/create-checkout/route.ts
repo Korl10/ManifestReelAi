@@ -12,6 +12,7 @@ export async function POST(request: Request) {
   const userId = (session.user as any)?.id;
   const body = await request.json();
   const { tier, useIntro } = body ?? {};
+  const billing = body?.billing === 'annual' ? 'annual' : 'monthly';
 
   if (!tier || !['pro', 'premium'].includes(tier)) {
     return NextResponse.json({ error: 'Invalid tier' }, { status: 400 });
@@ -37,9 +38,13 @@ export async function POST(request: Request) {
     });
   }
 
-  // Determine price and trial
-  const isIntro = useIntro && !sub?.introUsed;
-  const unitAmount = isIntro ? plan.introMonthlyPrice : plan.monthlyPrice;
+  // Determine price and trial. Intro offers only apply to monthly billing.
+  const isAnnual = billing === 'annual';
+  const isIntro = !isAnnual && useIntro && !sub?.introUsed;
+  const interval = isAnnual ? ('year' as const) : ('month' as const);
+  const unitAmount = isAnnual
+    ? plan.annualPrice
+    : (isIntro ? plan.introMonthlyPrice : plan.monthlyPrice);
   const showTrial = !sub?.trialUsed;
 
   // Build checkout session params
@@ -51,18 +56,18 @@ export async function POST(request: Request) {
         currency: 'usd',
         product_data: {
           name: `ManifestReel AI ${plan.name}`,
-          description: `${plan.reelsCap} reels/month${isIntro ? ' (introductory offer)' : ''}`,
+          description: `${plan.reelsCap} reels/month • billed ${isAnnual ? 'annually (50% off)' : 'monthly'}${isIntro ? ' (introductory offer)' : ''}`,
         },
         unit_amount: unitAmount,
-        recurring: { interval: 'month' as const },
+        recurring: { interval },
       },
       quantity: 1,
     }],
     success_url: `${origin}/dashboard?upgraded=${tier}`,
     cancel_url: `${origin}/dashboard/settings`,
-    metadata: { userId, tier, isIntro: isIntro ? 'true' : 'false' },
+    metadata: { userId, tier, isIntro: isIntro ? 'true' : 'false', billing },
     subscription_data: {
-      metadata: { userId, tier, isIntro: isIntro ? 'true' : 'false' },
+      metadata: { userId, tier, isIntro: isIntro ? 'true' : 'false', billing },
     },
   };
 

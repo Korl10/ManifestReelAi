@@ -14,6 +14,7 @@ export default function SettingsPage() {
   const [upgrading, setUpgrading] = useState('');
   const [portalLoading, setPortalLoading] = useState(false);
   const [buyingCoins, setBuyingCoins] = useState('');
+  const [billing, setBilling] = useState<'monthly' | 'annual'>('annual');
 
   useEffect(() => {
     if (!session) return;
@@ -30,7 +31,7 @@ export default function SettingsPage() {
       const res = await fetch('/api/payments/create-checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tier }),
+        body: JSON.stringify({ tier, billing }),
       });
       const data = await res.json();
       if (!res.ok) { toast.error(data?.error ?? 'Upgrade failed'); return; }
@@ -136,15 +137,29 @@ export default function SettingsPage() {
 
             {/* Upgrade buttons */}
             {currentTier !== 'premium' && (
-              <div className="flex gap-2">
-                {currentTier === 'free' && (
-                  <button onClick={() => handleUpgrade('pro')} disabled={!!upgrading} className="flex-1 py-2.5 rounded-lg gold-gradient text-black font-semibold text-sm flex items-center justify-center gap-2 hover:opacity-90 disabled:opacity-50">
-                    {upgrading === 'pro' ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Upgrade to Pro — $19.99/mo'}
+              <div className="space-y-3">
+                {/* Billing toggle */}
+                <div className="flex justify-center">
+                  <div className="inline-flex items-center gap-1 p-1 rounded-full bg-white/[0.04] border border-white/10">
+                    <button onClick={() => setBilling('monthly')} className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${billing === 'monthly' ? 'bg-white text-black' : 'text-white/60 hover:text-white'}`}>Monthly</button>
+                    <button onClick={() => setBilling('annual')} className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all flex items-center gap-1.5 ${billing === 'annual' ? 'bg-white text-black' : 'text-white/60 hover:text-white'}`}>
+                      Annually <span className="text-[10px] font-bold text-[#D4AF37]">50% OFF</span>
+                    </button>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  {currentTier === 'free' && (
+                    <button onClick={() => handleUpgrade('pro')} disabled={!!upgrading} className="flex-1 py-2.5 rounded-lg gold-gradient text-black font-semibold text-sm flex items-center justify-center gap-2 hover:opacity-90 disabled:opacity-50">
+                      {upgrading === 'pro' ? <Loader2 className="w-4 h-4 animate-spin" /> : `Pro — $${billing === 'annual' ? '9.99' : '19.99'}/mo`}
+                    </button>
+                  )}
+                  <button onClick={() => handleUpgrade('premium')} disabled={!!upgrading} className="flex-1 py-2.5 rounded-lg bg-[#7B2FBE]/20 border border-[#7B2FBE]/30 text-[#A855F7] font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#7B2FBE]/30 disabled:opacity-50">
+                    {upgrading === 'premium' ? <Loader2 className="w-4 h-4 animate-spin" /> : `Premium — $${billing === 'annual' ? '24.99' : '49.99'}/mo`}
                   </button>
+                </div>
+                {billing === 'annual' && (
+                  <p className="text-[11px] text-center text-white/40">Billed annually — save 50% vs monthly</p>
                 )}
-                <button onClick={() => handleUpgrade('premium')} disabled={!!upgrading} className="flex-1 py-2.5 rounded-lg bg-[#7B2FBE]/20 border border-[#7B2FBE]/30 text-[#A855F7] font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#7B2FBE]/30 disabled:opacity-50">
-                  {upgrading === 'premium' ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Premium — $49.99/mo'}
-                </button>
               </div>
             )}
 

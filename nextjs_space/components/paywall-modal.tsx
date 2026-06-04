@@ -25,6 +25,7 @@ export function PaywallModal({ open, onClose, tier, reelsUsed, reelsCap }: Paywa
   const [loading, setLoading] = useState<string | null>(null);
   const [showDiscount, setShowDiscount] = useState(false);
   const [dismissed, setDismissed] = useState(false);
+  const [billing, setBilling] = useState<'monthly' | 'annual'>('annual');
 
   useEffect(() => {
     if (open) {
@@ -52,7 +53,7 @@ export function PaywallModal({ open, onClose, tier, reelsUsed, reelsCap }: Paywa
       const res = await fetch('/api/payments/create-checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tier: targetTier, useIntro }),
+        body: JSON.stringify({ tier: targetTier, useIntro, billing: useIntro ? 'monthly' : billing }),
       });
       const data = await res.json();
       if (data?.url) {
@@ -170,6 +171,24 @@ export function PaywallModal({ open, onClose, tier, reelsUsed, reelsCap }: Paywa
             {/* ── UPGRADE OPTIONS ── */}
             {(!isPaid || isProOnly) && !showDiscount && (
               <div className="space-y-3">
+                {/* Billing toggle */}
+                <div className="flex justify-center">
+                  <div className="inline-flex items-center gap-1 p-1 rounded-full bg-white/[0.04] border border-white/10">
+                    <button
+                      onClick={() => setBilling('monthly')}
+                      className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${billing === 'monthly' ? 'bg-white text-black' : 'text-white/60 hover:text-white'}`}
+                    >
+                      Monthly
+                    </button>
+                    <button
+                      onClick={() => setBilling('annual')}
+                      className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all flex items-center gap-1.5 ${billing === 'annual' ? 'bg-white text-black' : 'text-white/60 hover:text-white'}`}
+                    >
+                      Annually
+                      <span className="text-[10px] font-bold text-[#D4AF37]">50% OFF</span>
+                    </button>
+                  </div>
+                </div>
                 {/* Pro card */}
                 {!isPaid && (
                   <button
@@ -182,7 +201,10 @@ export function PaywallModal({ open, onClose, tier, reelsUsed, reelsCap }: Paywa
                         <Sparkles className="w-4 h-4 text-[#D4AF37]" />
                         <span className="font-bold text-[#D4AF37]">Pro</span>
                       </div>
-                      <span className="text-sm font-bold text-white">$19.99<span className="text-white/40 font-normal">/mo</span></span>
+                      <span className="text-sm font-bold text-white flex items-baseline gap-1">
+                        {billing === 'annual' && <span className="text-xs font-normal text-white/30 line-through">$19.99</span>}
+                        ${billing === 'annual' ? '9.99' : '19.99'}<span className="text-white/40 font-normal">/mo</span>
+                      </span>
                     </div>
                     <div className="space-y-1">
                       {['30 reels per month', '3-day free trial', 'All styles & voices', 'HD export'].map(f => (
@@ -207,7 +229,10 @@ export function PaywallModal({ open, onClose, tier, reelsUsed, reelsCap }: Paywa
                       <span className="font-bold text-[#A855F7]">Premium</span>
                       {isPaid && <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#7B2FBE]/20 text-[#A855F7]">UPGRADE</span>}
                     </div>
-                    <span className="text-sm font-bold text-white">$49.99<span className="text-white/40 font-normal">/mo</span></span>
+                    <span className="text-sm font-bold text-white flex items-baseline gap-1">
+                      {billing === 'annual' && <span className="text-xs font-normal text-white/30 line-through">$49.99</span>}
+                      ${billing === 'annual' ? '24.99' : '49.99'}<span className="text-white/40 font-normal">/mo</span>
+                    </span>
                   </div>
                   <div className="space-y-1">
                     {['60 reels per month', '3-day free trial', 'Priority rendering', '4K export + no watermark'].map(f => (

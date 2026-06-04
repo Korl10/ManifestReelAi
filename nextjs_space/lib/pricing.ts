@@ -6,6 +6,7 @@ export const PLANS = {
   pro: {
     name: 'Pro',
     monthlyPrice: 1999, // cents
+    annualPrice: 11994, // cents billed once per year = 1999 * 12 * 0.5 (50% off)
     reelsCap: 30,
     trialDays: 3,
     introMonthlyPrice: 999, // cents – first 3 months discount
@@ -14,6 +15,7 @@ export const PLANS = {
   premium: {
     name: 'Premium',
     monthlyPrice: 4999, // cents
+    annualPrice: 29994, // cents billed once per year = 4999 * 12 * 0.5 (50% off)
     reelsCap: 60,
     trialDays: 3,
     introMonthlyPrice: 2500, // cents – first 3 months discount
@@ -22,6 +24,16 @@ export const PLANS = {
 } as const;
 
 export type PlanTier = keyof typeof PLANS;
+export type BillingInterval = 'monthly' | 'annual';
+
+// Annual billing is 50% off the monthly rate. Returns the effective
+// per-month price (in cents) when billed annually.
+export function annualPerMonth(tier: PlanTier) {
+  return Math.round(PLANS[tier].annualPrice / 12);
+}
+
+// Percentage saved by choosing annual billing vs paying monthly for a year.
+export const ANNUAL_DISCOUNT_PCT = 50;
 
 // ── Coin bundles (one-time purchases) ────────────────────────────
 export const COIN_BUNDLES = [
