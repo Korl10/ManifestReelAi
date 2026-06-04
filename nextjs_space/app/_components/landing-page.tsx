@@ -219,7 +219,7 @@ const FEATURES = [
 const TIERS = [
   { name: 'Free', monthly: 0, features: ['Demo gallery access', '1 watermarked preview', 'Explore all styles & moods', 'No card required'], cta: 'Start Free', tier: 'free', popular: false },
   { name: 'Pro', monthly: 19.99, features: ['30 coins / month', 'Static reels (1 coin each)', 'HD exports, no watermark', 'All 57 premium voices', 'Buy extra coin bundles'], cta: 'Get Pro', tier: 'pro', popular: true },
-  { name: 'Premium', monthly: 49.99, features: ['60 coins / month', 'Cinematic motion reels (4 coins)', 'Static reels too (1 coin)', '4K exports, no watermark', 'Priority generation', 'Schedule & auto-post'], cta: 'Get Premium', tier: 'premium', popular: false },
+  { name: 'Premium', monthly: 49.99, features: ['60 coins / month', 'Cinematic motion reels (5 coins)', 'Static reels too (1 coin)', '4K exports, no watermark', 'Priority generation', 'Schedule & auto-post'], cta: 'Get Premium', tier: 'premium', popular: false },
 ];
 
 const TESTIMONIALS = [

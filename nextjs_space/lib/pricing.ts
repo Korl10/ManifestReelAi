@@ -39,7 +39,7 @@ export type BillingInterval = 'monthly' | 'annual';
 // ── Coin cost per reel type ──────────────────────────────────────
 export const COIN_COST = {
   static: 1,
-  motion: 4, // hybrid-motion reel (Premium-only)
+  motion: 5, // hybrid-motion reel (Premium-only)
 } as const;
 
 // Annual billing is 50% off the monthly rate. Returns the effective

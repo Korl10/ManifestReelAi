@@ -235,7 +235,7 @@ export function PaywallModal({ open, onClose, tier, reelsUsed, reelsCap }: Paywa
                     </span>
                   </div>
                   <div className="space-y-1">
-                    {['60 coins / month', 'Cinematic motion reels (4 coins)', '4K export + no watermark', 'Priority rendering'].map(f => (
+                    {['60 coins / month', 'Cinematic motion reels (5 coins)', '4K export + no watermark', 'Priority rendering'].map(f => (
                       <div key={f} className="flex items-center gap-2 text-xs text-white/50">
                         <Check className="w-3 h-3 text-[#A855F7]" />{f}
                       </div>

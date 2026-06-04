@@ -191,7 +191,7 @@ export default function SettingsPage() {
       {isPaid && (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }} className="rounded-xl bg-white/[0.02] border border-white/5 p-5">
           <h2 className="text-sm font-semibold flex items-center gap-2 mb-3"><Zap className="w-4 h-4 text-[#D4AF37]" /> Buy Extra Coins</h2>
-          <p className="text-xs text-white/40 mb-4">Top up with a one-time coin bundle. Bundle coins stack on your plan and stay valid for 12 months. Static reel = 1 coin, motion reel = 4 coins.</p>
+          <p className="text-xs text-white/40 mb-4">Top up with a one-time coin bundle. Bundle coins stack on your plan and stay valid for 12 months. Static reel = 1 coin, motion reel = 5 coins.</p>
           <div className="space-y-2">
             {COIN_BUNDLES.map(bundle => (
               <button
