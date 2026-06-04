@@ -480,37 +480,14 @@ export function LandingPage() {
       <footer className="border-t border-white/5">
         <div className="max-w-[1200px] mx-auto px-4">
           {/* Main footer content */}
-          <div className="py-12 grid grid-cols-1 md:grid-cols-4 gap-10 md:gap-8">
-            {/* Brand column */}
-            <div className="md:col-span-2">
-              <Link href="/" className="flex items-center gap-2 mb-4">
-                <Sparkles className="w-5 h-5 text-[#D4AF37]" />
-                <span className="font-display text-lg font-bold tracking-tight">ManifestReel<span className="text-[#D4AF37]"> AI</span></span>
-              </Link>
-              <p className="text-sm text-white/40 leading-relaxed max-w-xs">
-                The #1 AI-powered platform for creating viral manifestation reels. Transform your spiritual content with professional scripts, voiceovers, and cinematic visuals.
-              </p>
-            </div>
-
-            {/* Product column */}
-            <div>
-              <h4 className="text-sm font-semibold text-white/80 mb-4">Product</h4>
-              <ul className="space-y-2.5">
-                <li><a href="#features" className="text-sm text-white/40 hover:text-[#D4AF37] transition-colors">Features</a></li>
-                <li><a href="#pricing" className="text-sm text-white/40 hover:text-[#D4AF37] transition-colors">Pricing</a></li>
-                <li><a href="#testimonials" className="text-sm text-white/40 hover:text-[#D4AF37] transition-colors">Reviews</a></li>
-                <li><Link href={session ? '/dashboard' : '/signup'} className="text-sm text-white/40 hover:text-[#D4AF37] transition-colors">Get Started</Link></li>
-              </ul>
-            </div>
-
-            {/* Company column */}
-            <div>
-              <h4 className="text-sm font-semibold text-white/80 mb-4">Contact</h4>
-              <ul className="space-y-2.5">
-                <li><span className="text-sm text-white/40">hello@manifestreel.ai</span></li>
-                <li><span className="text-sm text-white/40">Support available 24/7</span></li>
-              </ul>
-            </div>
+          <div className="py-10 flex flex-col items-center text-center">
+            <Link href="/" className="flex items-center gap-2 mb-3">
+              <Sparkles className="w-5 h-5 text-[#D4AF37]" />
+              <span className="font-display text-lg font-bold tracking-tight">ManifestReel<span className="text-[#D4AF37]"> AI</span></span>
+            </Link>
+            <p className="text-sm text-white/40 leading-relaxed max-w-sm">
+              The #1 AI-powered platform for creating viral manifestation reels.
+            </p>
           </div>
 
           {/* Divider */}

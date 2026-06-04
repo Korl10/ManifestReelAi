@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
-import { Sparkles, Home, Library, Settings, Shield, LogOut, Menu, X } from 'lucide-react';
+import { Sparkles, Home, Library, Settings, Shield, LogOut, Menu, X, Zap, Crown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const NAV_ITEMS = [
@@ -12,12 +12,27 @@ const NAV_ITEMS = [
   { href: '/dashboard/settings', label: 'Settings', icon: Settings },
 ];
 
+const TIER_LABELS: Record<string, { label: string; color: string; bg: string }> = {
+  free: { label: 'Free Trial', color: 'text-white/70', bg: 'bg-white/10' },
+  pro: { label: 'Pro', color: 'text-[#A855F7]', bg: 'bg-[#7B2FBE]/15' },
+  premium: { label: 'Premium', color: 'text-[#D4AF37]', bg: 'bg-[#D4AF37]/15' },
+};
+
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession() || {};
   const pathname = usePathname() ?? '';
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [quota, setQuota] = useState<any>(null);
   const isAdmin = (session?.user as any)?.role === 'admin';
+
+  useEffect(() => {
+    if (!session) return;
+    fetch('/api/payments/subscription')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data?.quota) setQuota(data.quota); })
+      .catch(() => {});
+  }, [session]);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -47,13 +62,29 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             <button className="lg:hidden p-1.5" onClick={() => setSidebarOpen(!sidebarOpen)}>
               {sidebarOpen ? <X className="w-5 h-5 text-white/60" /> : <Menu className="w-5 h-5 text-white/60" />}
             </button>
-            <Link href="/dashboard" className="flex items-center gap-2">
+            <Link href="/" className="flex items-center gap-2">
               <Sparkles className="w-5 h-5 text-[#D4AF37]" />
               <span className="font-display text-base font-bold hidden sm:block">ManifestReel<span className="text-[#D4AF37]"> AI</span></span>
             </Link>
           </div>
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-white/40 hidden sm:block">{session?.user?.email ?? ''}</span>
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* Membership tier badge */}
+            {quota && (() => {
+              const t = TIER_LABELS[quota.tier] ?? TIER_LABELS['free'];
+              return (
+                <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full ${t.bg} border border-white/5`}>
+                  <Crown className={`w-3.5 h-3.5 ${t.color}`} />
+                  <span className={`text-[11px] font-bold ${t.color} hidden sm:inline`}>{t.label}</span>
+                </div>
+              );
+            })()}
+            {/* Credits pill */}
+            {quota && (
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gradient-to-r from-[#D4AF37]/15 to-[#7B2FBE]/15 border border-[#D4AF37]/25">
+                <Zap className="w-3.5 h-3.5 text-[#D4AF37]" />
+                <span className="text-[11px] font-bold text-[#D4AF37]">{Math.max(0, (quota.reelsCap ?? 0) - (quota.reelsUsed ?? 0))}</span>
+              </div>
+            )}
             <button onClick={() => signOut({ callbackUrl: '/' })} className="p-2 rounded-lg hover:bg-white/5 transition-colors" title="Sign out">
               <LogOut className="w-4 h-4 text-white/40" />
             </button>
