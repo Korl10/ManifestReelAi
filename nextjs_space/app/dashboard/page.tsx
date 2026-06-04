@@ -1,10 +1,10 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
-import { Sparkles, Loader2, Clock, Zap, Film, AlertCircle, Check, Wand2 } from 'lucide-react';
+import { Sparkles, Loader2, Clock, Zap, Film, AlertCircle, Check, Wand2, Play, Pause } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { HydrationDate } from '@/components/hydration-date';
@@ -23,13 +23,29 @@ const STYLES = [
 ];
 
 const VOICES = [
-  { name: 'Female', img: '/voices/female.jpg', desc: 'Warm & soothing' },
-  { name: 'Male', img: '/voices/male.jpg', desc: 'Deep & confident' },
-  { name: 'Meditation', img: '/voices/meditation.jpg', desc: 'Soft whisper' },
-  { name: 'Motivational', img: '/voices/motivational.jpg', desc: 'High energy' },
+  { name: 'Female', img: '/voices/female.jpg', audio: '/voices/female.mp3', desc: 'Warm & soothing' },
+  { name: 'Male', img: '/voices/male.jpg', audio: '/voices/male.mp3', desc: 'Deep & confident' },
+  { name: 'Meditation', img: '/voices/meditation.jpg', audio: '/voices/meditation.mp3', desc: 'Soft whisper' },
+  { name: 'Motivational', img: '/voices/motivational.jpg', audio: '/voices/motivational.mp3', desc: 'High energy' },
 ];
 
-const MOODS = ['Manifestation', 'Meditation', 'Wealth-Frequency', 'Cinematic', 'Dreamy', 'Uplifting', 'Powerful', 'Serene'];
+const MOODS = [
+  { name: 'Manifestation', img: '/moods/manifestation.jpg' },
+  { name: 'Meditation', img: '/moods/meditation.jpg' },
+  { name: 'Wealth-Frequency', img: '/moods/wealth-frequency.jpg' },
+  { name: 'Cinematic', img: '/moods/cinematic.jpg' },
+  { name: 'Dreamy', img: '/moods/dreamy.jpg' },
+  { name: 'Uplifting', img: '/moods/uplifting.jpg' },
+  { name: 'Powerful', img: '/moods/powerful.jpg' },
+  { name: 'Serene', img: '/moods/serene.jpg' },
+];
+
+const EXAMPLE_REELS = [
+  { src: '/examples/abundance.mp4', poster: '/examples/abundance-poster.jpg', title: 'Abundance Flow', tag: 'Spiritual • Female voice' },
+  { src: '/examples/wealth.mp4', poster: '/examples/wealth-poster.jpg', title: 'Wealth Magnet', tag: 'Wealth • Male voice' },
+  { src: '/examples/peace.mp4', poster: '/examples/peace-poster.jpg', title: 'Inner Peace', tag: 'Meditation • Soft voice' },
+  { src: '/examples/power.mp4', poster: '/examples/power-poster.jpg', title: 'Unstoppable', tag: 'Motivational • Bold voice' },
+];
 
 const STATUS_COLORS: Record<string, string> = {
   draft: 'bg-white/10 text-white/60',
@@ -54,6 +70,43 @@ export default function DashboardPage() {
   const [loadingReels, setLoadingReels] = useState(true);
   const [error, setError] = useState('');
   const [showPaywall, setShowPaywall] = useState(false);
+  const [playingVoice, setPlayingVoice] = useState<string | null>(null);
+  const [playingReel, setPlayingReel] = useState<string | null>(null);
+  const audioRefs = useRef<Record<string, HTMLAudioElement | null>>({});
+  const videoRefs = useRef<Record<string, HTMLVideoElement | null>>({});
+
+  const toggleVoicePreview = (e: React.MouseEvent, item: { name: string; audio: string }) => {
+    e.stopPropagation();
+    const current = audioRefs.current[item.name];
+    if (!current) return;
+    // Stop any other playing audio
+    Object.entries(audioRefs.current).forEach(([key, el]) => {
+      if (key !== item.name && el) { el.pause(); el.currentTime = 0; }
+    });
+    if (playingVoice === item.name) {
+      current.pause();
+      setPlayingVoice(null);
+    } else {
+      current.currentTime = 0;
+      current.play().catch(() => {});
+      setPlayingVoice(item.name);
+    }
+  };
+
+  const toggleReel = (title: string) => {
+    const current = videoRefs.current[title];
+    if (!current) return;
+    Object.entries(videoRefs.current).forEach(([key, el]) => {
+      if (key !== title && el) { el.pause(); }
+    });
+    if (playingReel === title) {
+      current.pause();
+      setPlayingReel(null);
+    } else {
+      current.play().catch(() => {});
+      setPlayingReel(title);
+    }
+  };
 
   // Show upgrade toast if redirected from checkout
   useEffect(() => {
@@ -187,20 +240,25 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      {/* Pick Voice — image cards */}
+      {/* Pick Voice — image cards with audio preview */}
       <section>
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-display text-base font-semibold">Pick a Voice</h2>
           <span className="text-xs text-[#D4AF37]">{voice}</span>
         </div>
+        <p className="text-xs text-white/40 mb-3 -mt-1">Tap the play button to hear a real sample of each voice.</p>
         <div className="flex gap-3 overflow-x-auto scrollbar-none -mx-4 px-4 pb-1 snap-x">
           {VOICES.map((item) => {
             const selected = voice === item.name;
+            const isPlaying = playingVoice === item.name;
             return (
-              <button
+              <div
                 key={item.name}
                 onClick={() => setVoice(item.name)}
-                className={`group relative shrink-0 w-32 sm:w-36 snap-start rounded-2xl overflow-hidden border-2 transition-all ${
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setVoice(item.name); }}
+                className={`group relative shrink-0 w-32 sm:w-36 snap-start rounded-2xl overflow-hidden border-2 transition-all cursor-pointer ${
                   selected ? 'border-[#D4AF37] gold-glow' : 'border-white/8 hover:border-white/20'
                 }`}
               >
@@ -212,12 +270,36 @@ export default function DashboardPage() {
                       <Check className="w-3.5 h-3.5 text-black" strokeWidth={3} />
                     </div>
                   )}
+                  {/* Play / pause preview button */}
+                  <button
+                    type="button"
+                    onClick={(e) => toggleVoicePreview(e, item)}
+                    aria-label={isPlaying ? `Pause ${item.name} voice sample` : `Play ${item.name} voice sample`}
+                    className={`absolute top-2 left-2 w-9 h-9 rounded-full flex items-center justify-center backdrop-blur-md transition-all ${
+                      isPlaying ? 'gold-gradient text-black' : 'bg-black/55 text-[#D4AF37] hover:bg-black/75 border border-[#D4AF37]/40'
+                    }`}
+                  >
+                    {isPlaying ? <Pause className="w-4 h-4" strokeWidth={2.5} /> : <Play className="w-4 h-4 ml-0.5" strokeWidth={2.5} />}
+                  </button>
+                  {isPlaying && (
+                    <div className="absolute bottom-12 left-2 flex items-end gap-0.5 h-4">
+                      {[0,1,2,3].map((b) => (
+                        <span key={b} className="w-1 rounded-full bg-[#D4AF37] animate-soundbar" style={{ animationDelay: `${b * 0.15}s` }} />
+                      ))}
+                    </div>
+                  )}
                   <div className="absolute bottom-0 left-0 right-0 p-2.5 text-left">
                     <p className={`text-sm font-bold leading-tight ${selected ? 'text-[#D4AF37]' : 'text-white'}`}>{item.name}</p>
                     <p className="text-[10px] text-white/60 mt-0.5">{item.desc}</p>
                   </div>
                 </div>
-              </button>
+                <audio
+                  ref={(el) => { audioRefs.current[item.name] = el; }}
+                  src={item.audio}
+                  preload="none"
+                  onEnded={() => setPlayingVoice((p) => (p === item.name ? null : p))}
+                />
+              </div>
             );
           })}
         </div>
@@ -229,18 +311,21 @@ export default function DashboardPage() {
           <h2 className="font-display text-base font-semibold">Pick a Mood</h2>
           <span className="text-xs text-[#D4AF37]">{mood}</span>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2.5">
           {MOODS.map((opt) => {
-            const selected = mood === opt;
+            const selected = mood === opt.name;
             return (
               <button
-                key={opt}
-                onClick={() => setMood(opt)}
-                className={`px-4 py-2 rounded-full text-xs font-semibold transition-all ${
-                  selected ? 'purple-gradient text-white purple-glow' : 'bg-white/5 text-white/60 hover:bg-white/10 border border-white/8'
+                key={opt.name}
+                onClick={() => setMood(opt.name)}
+                className={`group flex items-center gap-2 pl-1.5 pr-4 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                  selected ? 'purple-gradient text-white purple-glow' : 'bg-white/5 text-white/65 hover:bg-white/10 border border-white/8'
                 }`}
               >
-                {opt}
+                <span className={`relative w-7 h-7 rounded-full overflow-hidden shrink-0 ring-2 transition-all ${selected ? 'ring-white/70' : 'ring-white/10 group-hover:ring-white/25'}`}>
+                  <Image src={opt.img} alt={`${opt.name} mood`} fill className="object-cover" sizes="28px" />
+                </span>
+                {opt.name}
               </button>
             );
           })}
@@ -297,6 +382,59 @@ export default function DashboardPage() {
           <><Sparkles className="w-5 h-5" /> Generate Reel ✨</>
         )}
       </button>
+
+      {/* Example reels showcase */}
+      <section>
+        <div className="flex items-center justify-between mb-1">
+          <h2 className="font-display text-lg font-semibold">See It In <span className="text-[#D4AF37]">Action</span></h2>
+          <span className="text-xs text-white/40">Real examples</span>
+        </div>
+        <p className="text-sm text-white/40 mb-4">A few reels made with ManifestReel AI. Tap any to play with sound. 🔊</p>
+        <div className="flex gap-3 overflow-x-auto scrollbar-none -mx-4 px-4 pb-1 snap-x">
+          {EXAMPLE_REELS.map((reel) => {
+            const isPlaying = playingReel === reel.title;
+            return (
+              <div
+                key={reel.title}
+                onClick={() => toggleReel(reel.title)}
+                className="group relative shrink-0 w-44 sm:w-48 snap-start rounded-2xl overflow-hidden border-2 border-white/8 hover:border-[#D4AF37]/40 transition-all cursor-pointer"
+              >
+                <div className="relative aspect-[9/16] bg-white/5">
+                  <video
+                    ref={(el) => { videoRefs.current[reel.title] = el; }}
+                    src={reel.src}
+                    poster={reel.poster}
+                    playsInline
+                    loop
+                    preload="none"
+                    className="absolute inset-0 w-full h-full object-cover"
+                    onEnded={() => setPlayingReel((p) => (p === reel.title ? null : p))}
+                  />
+                  {!isPlaying && (
+                    <>
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-black/30" />
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="w-14 h-14 rounded-full gold-gradient flex items-center justify-center gold-glow group-hover:scale-110 transition-transform">
+                          <Play className="w-6 h-6 text-black ml-1" strokeWidth={2.5} />
+                        </div>
+                      </div>
+                      <div className="absolute bottom-0 left-0 right-0 p-3 text-left">
+                        <p className="text-sm font-bold text-white leading-tight">{reel.title}</p>
+                        <p className="text-[10px] text-white/60 mt-0.5">{reel.tag}</p>
+                      </div>
+                    </>
+                  )}
+                  {isPlaying && (
+                    <div className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/60 backdrop-blur-md flex items-center justify-center border border-white/20">
+                      <Pause className="w-4 h-4 text-white" strokeWidth={2.5} />
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
 
       {/* Recent reels */}
       <div>

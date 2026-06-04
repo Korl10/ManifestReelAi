@@ -154,3 +154,12 @@
 .animate-float {
   animation: float 3s ease-in-out infinite;
 }
+
+@keyframes soundbar {
+  0%, 100% { height: 0.35rem; }
+  50% { height: 1rem; }
+}
+
+.animate-soundbar {
+  animation: soundbar 0.8s ease-in-out infinite;
+}
