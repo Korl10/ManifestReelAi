@@ -117,6 +117,8 @@ export interface VideoClipInput {
   imagePrompts: string[];
   /** Reel style (fallback motion theming). */
   style: string;
+  /** Reel mood (adds vibe tokens to motion prompt). */
+  mood?: string;
   /** Clip duration in seconds (5 or 10). */
   durationSec: number;
 }

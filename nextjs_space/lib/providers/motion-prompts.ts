@@ -147,6 +147,65 @@ export function selectHeroScenes(
   return sorted.slice(0, maxMotionScenes);
 }
 
+// ── Mood / style vibe tokens (content-safe for fal.ai) ─────────
+// These tokens are appended to the camera-motion template to infuse
+// mood & style into the motion without triggering content-policy
+// rejections. Avoid words like "divine", "sacred", "spiritual",
+// "temple", "god", "angel" — fal.ai blocks those.
+
+const MOOD_VIBE_TOKENS: Record<string, string[]> = {
+  manifestation: ['warm golden hour', 'hopeful energy', 'glowing ambient light'],
+  meditation: ['peaceful stillness', 'calm breath-like rhythm', 'soft misty serenity'],
+  'wealth-frequency': ['rich amber glow', 'opulent shimmer', 'liquid gold warmth'],
+  cinematic: ['dramatic film lighting', 'deep contrast shadows', 'epic wide-angle sweep'],
+  dreamy: ['soft focus haze', 'pastel ethereal glow', 'floating weightless drift'],
+  uplifting: ['bright rising energy', 'warm sunlit optimism', 'ascending golden light'],
+  powerful: ['bold dramatic intensity', 'strong rhythmic pulse', 'deep resonant bass energy'],
+  serene: ['gentle stillness', 'crystal clear calm', 'tranquil soft glow'],
+};
+
+const STYLE_VIBE_TOKENS: Record<string, string[]> = {
+  spiritual: ['soft luminous aura', 'gentle cosmic glow', 'mystical atmosphere'],
+  motivational: ['high-energy sunrise', 'triumphant golden light', 'bold movement'],
+  wealth: ['liquid gold reflections', 'rich metallic shine', 'opulent textures'],
+  luxury: ['polished marble elegance', 'champagne sparkle', 'sophisticated warmth'],
+  meditation: ['zen garden stillness', 'misty mountain calm', 'soft breathing rhythm'],
+  abundance: ['lush blooming energy', 'overflowing golden warmth', 'vibrant growth'],
+  'law of attraction': ['magnetic particle drift', 'cosmic pull energy', 'glowing convergence'],
+  'law-of-attraction': ['magnetic particle drift', 'cosmic pull energy', 'glowing convergence'],
+};
+
+/**
+ * Build a hybrid motion prompt: camera template + 2-3 safe mood/style vibe tokens.
+ * This makes the motion reflect the reel's emotional tone without tripping
+ * fal.ai content filters.
+ */
+export function buildHybridMotionPrompt(
+  imagePrompt: string,
+  style: string,
+  mood?: string,
+): string {
+  const theme = resolveMotionThemeFromPrompt(imagePrompt, style);
+  const cameraTemplate = MOTION_THEMES[theme];
+
+  // Collect vibe tokens from mood and style (deduplicated)
+  const tokens: string[] = [];
+  const moodKey = (mood || '').toLowerCase().trim();
+  const styleKey = (style || '').toLowerCase().trim();
+  if (MOOD_VIBE_TOKENS[moodKey]) tokens.push(...MOOD_VIBE_TOKENS[moodKey]);
+  if (STYLE_VIBE_TOKENS[styleKey]) {
+    for (const t of STYLE_VIBE_TOKENS[styleKey]) {
+      if (!tokens.includes(t)) tokens.push(t);
+    }
+  }
+
+  // Pick up to 3 tokens for a concise but expressive prompt
+  const selected = tokens.slice(0, 3);
+  if (selected.length === 0) return cameraTemplate;
+
+  return `${cameraTemplate} Atmosphere: ${selected.join(', ')}.`;
+}
+
 // ── Image-prompt keyword → motion theme detection ───────────────
 // Detects the best-fit motion theme directly from a scene's IMAGE PROMPT
 // text (per user request), so each animated scene gets motion that matches

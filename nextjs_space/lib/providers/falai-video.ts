@@ -1,17 +1,14 @@
 import type { Provider, VideoClipInput, VideoClipOutput } from './types';
-import { MOTION_THEMES, resolveMotionThemeFromPrompt } from './motion-prompts';
+import { buildHybridMotionPrompt } from './motion-prompts';
 
 /**
- * For image-to-video, Kling already has the full visual content from the
- * source image — the prompt should describe ONLY the desired camera movement
- * and atmospheric animation. Re-sending the static scene description (which in
- * the manifestation niche is full of words like "divine", "sacred temple")
- * needlessly trips fal's content checker. So we send the clean motion-direction
- * template, themed from the image prompt's subject matter.
+ * Build a hybrid motion prompt: camera-movement template + 2-3 safe
+ * mood/style vibe tokens (e.g. "warm golden hour, hopeful energy").
+ * This ensures motion reflects the reel's emotional tone without
+ * triggering fal.ai content-policy rejections.
  */
-function motionPromptFor(imagePrompt: string, style: string): string {
-  const theme = resolveMotionThemeFromPrompt(imagePrompt, style);
-  return MOTION_THEMES[theme];
+function motionPromptFor(imagePrompt: string, style: string, mood?: string): string {
+  return buildHybridMotionPrompt(imagePrompt, style, mood);
 }
 
 /**
@@ -130,7 +127,7 @@ export class FalaiVideoProvider implements Provider<VideoClipInput, VideoClipOut
   }
 
   async generate(input: VideoClipInput): Promise<VideoClipOutput> {
-    const { sceneImageUrls, heroIndices, imagePrompts, style, durationSec } = input;
+    const { sceneImageUrls, heroIndices, imagePrompts, style, mood, durationSec } = input;
     const clipUrls: (string | null)[] = new Array(sceneImageUrls.length).fill(null);
 
     if (!process.env.FAL_KEY || heroIndices.length === 0) {
@@ -149,7 +146,7 @@ export class FalaiVideoProvider implements Provider<VideoClipInput, VideoClipOut
         if (idx === undefined) break;
         const imageUrl = sceneImageUrls[idx];
         if (!imageUrl) continue;
-        const prompt = motionPromptFor(imagePrompts[idx] || '', style);
+        const prompt = motionPromptFor(imagePrompts[idx] || '', style, mood);
         const url = await generateOneClip(imageUrl, prompt, durationSec);
         if (url) {
           clipUrls[idx] = url;

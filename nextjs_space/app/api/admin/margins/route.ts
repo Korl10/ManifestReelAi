@@ -3,8 +3,30 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
+import { PLANS, COIN_COST } from '@/lib/pricing';
+
+// Retail price per coin (retail value the user pays)
+const CREDIT_RETAIL_VALUE = 0.10; // Part D target: 1 credit = $0.10
+
+// Current coin-based retail prices per reel type
+const RETAIL_PER_REEL: Record<string, number> = {
+  static: COIN_COST.static * CREDIT_RETAIL_VALUE,   // 1 coin * $0.10 = $0.10 (current model)
+  motion: COIN_COST.motion * CREDIT_RETAIL_VALUE,   // 5 coins * $0.10 = $0.50 (current model)
+};
 
 const TIER_PRICES: Record<string, number> = { free: 0, pro: 19.99, premium: 49.99 };
+
+function dayKey(d: Date): string {
+  return d.toISOString().slice(0, 10); // YYYY-MM-DD
+}
+
+function weekKey(d: Date): string {
+  // ISO week start (Monday)
+  const day = new Date(d);
+  const diff = day.getDay() === 0 ? 6 : day.getDay() - 1;
+  day.setDate(day.getDate() - diff);
+  return `W ${day.toISOString().slice(0, 10)}`;
+}
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -12,35 +34,133 @@ export async function GET() {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  const subs = await prisma.subscription.findMany();
+  // Subscriptions for revenue estimate
+  const subs = await prisma.subscription.findMany({ where: { status: 'active' } });
   const monthlyRevenue = subs.reduce((s: number, sub: any) => s + (TIER_PRICES[sub?.tier] ?? 0), 0);
 
+  // All reels with cost data
   const reels = await prisma.reel.findMany({
-    select: { totalCost: true, createdAt: true, costBreakdown: true },
-    orderBy: { createdAt: 'asc' },
+    select: {
+      id: true, totalCost: true, costBreakdown: true, createdAt: true,
+      motion: true, coinCost: true, status: true, style: true, mood: true,
+      user: { select: { email: true } },
+    },
+    orderBy: { createdAt: 'desc' },
   });
 
-  const totalCost = reels.reduce((s: number, r: any) => s + (r?.totalCost ?? 0), 0);
+  // Per-reel detail (latest 100 for the table)
+  const reelDetails = reels.slice(0, 100).map((r: any) => {
+    const cost = r.totalCost ?? 0;
+    const type = r.motion ? 'motion' : 'static';
+    const retail = r.motion
+      ? (r.coinCost ?? COIN_COST.motion) * CREDIT_RETAIL_VALUE
+      : (r.coinCost ?? COIN_COST.static) * CREDIT_RETAIL_VALUE;
+    const breakdown = r.costBreakdown ?? {};
+    return {
+      id: r.id,
+      date: r.createdAt,
+      user: r.user?.email ?? 'unknown',
+      type,
+      style: r.style,
+      mood: r.mood,
+      status: r.status,
+      cost: Math.round(cost * 10000) / 10000,
+      retail: Math.round(retail * 100) / 100,
+      margin: retail > 0 ? Math.round(((retail - cost) / retail) * 100) : 0,
+      breakdown: {
+        script: breakdown.script_cost ?? 0,
+        image: breakdown.image_cost ?? 0,
+        voice: breakdown.voice_cost ?? 0,
+        video: breakdown.video_cost ?? 0,
+        music: breakdown.music_cost ?? 0,
+        render: breakdown.render_cost ?? 0,
+        storage: breakdown.storage_cost ?? 0,
+      },
+    };
+  });
 
-  // Group by month for chart
-  const months: Record<string, { revenue: number; cost: number }> = {};
-  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  for (const reel of reels) {
-    const d = new Date(reel?.createdAt ?? Date.now());
-    const key = `${monthNames[d.getMonth()]} ${d.getFullYear()}`;
-    if (!months[key]) months[key] = { revenue: 0, cost: 0 };
-    months[key].cost += reel?.totalCost ?? 0;
+  // Daily aggregates (last 30 days)
+  const now = new Date();
+  const thirtyDaysAgo = new Date(now);
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  const dailyMap: Record<string, { count: number; cost: number; retail: number }> = {};
+  const weeklyMap: Record<string, { count: number; cost: number; retail: number }> = {};
+
+  for (const r of reels) {
+    const d = new Date(r.createdAt);
+    const cost = (r as any).totalCost ?? 0;
+    const retail = (r as any).motion
+      ? ((r as any).coinCost ?? COIN_COST.motion) * CREDIT_RETAIL_VALUE
+      : ((r as any).coinCost ?? COIN_COST.static) * CREDIT_RETAIL_VALUE;
+
+    // Daily (last 30 days)
+    if (d >= thirtyDaysAgo) {
+      const dk = dayKey(d);
+      if (!dailyMap[dk]) dailyMap[dk] = { count: 0, cost: 0, retail: 0 };
+      dailyMap[dk].count += 1;
+      dailyMap[dk].cost += cost;
+      dailyMap[dk].retail += retail;
+    }
+
+    // Weekly (all time)
+    const wk = weekKey(d);
+    if (!weeklyMap[wk]) weeklyMap[wk] = { count: 0, cost: 0, retail: 0 };
+    weeklyMap[wk].count += 1;
+    weeklyMap[wk].cost += cost;
+    weeklyMap[wk].retail += retail;
   }
-  // Add revenue proportionally
-  const monthCount = Object.keys(months)?.length || 1;
-  for (const key of Object.keys(months)) {
-    months[key].revenue = monthlyRevenue / monthCount;
+
+  const dailyData = Object.entries(dailyMap)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([day, d]) => ({
+      day, count: d.count,
+      cost: Math.round(d.cost * 100) / 100,
+      retail: Math.round(d.retail * 100) / 100,
+      margin: d.retail > 0 ? Math.round(((d.retail - d.cost) / d.retail) * 100) : 0,
+    }));
+
+  const weeklyData = Object.entries(weeklyMap)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([week, d]) => ({
+      week, count: d.count,
+      cost: Math.round(d.cost * 100) / 100,
+      retail: Math.round(d.retail * 100) / 100,
+      margin: d.retail > 0 ? Math.round(((d.retail - d.cost) / d.retail) * 100) : 0,
+    }));
+
+  // Totals
+  const totalCost = reels.reduce((s: number, r: any) => s + (r.totalCost ?? 0), 0);
+  const totalReels = reels.length;
+  const completedReels = reels.filter((r: any) => r.status === 'ready').length;
+  const avgCostPerReel = completedReels > 0 ? totalCost / completedReels : 0;
+
+  // Cost by provider category
+  const costByCategory: Record<string, number> = { script: 0, image: 0, voice: 0, video: 0, music: 0, render: 0, storage: 0 };
+  for (const r of reels) {
+    const b = (r as any).costBreakdown ?? {};
+    costByCategory.script += b.script_cost ?? 0;
+    costByCategory.image += b.image_cost ?? 0;
+    costByCategory.voice += b.voice_cost ?? 0;
+    costByCategory.video += b.video_cost ?? 0;
+    costByCategory.music += b.music_cost ?? 0;
+    costByCategory.render += b.render_cost ?? 0;
+    costByCategory.storage += b.storage_cost ?? 0;
+  }
+  // Round
+  for (const k of Object.keys(costByCategory)) {
+    costByCategory[k] = Math.round(costByCategory[k] * 100) / 100;
   }
 
   return NextResponse.json({
-    monthlyRevenue,
+    monthlyRevenue: Math.round(monthlyRevenue * 100) / 100,
     totalCost: Math.round(totalCost * 100) / 100,
+    totalReels,
+    completedReels,
+    avgCostPerReel: Math.round(avgCostPerReel * 10000) / 10000,
     margin: monthlyRevenue > 0 ? Math.round(((monthlyRevenue - totalCost) / monthlyRevenue) * 100) : 0,
-    chartData: Object.entries(months).map(([month, data]) => ({ month, revenue: Math.round((data?.revenue ?? 0) * 100) / 100, cost: Math.round((data?.cost ?? 0) * 100) / 100 })),
+    costByCategory,
+    dailyData,
+    weeklyData,
+    reelDetails,
   });
 }

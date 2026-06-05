@@ -147,6 +147,7 @@ export async function runGenerationPipeline(
           heroIndices,
           imagePrompts: script.scenes.map((s) => s.imagePrompt),
           style: reel.style,
+          mood: reel.mood,
           durationSec: 5,
         });
         sceneClipUrls = motion.clipUrls;
