@@ -62,7 +62,7 @@ export async function POST(request: Request) {
       },
       quantity: 1,
     }],
-    success_url: `${origin}/dashboard?upgraded=${tier}`,
+    success_url: `${origin}/dashboard?upgraded=${tier}&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${origin}/dashboard/settings`,
     metadata: { userId, tier, isIntro: isIntro ? 'true' : 'false', billing },
     subscription_data: {

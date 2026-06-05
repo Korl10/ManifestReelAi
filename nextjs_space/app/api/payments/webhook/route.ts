@@ -2,7 +2,8 @@ export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { stripe } from '@/lib/stripe';
-import { PLANS, BUNDLE_EXPIRY_MONTHS } from '@/lib/pricing';
+import { BUNDLE_EXPIRY_MONTHS } from '@/lib/pricing';
+import { applySubscriptionUpdate } from '@/lib/stripe-sync';
 import Stripe from 'stripe';
 
 export async function POST(request: Request) {
@@ -38,9 +39,9 @@ export async function POST(request: Request) {
           console.warn('No userId in subscription metadata, looking up by customerId');
           const sub = await prisma.subscription.findFirst({ where: { stripeCustomerId: customerId } });
           if (!sub) { console.error('Cannot find user for customer', customerId); break; }
-          await handleSubscriptionUpdate(sub.userId, subscription);
+          await applySubscriptionUpdate(sub.userId, subscription);
         } else {
-          await handleSubscriptionUpdate(userId, subscription);
+          await applySubscriptionUpdate(userId, subscription);
         }
         break;
       }
@@ -82,6 +83,21 @@ export async function POST(request: Request) {
         const checkoutSession = event.data.object as Stripe.Checkout.Session;
         const meta = checkoutSession.metadata ?? {};
 
+        // Subscription checkout: activate immediately (don't wait for the
+        // separate customer.subscription.* event, which can lag).
+        if (checkoutSession.mode === 'subscription' && meta.userId && checkoutSession.subscription) {
+          const subId = typeof checkoutSession.subscription === 'string'
+            ? checkoutSession.subscription
+            : checkoutSession.subscription.id;
+          try {
+            const fullSub = await stripe.subscriptions.retrieve(subId);
+            await applySubscriptionUpdate(meta.userId, fullSub);
+            console.log(`[Webhook] Subscription activated from checkout for user ${meta.userId}`);
+          } catch (e: any) {
+            console.error('[Webhook] Failed to retrieve subscription from checkout:', e?.message);
+          }
+        }
+
         // Handle coin purchase
         if (meta.type === 'coin_purchase' && meta.userId) {
           const purchase = await prisma.coinPurchase.findFirst({
@@ -108,67 +124,4 @@ export async function POST(request: Request) {
   }
 
   return NextResponse.json({ received: true });
-}
-
-async function handleSubscriptionUpdate(userId: string, subscription: Stripe.Subscription) {
-  const tier = subscription.metadata?.tier || 'pro';
-  const isIntro = subscription.metadata?.isIntro === 'true';
-  const plan = PLANS[tier as keyof typeof PLANS] ?? PLANS.pro;
-
-  // Map Stripe status
-  let status = 'active';
-  if (subscription.status === 'canceled') status = 'cancelled';
-  else if (subscription.status === 'past_due') status = 'past_due';
-  else if (subscription.status === 'trialing') status = 'active'; // trial counts as active
-
-  const periodStart = new Date((subscription as any).current_period_start * 1000);
-  const periodEnd = new Date((subscription as any).current_period_end * 1000);
-
-  await prisma.subscription.upsert({
-    where: { userId },
-    create: {
-      userId,
-      tier,
-      status,
-      stripeCustomerId: typeof subscription.customer === 'string' ? subscription.customer : subscription.customer.id,
-      stripeSubscriptionId: subscription.id,
-      trialUsed: subscription.status === 'trialing' || !!subscription.trial_end,
-      introUsed: isIntro,
-      cancelAtPeriodEnd: subscription.cancel_at_period_end ?? false,
-      currentPeriodStart: periodStart,
-      currentPeriodEnd: periodEnd,
-    },
-    update: {
-      tier,
-      status,
-      stripeSubscriptionId: subscription.id,
-      trialUsed: subscription.status === 'trialing' || !!subscription.trial_end,
-      introUsed: isIntro ? true : undefined,
-      cancelAtPeriodEnd: subscription.cancel_at_period_end ?? false,
-      currentPeriodStart: periodStart,
-      currentPeriodEnd: periodEnd,
-    },
-  });
-
-  // Create/update usage counter for this period
-  const now = new Date();
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
-
-  const existing = await prisma.usageCounter.findFirst({
-    where: { userId, tier, periodStart: { lte: now }, periodEnd: { gte: now } },
-  });
-
-  if (existing) {
-    await prisma.usageCounter.update({
-      where: { id: existing.id },
-      data: { reelsCap: plan.reelsCap },
-    });
-  } else {
-    await prisma.usageCounter.create({
-      data: { userId, tier, reelsCap: plan.reelsCap, reelsUsed: 0, periodStart: monthStart, periodEnd: monthEnd },
-    });
-  }
-
-  console.log(`[Webhook] Subscription updated: user=${userId} tier=${tier} status=${status}`);
 }

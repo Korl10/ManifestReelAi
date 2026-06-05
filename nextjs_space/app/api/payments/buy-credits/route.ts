@@ -49,7 +49,7 @@ export async function POST(request: Request) {
       },
       quantity: 1,
     }],
-    success_url: `${origin}/dashboard?coins=purchased`,
+    success_url: `${origin}/dashboard?coins=purchased&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${origin}/dashboard/settings`,
     metadata: { userId, bundleId: bundle.id, coins: String(bundle.coins), type: 'coin_purchase' },
   });

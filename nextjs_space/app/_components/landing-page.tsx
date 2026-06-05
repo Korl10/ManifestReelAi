@@ -471,13 +471,13 @@ export function LandingPage() {
                           <span className="text-lg font-semibold text-white/30 line-through">${t.monthly}</span>
                         )}
                         <span className="text-3xl font-bold text-[#D4AF37]">
-                          ${billing === 'annual' ? (t.monthly / 2).toFixed(2) : t.monthly}
+                          ${billing === 'annual' ? (Math.floor(t.monthly * 50) / 100).toFixed(2) : t.monthly.toFixed(2)}
                         </span>
                         <span className="text-sm text-white/40">/mo</span>
                       </div>
                       <p className="text-xs text-white/40 mt-1">
                         {billing === 'annual'
-                          ? `Billed $${(t.monthly * 6).toFixed(2)} yearly`
+                          ? `Billed $${(t.monthly * 6).toFixed(2)}/year — 50% off monthly`
                           : 'Billed monthly'}
                       </p>
                     </div>

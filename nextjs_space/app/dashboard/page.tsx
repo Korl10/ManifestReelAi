@@ -232,15 +232,46 @@ export default function DashboardPage() {
     }
   };
 
-  // Show upgrade toast if redirected from checkout
+  // After returning from Stripe Checkout, verify the session server-side as a
+  // fallback (in case the webhook is delayed/misconfigured), then refresh quota.
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const urlParams = new URLSearchParams(window.location.search);
     const upgraded = urlParams.get('upgraded');
-    if (upgraded) {
-      toast.success(`Successfully upgraded to ${upgraded.charAt(0).toUpperCase() + upgraded.slice(1)}! 🎉`);
-      router.replace('/dashboard', { scroll: false });
-    }
+    const coins = urlParams.get('coins');
+    const sessionId = urlParams.get('session_id');
+    if (!upgraded && !coins) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        if (sessionId) {
+          await fetch('/api/payments/verify-session', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sessionId }),
+          });
+        }
+        // Refresh subscription/quota so the UI reflects the new plan immediately.
+        const subRes = await fetch('/api/payments/subscription');
+        if (subRes.ok) {
+          const subData = await subRes.json();
+          if (!cancelled) setQuota(subData?.quota ?? null);
+        }
+      } catch {
+        /* non-fatal — webhook will reconcile shortly */
+      } finally {
+        if (!cancelled) {
+          if (upgraded) {
+            toast.success(`Successfully upgraded to ${upgraded.charAt(0).toUpperCase() + upgraded.slice(1)}! 🎉`);
+          } else if (coins) {
+            toast.success('Coins added to your account! 🪙');
+          }
+          router.replace('/dashboard', { scroll: false });
+        }
+      }
+    })();
+    return () => { cancelled = true; };
   }, [router]);
 
   useEffect(() => {
