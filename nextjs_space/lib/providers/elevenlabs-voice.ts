@@ -1,13 +1,14 @@
 import { Provider, VoiceInput, VoiceOutput, WordTimestamp, ScriptLine } from './types';
 import { uploadPublicBuffer } from '@/lib/media-storage';
-import { baseVoiceId } from '@/lib/reel-assets';
+import { getVoiceById, modelIdForTier, resolveTier } from '@/lib/voice-catalog';
+import type { VoiceTier } from '@/lib/voice-catalog';
 
 const EL_BASE = 'https://api.elevenlabs.io/v1';
 
-// Map our internal voice IDs -> ElevenLabs voice IDs. Falls back by gender/category.
-// Users can override any of these via env (e.g. EL_VOICE_FEMALE).
-function resolveElevenVoiceId(internalVoice: string): string {
-  const id = baseVoiceId(internalVoice);
+// Legacy fallback: resolve internal voice ID to ElevenLabs voice ID
+// when the voice isn't in the catalog (e.g. old reels).
+function legacyElevenVoiceId(internalVoice: string): string {
+  const id = internalVoice.split('@')[0].toLowerCase();
   const female = process.env.EL_VOICE_FEMALE || '21m00Tcm4TlvDq8ikWAM'; // Rachel
   const male = process.env.EL_VOICE_MALE || 'pNInz6obpgDQGcFmaJgB'; // Adam
   const soft = process.env.EL_VOICE_SOFT || 'EXAVITQu4vr4xnSDxMaL'; // Bella (soft/meditative)
@@ -69,32 +70,68 @@ export function estimateTimestamps(lines: ScriptLine[] | undefined, scriptText: 
   return { timestamps, durationSec: words.length * per + 1 };
 }
 
+/** Extended voice input with optional advanced settings. */
+export interface ExtendedVoiceInput extends VoiceInput {
+  voiceTier?: VoiceTier;
+  stability?: number;       // 0-1, default 0.5
+  similarity?: number;      // 0-1, default 0.75
+}
+
 export class ElevenLabsVoiceProvider implements Provider<VoiceInput, VoiceOutput> {
   getName(): string { return 'ElevenLabs'; }
-  estimateCost(input: VoiceInput): number { return Math.max(0.05, ((input?.scriptText?.length ?? 0) / 1000) * 0.3); }
+
+  estimateCost(input: VoiceInput): number {
+    const charCount = input?.scriptText?.length ?? 0;
+    // ElevenLabs pricing: ~$0.30/1000 chars for multilingual, ~$0.08/1000 for flash
+    const tier = (input as ExtendedVoiceInput)?.voiceTier ?? 'multilingual';
+    const rate = tier === 'flash' ? 0.08 : tier === 'turbo' ? 0.15 : 0.30;
+    return Math.max(0.02, (charCount / 1000) * rate);
+  }
 
   async generate(input: VoiceInput): Promise<VoiceOutput> {
     const apiKey = process.env.ELEVENLABS_API_KEY;
     if (!apiKey) {
-      // Graceful fallback (Phase 1): no premium voice yet -> music-only reel.
       const est = estimateTimestamps(input.lines, input.scriptText);
       return { audioUrl: null, timestamps: est.timestamps, durationSec: est.durationSec, provider: 'none' };
     }
 
-    const voiceId = resolveElevenVoiceId(input.voicePreset);
-    const modelId = process.env.EL_MODEL || 'eleven_multilingual_v2';
-    const res = await fetch(`${EL_BASE}/text-to-speech/${voiceId}/with-timestamps`, {
+    const ext = input as ExtendedVoiceInput;
+    const baseId = (input.voicePreset || '').split('@')[0].toLowerCase();
+
+    // Resolve voice from catalog (new) or legacy fallback
+    const catalogVoice = getVoiceById(baseId);
+    let elevenVoiceId: string;
+    let modelId: string;
+    let tier: VoiceTier;
+
+    if (catalogVoice) {
+      elevenVoiceId = catalogVoice.elevenLabsId;
+      tier = resolveTier(catalogVoice, ext.voiceTier);
+      modelId = modelIdForTier(tier);
+    } else {
+      elevenVoiceId = legacyElevenVoiceId(input.voicePreset);
+      tier = ext.voiceTier ?? 'multilingual';
+      modelId = modelIdForTier(tier);
+    }
+
+    const stability = typeof ext.stability === 'number' ? ext.stability : 0.5;
+    const similarity = typeof ext.similarity === 'number' ? ext.similarity : 0.75;
+    const speed = speedFromPreset(input.voicePreset);
+
+    console.log(`[voice] ElevenLabs TTS: voice=${baseId} (${elevenVoiceId}), tier=${tier}, model=${modelId}, stability=${stability}, similarity=${similarity}, speed=${speed}, chars=${input.scriptText.length}`);
+
+    const res = await fetch(`${EL_BASE}/text-to-speech/${elevenVoiceId}/with-timestamps`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'xi-api-key': apiKey },
       body: JSON.stringify({
         text: input.scriptText,
         model_id: modelId,
         voice_settings: {
-          stability: 0.5,
-          similarity_boost: 0.75,
+          stability,
+          similarity_boost: similarity,
           style: 0.35,
           use_speaker_boost: true,
-          speed: speedFromPreset(input.voicePreset),
+          speed,
         },
       }),
     });
@@ -109,6 +146,8 @@ export class ElevenLabsVoiceProvider implements Provider<VoiceInput, VoiceOutput
     const audioUrl = await uploadPublicBuffer(buffer, 'voice.mp3', 'audio/mpeg');
     const timestamps = wordsFromCharAlignment(input.scriptText, data?.alignment ?? data?.normalized_alignment);
     const durationSec = timestamps.length ? timestamps[timestamps.length - 1].end : estimateTimestamps(input.lines, input.scriptText).durationSec;
-    return { audioUrl, timestamps, durationSec: +durationSec.toFixed(2), provider: 'ElevenLabs' };
+
+    console.log(`[voice] ElevenLabs OK: duration=${durationSec.toFixed(1)}s, words=${timestamps.length}, cost~$${this.estimateCost(input).toFixed(4)}`);
+    return { audioUrl, timestamps, durationSec: +durationSec.toFixed(2), provider: `ElevenLabs/${tier}` };
   }
 }

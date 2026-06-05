@@ -71,6 +71,7 @@ export async function GET() {
         script: breakdown.script_cost ?? 0,
         image: breakdown.image_cost ?? 0,
         voice: breakdown.voice_cost ?? 0,
+        whisper: breakdown.whisper_cost ?? 0,
         video: breakdown.video_cost ?? 0,
         music: breakdown.music_cost ?? 0,
         render: breakdown.render_cost ?? 0,
@@ -135,12 +136,13 @@ export async function GET() {
   const avgCostPerReel = completedReels > 0 ? totalCost / completedReels : 0;
 
   // Cost by provider category
-  const costByCategory: Record<string, number> = { script: 0, image: 0, voice: 0, video: 0, music: 0, render: 0, storage: 0 };
+  const costByCategory: Record<string, number> = { script: 0, image: 0, voice: 0, whisper: 0, video: 0, music: 0, render: 0, storage: 0 };
   for (const r of reels) {
     const b = (r as any).costBreakdown ?? {};
     costByCategory.script += b.script_cost ?? 0;
     costByCategory.image += b.image_cost ?? 0;
     costByCategory.voice += b.voice_cost ?? 0;
+    costByCategory.whisper += b.whisper_cost ?? 0;
     costByCategory.video += b.video_cost ?? 0;
     costByCategory.music += b.music_cost ?? 0;
     costByCategory.render += b.render_cost ?? 0;

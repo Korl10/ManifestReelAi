@@ -10,6 +10,13 @@ import Link from 'next/link';
 import { HydrationDate } from '@/components/hydration-date';
 import { PaywallModal } from '@/components/paywall-modal';
 import { AddVoiceModal } from '@/components/add-voice-modal';
+import dynamic from 'next/dynamic';
+import { DEFAULT_SUBTITLE_STYLE } from '@/lib/captions/subtitle-types';
+import type { SubtitleStyle } from '@/lib/captions/subtitle-types';
+import type { VoiceTier } from '@/lib/voice-catalog';
+
+const SubtitleEditor = dynamic(() => import('@/components/subtitle-editor'), { ssr: false });
+const VoiceBrowser = dynamic(() => import('@/components/voice-browser'), { ssr: false });
 
 const PLATFORMS = ['TikTok', 'Instagram Reels', 'YouTube Shorts'];
 
@@ -178,6 +185,16 @@ export default function DashboardPage() {
   const audioRefs = useRef<Record<string, HTMLAudioElement | null>>({});
   const videoRefs = useRef<Record<string, HTMLVideoElement | null>>({});
 
+  // Phase 2: Voice advanced settings
+  const [voiceTier, setVoiceTier] = useState<VoiceTier>('multilingual');
+  const [stability, setStability] = useState(0.5);
+  const [similarity, setSimilarity] = useState(0.75);
+  const [showVoiceBrowser, setShowVoiceBrowser] = useState(false);
+
+  // Phase 2: Subtitle settings
+  const [subtitleStyle, setSubtitleStyle] = useState<SubtitleStyle>({ ...DEFAULT_SUBTITLE_STYLE });
+  const [showSubtitleEditor, setShowSubtitleEditor] = useState(false);
+
   const toggleVoicePreview = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     const current = audioRefs.current[id];
@@ -332,7 +349,18 @@ export default function DashboardPage() {
       const res = await fetch('/api/reels/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: prompt.trim(), platform: platform.toLowerCase().replace(/\s+/g, '-'), style: style.toLowerCase(), voice: speed === 'normal' ? voice : `${voice}@${speed}`, mood: mood.toLowerCase(), motion: enableMotion }),
+        body: JSON.stringify({
+          prompt: prompt.trim(),
+          platform: platform.toLowerCase().replace(/\s+/g, '-'),
+          style: style.toLowerCase(),
+          voice: speed === 'normal' ? voice : `${voice}@${speed}`,
+          mood: mood.toLowerCase(),
+          motion: enableMotion,
+          voiceTier,
+          stability,
+          similarity,
+          subtitleStyle,
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -700,6 +728,68 @@ export default function DashboardPage() {
             );
           })}
         </div>
+      </section>
+
+      {/* Voice Browser (Phase 2) — advanced voice selection with filters + preview */}
+      <section>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="font-display text-base font-semibold">Voice Settings</h2>
+          <button
+            onClick={() => setShowVoiceBrowser(!showVoiceBrowser)}
+            className={`text-xs px-3 py-1.5 rounded-lg transition ${
+              showVoiceBrowser ? 'bg-[#D4AF37]/20 text-[#D4AF37]' : 'bg-white/5 text-white/40 hover:bg-white/10'
+            }`}
+          >
+            {showVoiceBrowser ? 'Hide Advanced' : 'Advanced Voice Controls'}
+          </button>
+        </div>
+        {showVoiceBrowser && (
+          <div className="rounded-xl bg-white/[0.02] border border-white/5 p-4">
+            <VoiceBrowser
+              selectedVoiceId={voice}
+              onSelect={(id) => setVoice(id)}
+              previewText={prompt || undefined}
+              voiceTier={voiceTier}
+              onTierChange={setVoiceTier}
+              stability={stability}
+              onStabilityChange={setStability}
+              similarity={similarity}
+              onSimilarityChange={setSimilarity}
+            />
+          </div>
+        )}
+      </section>
+
+      {/* Subtitle Editor (Phase 2) — WYSIWYG subtitle customization */}
+      <section>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="font-display text-base font-semibold">Subtitle Style</h2>
+          <button
+            onClick={() => setShowSubtitleEditor(!showSubtitleEditor)}
+            className={`text-xs px-3 py-1.5 rounded-lg transition ${
+              showSubtitleEditor ? 'bg-[#D4AF37]/20 text-[#D4AF37]' : 'bg-white/5 text-white/40 hover:bg-white/10'
+            }`}
+          >
+            {showSubtitleEditor ? 'Hide Editor' : 'Customize Subtitles'}
+          </button>
+        </div>
+        {!showSubtitleEditor && (
+          <div className="flex flex-wrap gap-2 text-[11px] text-white/40">
+            <span className="px-2 py-1 rounded bg-white/5">{subtitleStyle.fontFamily}</span>
+            <span className="px-2 py-1 rounded bg-white/5">{subtitleStyle.animation}</span>
+            <span className="px-2 py-1 rounded bg-white/5">{subtitleStyle.position}</span>
+            {subtitleStyle.platform !== 'none' && (
+              <span className="px-2 py-1 rounded bg-white/5">{subtitleStyle.platform} safe zone</span>
+            )}
+          </div>
+        )}
+        {showSubtitleEditor && (
+          <SubtitleEditor
+            value={subtitleStyle}
+            onChange={setSubtitleStyle}
+            previewText={prompt || 'Your abundance is flowing toward you now'}
+          />
+        )}
       </section>
 
       {/* Cinematic Motion (Premium) — LIVE */}

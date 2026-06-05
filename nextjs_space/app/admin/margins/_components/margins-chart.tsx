@@ -49,6 +49,7 @@ const CAT_COLORS: Record<string, string> = {
   script: '#3b82f6',
   image: '#D4AF37',
   voice: '#8b5cf6',
+  whisper: '#a78bfa',
   video: '#ef4444',
   music: '#22c55e',
   render: '#f97316',

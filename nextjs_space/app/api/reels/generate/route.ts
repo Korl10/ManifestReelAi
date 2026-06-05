@@ -5,6 +5,7 @@ import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
 import { checkGeneration, consumeCoins } from '@/lib/quota';
 import { runGenerationPipeline } from '@/lib/generation-pipeline';
+import type { PipelineOptions } from '@/lib/generation-pipeline';
 
 export async function POST(request: Request) {
   try {
@@ -16,6 +17,12 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { prompt, platform, style, voice, mood } = body ?? {};
     const motion = body?.motion === true;
+
+    // Voice & subtitle advanced settings
+    const voiceTier = body?.voiceTier;       // flash | multilingual | turbo
+    const stability = typeof body?.stability === 'number' ? body.stability : undefined;
+    const similarity = typeof body?.similarity === 'number' ? body.similarity : undefined;
+    const subtitleStyle = body?.subtitleStyle;  // Partial<SubtitleStyle>
 
     if (!prompt || !platform || !style || !voice || !mood) {
       return NextResponse.json({ error: 'All fields are required: prompt, platform, style, voice, mood' }, { status: 400 });
@@ -51,9 +58,17 @@ export async function POST(request: Request) {
       await consumeCoins(userId, coinCost);
     }
 
+    // Build pipeline options from advanced settings
+    const pipelineOpts: PipelineOptions = {
+      voiceTier,
+      stability,
+      similarity,
+      subtitleStyle,
+    };
+
     // Start pipeline (fire-and-forget). Free tier runs a preview built from
     // cached/sample assets only — no live paid API calls.
-    runGenerationPipeline(job.id, reel.id, userId, isFreePreview ? 'preview' : 'full').catch(console.error);
+    runGenerationPipeline(job.id, reel.id, userId, isFreePreview ? 'preview' : 'full', pipelineOpts).catch(console.error);
 
     return NextResponse.json({
       jobId: job.id,

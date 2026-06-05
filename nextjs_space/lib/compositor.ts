@@ -1,6 +1,7 @@
 import { WordTimestamp } from '@/lib/providers/types';
 import { buildAss } from '@/lib/captions/ass';
 import { uploadPublicText } from '@/lib/media-storage';
+import type { SubtitleStyle } from '@/lib/captions/subtitle-types';
 
 const CREATE_URL = 'https://apps.abacus.ai/api/createRunFfmpegCommandRequest';
 const STATUS_URL = 'https://apps.abacus.ai/api/getRunFfmpegCommandStatus';
@@ -24,6 +25,8 @@ export interface CompositeInput {
    * background instead of a Ken Burns still. null/undefined → Ken Burns still.
    */
   sceneClipUrls?: (string | null)[];
+  /** Optional subtitle style overrides. */
+  subtitleStyle?: Partial<SubtitleStyle>;
 }
 
 export interface CompositeResult {
@@ -56,7 +59,11 @@ export async function compositeReel(input: CompositeInput): Promise<CompositeRes
   const T = +Math.max(3, total).toFixed(2);
 
   // ---- Build & upload the karaoke subtitle file ----
-  const ass = buildAss(input.lineTexts, input.words, { watermark: input.watermark, totalDuration: T });
+  const ass = buildAss(input.lineTexts, input.words, {
+    watermark: input.watermark,
+    totalDuration: T,
+    style: input.subtitleStyle,
+  });
   const assUrl = await uploadPublicText(ass, 'captions.ass', 'text/plain');
 
   // Per-scene motion clips (optional). A scene is "animated" only when it has

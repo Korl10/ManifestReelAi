@@ -527,7 +527,7 @@ export function LandingPage() {
                     <Image src={t.avatar} alt={t.name} fill className="object-cover" sizes="44px" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-sm font-semibold truncate">{t?.name ?? ''}</p>
+                    <p className="text-sm font-semibold truncate text-white">{t?.name ?? ''}</p>
                     <p className="text-xs text-[#D4AF37] truncate">{t?.role ?? ''}</p>
                   </div>
                 </div>
@@ -536,7 +536,7 @@ export function LandingPage() {
                     <Star key={j} className="w-3.5 h-3.5 fill-[#D4AF37] text-[#D4AF37]" />
                   ))}
                 </div>
-                <p className="text-sm text-white/65 leading-relaxed">"{t?.text ?? ''}"</p>
+                <p className="text-sm text-white/70 leading-relaxed">"{t?.text ?? ''}"</p>
               </motion.div>
             ))}
           </div>

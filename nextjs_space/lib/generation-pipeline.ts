@@ -3,10 +3,13 @@ import { getScriptProvider, getImageProvider, getVoiceProvider, getMusicProvider
 import { selectHeroScenes } from '@/lib/providers/motion-prompts';
 import { buildTemplateScript, fallbackSceneImages } from '@/lib/providers/fallback';
 import { estimateTimestamps } from '@/lib/providers/elevenlabs-voice';
+import type { ExtendedVoiceInput } from '@/lib/providers/elevenlabs-voice';
+import { transcribeWithWhisper } from '@/lib/providers/whisper';
 import { compositeReel } from '@/lib/compositor';
 import { ensurePublicLocalAsset } from '@/lib/media-storage';
 import { resolveReelAssets } from '@/lib/reel-assets';
 import type { ScriptOutput, WordTimestamp } from '@/lib/providers/types';
+import type { SubtitleStyle } from '@/lib/captions/subtitle-types';
 
 // Progress milestones for each pipeline stage.
 const STEP_PCT: Record<string, number> = {
@@ -40,11 +43,19 @@ function sceneDurationsFromWords(lineTexts: string[], words: WordTimestamp[], fa
   return out;
 }
 
+export interface PipelineOptions {
+  voiceTier?: string;      // flash | multilingual | turbo
+  stability?: number;      // 0-1
+  similarity?: number;     // 0-1
+  subtitleStyle?: Partial<SubtitleStyle>;
+}
+
 export async function runGenerationPipeline(
   jobId: string,
   reelId: string,
   userId: string,
   mode: 'full' | 'preview' = 'full',
+  pipelineOpts?: PipelineOptions,
 ): Promise<void> {
   const costBreakdown: Record<string, number> = {};
   // Preview mode (free tier): build entirely from cached/sample assets with
@@ -175,11 +186,34 @@ export async function runGenerationPipeline(
       costBreakdown['voice_cost'] = 0;
     } else try {
       const vp = getVoiceProvider();
-      const v = await vp.generate({ scriptText: script.rawText, voicePreset: reel.voice, lines: script.fullScript });
+      const voiceInput: ExtendedVoiceInput = {
+        scriptText: script.rawText,
+        voicePreset: reel.voice,
+        lines: script.fullScript,
+        voiceTier: (pipelineOpts?.voiceTier as any) ?? undefined,
+        stability: pipelineOpts?.stability,
+        similarity: pipelineOpts?.similarity,
+      };
+      const v = await vp.generate(voiceInput);
       voiceUrl = v.audioUrl;
       words = v.timestamps;
       voiceProviderName = v.provider;
-      costBreakdown['voice_cost'] = voiceUrl ? vp.estimateCost({ scriptText: script.rawText, voicePreset: reel.voice }) : 0;
+      costBreakdown['voice_cost'] = voiceUrl ? vp.estimateCost(voiceInput) : 0;
+
+      // Whisper re-transcription for frame-accurate word timestamps
+      if (voiceUrl && process.env.FAL_KEY) {
+        try {
+          const whisperResult = await transcribeWithWhisper(voiceUrl, v.durationSec);
+          if (whisperResult.words.length > 0) {
+            words = whisperResult.words;
+            costBreakdown['whisper_cost'] = whisperResult.cost;
+            console.log(`[pipeline] Whisper timestamps: ${whisperResult.words.length} words, cost=$${whisperResult.cost.toFixed(4)}`);
+          }
+        } catch (e) {
+          console.warn('[pipeline] Whisper transcription failed, using ElevenLabs timestamps:', (e as any)?.message);
+          costBreakdown['whisper_cost'] = 0;
+        }
+      }
     } catch (e) {
       console.error('[pipeline] Voice generation failed, continuing music-only:', (e as any)?.message);
       const est = estimateTimestamps(script.fullScript, script.rawText);
@@ -237,6 +271,7 @@ export async function runGenerationPipeline(
         musicUrl: musicPublicUrl,
         watermark,
         sceneClipUrls,
+        subtitleStyle: pipelineOpts?.subtitleStyle,
       });
       finalVideoUrl = result.videoUrl;
       finalDuration = result.durationSec;
