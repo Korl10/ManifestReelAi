@@ -50,24 +50,27 @@ interface SubmitResponse {
 
 async function submitClip(imageUrl: string, prompt: string, durationSec: number): Promise<SubmitResponse> {
   const duration = durationSec >= 10 ? '10' : '5';
+  const body = {
+    image_url: imageUrl,
+    prompt,
+    duration,
+    cfg_scale: 0.35,
+    negative_prompt: 'blur, distortion, low quality, warping, flicker, jitter',
+  };
+  console.log(`[fal.ai] SUBMIT model=${MODEL} duration=${duration}s prompt="${prompt.slice(0, 80)}..." image_url=${imageUrl.slice(0, 80)}...`);
   const res = await fetch(`${QUEUE_BASE}/${MODEL}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: authHeader() },
-    body: JSON.stringify({
-      image_url: imageUrl,
-      prompt,
-      duration,
-      // Subtle motion: lower cfg_scale keeps movement gentle & cinematic
-      // rather than hyperactive. Range 0-1, default 0.5.
-      cfg_scale: 0.35,
-      negative_prompt: 'blur, distortion, low quality, warping, flicker, jitter',
-    }),
+    body: JSON.stringify(body),
   });
   if (!res.ok) {
     const e = await res.text().catch(() => '');
+    console.error(`[fal.ai] SUBMIT FAILED ${res.status}: ${e.slice(0, 300)}`);
     throw new Error(`fal submit ${res.status}: ${e.slice(0, 200)}`);
   }
-  return res.json();
+  const result = await res.json();
+  console.log(`[fal.ai] SUBMIT OK request_id=${result.request_id} status_url=${result.status_url}`);
+  return result;
 }
 
 async function pollClip(sub: SubmitResponse): Promise<string | null> {
@@ -108,9 +111,10 @@ async function generateOneClip(imageUrl: string, prompt: string, durationSec: nu
   try {
     const sub = await submitClip(imageUrl, prompt, durationSec);
     const url = await pollClip(sub);
+    console.log(`[fal.ai] CLIP COMPLETE request_id=${sub.request_id} video_url=${url ? url.slice(0, 80) + '...' : 'null'}`);
     return url;
   } catch (e) {
-    console.error('[falai-video] clip failed (falling back to still):', (e as any)?.message);
+    console.error(`[fal.ai] CLIP FAILED (falling back to Ken Burns still): ${(e as any)?.message}`);
     return null;
   }
 }

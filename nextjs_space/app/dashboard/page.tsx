@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
-import { Sparkles, Loader2, Clock, Zap, Film, AlertCircle, Check, Wand2, Play, Pause, Mic, Plus, Trash2, Gauge, ToggleRight, ToggleLeft } from 'lucide-react';
+import { Sparkles, Loader2, Clock, Zap, Film, AlertCircle, Check, Wand2, Play, Pause, Mic, Plus, Trash2, Gauge, ToggleRight, ToggleLeft, Crown } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { HydrationDate } from '@/components/hydration-date';
@@ -166,6 +166,7 @@ export default function DashboardPage() {
   const [showVoiceModal, setShowVoiceModal] = useState(false);
   const [mood, setMood] = useState('Manifestation');
   const [generating, setGenerating] = useState(false);
+  const [generatingPrompt, setGeneratingPrompt] = useState(false);
   const [reels, setReels] = useState<any[]>([]);
   const [quota, setQuota] = useState<any>(null);
   const [loadingReels, setLoadingReels] = useState(true);
@@ -297,6 +298,28 @@ export default function DashboardPage() {
       .catch(() => {});
   }, [session]);
 
+  const handleAutoPrompt = async () => {
+    setGeneratingPrompt(true);
+    try {
+      const res = await fetch('/api/reels/auto-prompt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ style, mood, platform, currentPrompt: prompt.trim() || undefined }),
+      });
+      const data = await res.json();
+      if (res.ok && data?.prompt) {
+        setPrompt(data.prompt);
+        toast.success('AI prompt generated! Feel free to edit it.');
+      } else {
+        toast.error(data?.error || 'Failed to generate prompt');
+      }
+    } catch {
+      toast.error('Failed to generate prompt');
+    } finally {
+      setGeneratingPrompt(false);
+    }
+  };
+
   const handleGenerate = async () => {
     if (!prompt?.trim()) { toast.error('Enter a prompt to start'); return; }
     // Check quota — show paywall if out
@@ -313,6 +336,11 @@ export default function DashboardPage() {
       });
       const data = await res.json();
       if (!res.ok) {
+        // Server-side paywall: show paywall modal on 403 (quota/tier block)
+        if (res.status === 403 && (data?.reason === 'free_tier' || data?.reason === 'insufficient_coins' || data?.reason === 'motion_locked' || data?.reason === 'inactive')) {
+          setShowPaywall(true);
+          return;
+        }
         toast.error(data?.error ?? 'Generation failed');
         return;
       }
@@ -359,17 +387,28 @@ export default function DashboardPage() {
 
       {/* Prompt */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl bg-white/[0.03] border border-white/8 p-5 md:p-6">
-        <div className="flex items-center gap-2 mb-3">
-          <Wand2 className="w-4 h-4 text-[#D4AF37]" />
-          <label className="text-sm font-semibold text-white">Your Intention</label>
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Wand2 className="w-4 h-4 text-[#D4AF37]" />
+            <label className="text-sm font-semibold text-white">Your Intention</label>
+          </div>
+          <button
+            onClick={handleAutoPrompt}
+            disabled={generatingPrompt}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-[#D4AF37]/20 to-[#7B2FBE]/20 hover:from-[#D4AF37]/30 hover:to-[#7B2FBE]/30 border border-[#D4AF37]/30 text-[#D4AF37] text-xs font-medium transition-all disabled:opacity-50"
+          >
+            {generatingPrompt ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+            {generatingPrompt ? 'Generating...' : 'AI Auto-Prompt'}
+          </button>
         </div>
         <textarea
           value={prompt}
           onChange={e => setPrompt(e.target.value)}
-          placeholder='e.g. "A viral manifestation reel about attracting wealth, success and abundance into my life"'
+          placeholder='e.g. "A viral manifestation reel about attracting wealth, success and abundance into my life" — or hit AI Auto-Prompt to get an enriched suggestion based on your style & mood'
           rows={3}
           className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-white/25 focus:outline-none focus:border-[#D4AF37]/50 transition-colors text-sm resize-none"
         />
+        <p className="text-[10px] text-white/30 mt-1.5">Your intention drives the script, visuals, voice, and music. Be specific for best results.</p>
       </motion.div>
 
       {/* Pick Style — image cards */}
@@ -728,8 +767,12 @@ export default function DashboardPage() {
       >
         {generating ? (
           <><Loader2 className="w-5 h-5 animate-spin" /> Generating...</>
+        ) : isFreeTier && remaining === 0 ? (
+          <><Crown className="w-5 h-5" /> Upgrade to Generate ✨</>
+        ) : isFreeTier ? (
+          <><Sparkles className="w-5 h-5" /> Generate Free Preview ✨</>
         ) : (
-          <><Sparkles className="w-5 h-5" /> {enableMotion ? 'Generate Motion Reel (5 coins) ✨' : 'Generate Reel ✨'}</>
+          <><Sparkles className="w-5 h-5" /> {enableMotion ? 'Generate Motion Reel (5 coins) ✨' : 'Generate Reel (1 coin) ✨'}</>
         )}
       </button>
 

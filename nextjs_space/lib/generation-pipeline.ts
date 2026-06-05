@@ -91,6 +91,7 @@ export async function runGenerationPipeline(
 
     const lineTexts = script.scenes.map((s) => s.text);
     const sceneCount = script.scenes.length;
+    console.log(`[pipeline] Script: ${sceneCount} scenes, hook="${script.hook?.slice(0, 60)}...", provider=${scriptProviderName}`);
 
     // ----------------------------------------------------------------
     // STEP 2 — Cinematic visuals (AI images, with bundled-still fallback)
@@ -102,15 +103,19 @@ export async function runGenerationPipeline(
       sceneImageUrls = await fallbackSceneImages(reel.style, sceneCount);
       imageProviderName = 'fallback-stills';
       costBreakdown['image_cost'] = 0;
+      console.log('[pipeline] Preview mode — using bundled stills (expected)');
     } else try {
       const ip = getImageProvider();
-      const imgs = await ip.generate({ scenes: script.scenes.map((s) => ({ imagePrompt: s.imagePrompt })), style: reel.style, mood: reel.mood });
+      console.log(`[pipeline] Generating ${sceneCount} AI images via ${ip.getName()}...`);
+      const imgInput = { scenes: script.scenes.map((s) => ({ imagePrompt: s.imagePrompt })), style: reel.style, mood: reel.mood };
+      const imgs = await ip.generate(imgInput);
       sceneImageUrls = imgs.sceneImageUrls.filter(Boolean);
       imageProviderName = imgs.provider;
-      costBreakdown['image_cost'] = ip.estimateCost({ scenes: script.scenes.map((s) => ({ imagePrompt: s.imagePrompt })), style: reel.style, mood: reel.mood });
+      costBreakdown['image_cost'] = ip.estimateCost(imgInput);
       if (sceneImageUrls.length === 0) throw new Error('no images returned');
+      console.log(`[pipeline] AI images OK: ${sceneImageUrls.length}/${sceneCount} generated, provider=${imageProviderName}, cost=$${costBreakdown['image_cost']}`);
     } catch (e) {
-      console.error('[pipeline] AI image generation failed, using bundled stills:', (e as any)?.message);
+      console.error('[pipeline] ⚠ AI image generation FAILED, falling back to bundled stills:', (e as any)?.message);
       sceneImageUrls = await fallbackSceneImages(reel.style, sceneCount);
       imageProviderName = 'fallback-stills';
       costBreakdown['image_cost'] = 0;
@@ -243,6 +248,8 @@ export async function runGenerationPipeline(
     }
 
     const totalCost = Object.values(costBreakdown).reduce((a, b) => a + b, 0);
+    console.log(`[pipeline] COST BREAKDOWN reel=${reelId}:`, JSON.stringify(costBreakdown), `TOTAL=$${totalCost.toFixed(4)}`);
+    console.log(`[pipeline] PROVIDERS: script=${scriptProviderName} image=${imageProviderName} voice=${voiceProviderName} motion=${motionProviderName}(${motionClipCount}clips)`);
 
     await prisma.reel.update({
       where: { id: reelId },
