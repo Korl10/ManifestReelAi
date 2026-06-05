@@ -28,6 +28,7 @@ model User {
   generationJobs GenerationJob[]
   socialAccounts SocialAccount[]
   customVoices   CustomVoice[]
+  customMusic    CustomMusic[]
 
   @@map("users")
 }
@@ -202,6 +203,22 @@ model CustomVoice {
 
   @@index([userId])
   @@map("custom_voices")
+}
+
+model CustomMusic {
+  id               String   @id @default(cuid())
+  userId           String   @map("user_id")
+  name             String
+  cloudStoragePath String   @map("cloud_storage_path")
+  isPublic         Boolean  @default(true) @map("is_public")
+  durationSec      Float?   @map("duration_sec")
+  source           String   @default("upload")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("custom_music")
 }
 
 model Asset {

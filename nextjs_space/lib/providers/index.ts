@@ -3,6 +3,7 @@ import { AbacusImageProvider } from './image-gen';
 import { ElevenLabsVoiceProvider } from './elevenlabs-voice';
 import { LibraryMusicProvider } from './library-music';
 import { FalaiVideoProvider } from './falai-video';
+import { FluxImageProvider } from './flux-image';
 import type {
   Provider,
   ScriptInput, ScriptOutput,
@@ -22,6 +23,11 @@ export function getImageProvider(): Provider<ImageInput, ImageOutput> {
   return new AbacusImageProvider();
 }
 
+/** fal.ai Flux image generation for model tiers (Flux 1.1 Pro / Pro Ultra). */
+export function getFluxImageProvider(model?: string, pricePerImage?: number): Provider<ImageInput, ImageOutput> {
+  return new FluxImageProvider(model, pricePerImage);
+}
+
 /** Premium voiceover. Gracefully returns audioUrl=null when no ELEVENLABS_API_KEY is set. */
 export function getVoiceProvider(): Provider<VoiceInput, VoiceOutput> {
   return new ElevenLabsVoiceProvider();
@@ -32,9 +38,9 @@ export function getMusicProvider(): Provider<MusicInput, MusicOutput> {
   return new LibraryMusicProvider();
 }
 
-/** Cinematic image-to-video motion (fal.ai Kling). Fails gracefully to stills. */
-export function getVideoProvider(): Provider<VideoClipInput, VideoClipOutput> {
-  return new FalaiVideoProvider();
+/** Cinematic image-to-video motion (fal.ai, model-aware). Fails gracefully to stills. */
+export function getVideoProvider(model?: string, pricePerSec?: number): Provider<VideoClipInput, VideoClipOutput> {
+  return new FalaiVideoProvider(model, pricePerSec);
 }
 
 export * from './types';

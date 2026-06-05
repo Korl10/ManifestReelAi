@@ -147,17 +147,22 @@ export async function compositeReel(input: CompositeInput): Promise<CompositeRes
   // Audio graph.
   let hasAudio = true;
   if (voiceIdx >= 0 && musicIdx >= 0) {
+    // Sidechain ducking: the music bed sits at ~-8dB (0.40) in the gaps and is
+    // pulled down to ~-18dB whenever the voiceover is present, then restored.
+    // Music gets a 300ms fade-in and an 800ms fade-out at the tail.
     fc.push(
-      `[${musicIdx}:a]volume=0.28[mus];` +
-      `[${voiceIdx}:a]volume=1.0[vo];` +
-      `[vo][mus]amix=inputs=2:duration=longest:dropout_transition=0[amx];` +
-      `[amx]afade=t=out:st=${(T - 1.5).toFixed(2)}:d=1.5[aout]`,
+      `[${musicIdx}:a]aformat=sample_rates=44100:channel_layouts=stereo,volume=0.40[musbed];` +
+      `[${voiceIdx}:a]aformat=sample_rates=44100:channel_layouts=stereo,volume=1.0,asplit=2[vo][vokey];` +
+      `[musbed][vokey]sidechaincompress=threshold=0.03:ratio=10:attack=20:release=300:makeup=1[mduck];` +
+      `[mduck]afade=t=in:st=0:d=0.3,afade=t=out:st=${(T - 0.8).toFixed(2)}:d=0.8[musf];` +
+      `[vo][musf]amix=inputs=2:duration=longest:dropout_transition=0:normalize=0[aout]`,
     );
   } else if (voiceIdx >= 0) {
-    fc.push(`[${voiceIdx}:a]volume=1.0,afade=t=out:st=${(T - 1).toFixed(2)}:d=1[aout]`);
+    fc.push(`[${voiceIdx}:a]aformat=sample_rates=44100:channel_layouts=stereo,volume=1.0,afade=t=out:st=${(T - 0.8).toFixed(2)}:d=0.8[aout]`);
   } else if (musicIdx >= 0) {
+    // Music-only reel: slightly louder bed with the same 300ms/800ms fades.
     fc.push(
-      `[${musicIdx}:a]volume=0.6,afade=t=in:st=0:d=1.5,afade=t=out:st=${(T - 2).toFixed(2)}:d=2[aout]`,
+      `[${musicIdx}:a]aformat=sample_rates=44100:channel_layouts=stereo,volume=0.6,afade=t=in:st=0:d=0.3,afade=t=out:st=${(T - 0.8).toFixed(2)}:d=0.8[aout]`,
     );
   } else {
     hasAudio = false;

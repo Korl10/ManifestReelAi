@@ -43,6 +43,7 @@ export async function GET() {
     select: {
       id: true, totalCost: true, costBreakdown: true, createdAt: true,
       motion: true, coinCost: true, status: true, style: true, mood: true,
+      scenesJson: true,
       user: { select: { email: true } },
     },
     orderBy: { createdAt: 'desc' },
@@ -56,6 +57,8 @@ export async function GET() {
       ? (r.coinCost ?? COIN_COST.motion) * CREDIT_RETAIL_VALUE
       : (r.coinCost ?? COIN_COST.static) * CREDIT_RETAIL_VALUE;
     const breakdown = r.costBreakdown ?? {};
+    let meta: any = {};
+    try { meta = typeof r.scenesJson === 'string' ? JSON.parse(r.scenesJson) : (r.scenesJson ?? {}); } catch { meta = {}; }
     return {
       id: r.id,
       date: r.createdAt,
@@ -63,6 +66,9 @@ export async function GET() {
       type,
       style: r.style,
       mood: r.mood,
+      modelTier: meta.model_tier ?? null,
+      musicTrackId: meta.music_track_id ?? null,
+      voiceTier: meta.voice_tier ?? null,
       status: r.status,
       cost: Math.round(cost * 10000) / 10000,
       retail: Math.round(retail * 100) / 100,

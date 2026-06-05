@@ -15,8 +15,12 @@ import { DEFAULT_SUBTITLE_STYLE } from '@/lib/captions/subtitle-types';
 import type { SubtitleStyle } from '@/lib/captions/subtitle-types';
 import type { VoiceTier } from '@/lib/voice-catalog';
 
+import { modelTierAccess, getModelTier, type ModelTierId } from '@/lib/model-tiers';
+
 const SubtitleEditor = dynamic(() => import('@/components/subtitle-editor'), { ssr: false });
 const VoiceBrowser = dynamic(() => import('@/components/voice-browser'), { ssr: false });
+const ModelTierPicker = dynamic(() => import('@/components/model-tier-picker'), { ssr: false });
+const MusicPicker = dynamic(() => import('@/components/music-picker'), { ssr: false });
 
 const PLATFORMS = ['TikTok', 'Instagram Reels', 'YouTube Shorts'];
 
@@ -194,6 +198,8 @@ export default function DashboardPage() {
   // Phase 2: Subtitle settings
   const [subtitleStyle, setSubtitleStyle] = useState<SubtitleStyle>({ ...DEFAULT_SUBTITLE_STYLE });
   const [showSubtitleEditor, setShowSubtitleEditor] = useState(false);
+  const [modelTier, setModelTier] = useState<ModelTierId>('standard');
+  const [musicTrackId, setMusicTrackId] = useState<string | null>(null);
 
   const toggleVoicePreview = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
@@ -356,6 +362,8 @@ export default function DashboardPage() {
           voice: speed === 'normal' ? voice : `${voice}@${speed}`,
           mood: mood.toLowerCase(),
           motion: enableMotion,
+          modelTier: enableMotion ? modelTier : undefined,
+          musicTrackId: musicTrackId || undefined,
           voiceTier,
           stability,
           similarity,
@@ -792,44 +800,65 @@ export default function DashboardPage() {
         )}
       </section>
 
-      {/* Cinematic Motion (Premium) — LIVE */}
-      <div className={`flex items-center gap-3 p-3.5 rounded-xl border transition-all ${
-        enableMotion
-          ? 'bg-gradient-to-r from-[#7B2FBE]/20 to-[#D4AF37]/10 border-[#7B2FBE]/40 shadow-lg shadow-[#7B2FBE]/10'
-          : 'bg-gradient-to-r from-[#7B2FBE]/10 to-[#D4AF37]/5 border-[#7B2FBE]/20'
-      }`}>
-        <div className="w-9 h-9 rounded-xl bg-[#7B2FBE]/20 flex items-center justify-center shrink-0">
-          <Sparkles className="w-4 h-4 text-[#A855F7]" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold flex items-center gap-2 flex-wrap">
-            Cinematic Motion
-            <span className="px-1.5 py-0.5 rounded-full bg-[#D4AF37]/15 text-[#D4AF37] text-[9px] font-bold uppercase tracking-wide">Premium</span>
-            <span className="px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 text-[9px] font-bold uppercase tracking-wide">Live</span>
-          </p>
-          <p className="text-[11px] text-white/45 mt-0.5">
-            {quota?.tier === 'premium'
-              ? (enableMotion ? 'AI-animated hero scenes enabled — 5 coins for this reel.' : 'Toggle on to add AI-animated hero scenes — 5 coins per reel.')
-              : 'AI-animated hero scenes for next-level reels — 5 coins each. Premium only.'}
-          </p>
-        </div>
-        {quota?.tier === 'premium' ? (
-          <button
-            type="button"
-            onClick={() => setEnableMotion(!enableMotion)}
-            className="ml-auto shrink-0 flex items-center gap-1.5 transition-colors"
-            aria-label={enableMotion ? 'Disable motion' : 'Enable motion'}
-          >
-            {enableMotion ? (
-              <ToggleRight className="w-8 h-8 text-[#A855F7]" />
-            ) : (
-              <ToggleLeft className="w-8 h-8 text-white/30" />
+      {/* Background Music — smart matcher + custom uploads */}
+      <MusicPicker
+        mood={mood.toLowerCase()}
+        style={style.toLowerCase()}
+        platform={platform.toLowerCase().replace(/\s+/g, '-')}
+        value={musicTrackId}
+        onChange={setMusicTrackId}
+        tier={quota?.tier}
+      />
+
+      {/* Cinematic Motion + Model Tier picker — LIVE */}
+      {(() => {
+        const allowedTiers = modelTierAccess(quota?.tier);
+        const motionUnlocked = allowedTiers.length > 0;
+        return (
+          <div className="space-y-3">
+            <div className={`flex items-center gap-3 p-3.5 rounded-xl border transition-all ${
+              enableMotion
+                ? 'bg-gradient-to-r from-[#7B2FBE]/20 to-[#D4AF37]/10 border-[#7B2FBE]/40 shadow-lg shadow-[#7B2FBE]/10'
+                : 'bg-gradient-to-r from-[#7B2FBE]/10 to-[#D4AF37]/5 border-[#7B2FBE]/20'
+            }`}>
+              <div className="w-9 h-9 rounded-xl bg-[#7B2FBE]/20 flex items-center justify-center shrink-0">
+                <Sparkles className="w-4 h-4 text-[#A855F7]" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold flex items-center gap-2 flex-wrap">
+                  Cinematic Motion
+                  <span className="px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 text-[9px] font-bold uppercase tracking-wide">Live</span>
+                </p>
+                <p className="text-[11px] text-white/45 mt-0.5">
+                  {motionUnlocked
+                    ? (enableMotion ? 'AI-animated hero scenes enabled. Pick a render quality below.' : 'Toggle on to add AI-animated hero scenes to your reel.')
+                    : 'AI-animated hero scenes for next-level reels. Available on Pro & Premium plans.'}
+                </p>
+              </div>
+              {motionUnlocked ? (
+                <button
+                  type="button"
+                  onClick={() => setEnableMotion(!enableMotion)}
+                  className="ml-auto shrink-0 flex items-center gap-1.5 transition-colors"
+                  aria-label={enableMotion ? 'Disable motion' : 'Enable motion'}
+                >
+                  {enableMotion ? (
+                    <ToggleRight className="w-8 h-8 text-[#A855F7]" />
+                  ) : (
+                    <ToggleLeft className="w-8 h-8 text-white/30" />
+                  )}
+                </button>
+              ) : (
+                <Link href="/dashboard/settings" className="ml-auto shrink-0 text-xs text-[#A855F7] hover:underline whitespace-nowrap">Upgrade →</Link>
+              )}
+            </div>
+
+            {enableMotion && motionUnlocked && (
+              <ModelTierPicker value={modelTier} onChange={setModelTier} allowed={allowedTiers} />
             )}
-          </button>
-        ) : (
-          <Link href="/dashboard/settings" className="ml-auto shrink-0 text-xs text-[#A855F7] hover:underline whitespace-nowrap">Go Premium →</Link>
-        )}
-      </div>
+          </div>
+        );
+      })()}
 
       {/* Usage bar */}
       {quota && (
@@ -862,7 +891,7 @@ export default function DashboardPage() {
         ) : isFreeTier ? (
           <><Sparkles className="w-5 h-5" /> Generate Free Preview ✨</>
         ) : (
-          <><Sparkles className="w-5 h-5" /> {enableMotion ? 'Generate Motion Reel (5 coins) ✨' : 'Generate Reel (1 coin) ✨'}</>
+          <><Sparkles className="w-5 h-5" /> {enableMotion ? `Generate ${getModelTier(modelTier).name} Reel (${getModelTier(modelTier).coinCost} coins) ✨` : 'Generate Reel (1 coin) ✨'}</>
         )}
       </button>
 

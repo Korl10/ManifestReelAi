@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { PLANS, FREE_PREVIEW_CAP, COIN_COST } from '@/lib/pricing';
+import { modelTierAccess, getModelTier, MODEL_TIERS, type ModelTierId } from '@/lib/model-tiers';
 
 // ── Coin balance ─────────────────────────────────────────────────
 export interface CoinBalance {
@@ -87,18 +88,17 @@ export interface GenerationCheck {
   isFreePreview?: boolean; // free users get a single watermarked preview
 }
 
-export async function checkGeneration(userId: string, motion: boolean): Promise<GenerationCheck> {
+export async function checkGeneration(userId: string, motion: boolean, modelTierId?: string): Promise<GenerationCheck> {
   const balance = await getCoinBalance(userId);
-  const cost = motion ? COIN_COST.motion : COIN_COST.static;
 
   if (balance.status !== 'active') {
-    return { allowed: false, reason: 'inactive', message: 'Your subscription is not active. Please renew to continue.', cost, motion, balance };
+    return { allowed: false, reason: 'inactive', message: 'Your subscription is not active. Please renew to continue.', cost: COIN_COST.static, motion, balance };
   }
 
   // FREE TIER: no live paid generation. One watermarked preview from cached/sample assets.
   if (balance.tier === 'free') {
     if (motion) {
-      return { allowed: false, reason: 'motion_locked', message: 'Cinematic motion is a Premium feature. Upgrade to Premium to unlock it.', cost, motion, balance };
+      return { allowed: false, reason: 'motion_locked', message: 'Cinematic motion is a paid feature. Upgrade to Pro or Premium to unlock it.', cost: MODEL_TIERS.standard.coinCost, motion, balance };
     }
     const usedPreviews = await prisma.reel.count({ where: { userId, status: { not: 'failed' } } });
     if (usedPreviews >= FREE_PREVIEW_CAP) {
@@ -107,24 +107,38 @@ export async function checkGeneration(userId: string, motion: boolean): Promise<
     return { allowed: true, message: 'OK', cost: 0, motion: false, balance, isFreePreview: true };
   }
 
-  // FEATURE GATE: motion is Premium-only, even if a Pro user has coins.
-  if (motion && !balance.motionEnabled) {
-    return { allowed: false, reason: 'motion_locked', message: 'Cinematic motion is available on Premium only. Upgrade to unlock motion reels.', cost, motion, balance };
+  // Static reels keep the flat 1-coin cost.
+  if (!motion) {
+    if (balance.coinsAvailable < COIN_COST.static) {
+      return { allowed: false, reason: 'insufficient_coins', message: 'You\u2019re out of coins. Buy a coin bundle or wait for your monthly reset.', cost: COIN_COST.static, motion, balance };
+    }
+    return { allowed: true, message: 'OK', cost: COIN_COST.static, motion, balance };
   }
 
+  // MOTION: gate + cost are driven by the selected MODEL TIER.
+  const access = modelTierAccess(balance.tier);
+  if (access.length === 0) {
+    return { allowed: false, reason: 'motion_locked', message: 'Cinematic motion is available on Pro and Premium plans. Upgrade to unlock motion reels.', cost: MODEL_TIERS.standard.coinCost, motion, balance };
+  }
+  const requested = ((modelTierId || '').toLowerCase()) as ModelTierId;
+  if (requested && !access.includes(requested)) {
+    const mt = getModelTier(requested);
+    return { allowed: false, reason: 'motion_locked', message: `The ${mt.name} model tier is available on Premium. Upgrade to unlock it.`, cost: mt.coinCost, motion, balance };
+  }
+  const effId: ModelTierId = (requested && access.includes(requested)) ? requested : access[access.length - 1];
+  const tierCost = getModelTier(effId).coinCost;
+
   // VOLUME GATE: enough coins?
-  if (balance.coinsAvailable < cost) {
+  if (balance.coinsAvailable < tierCost) {
     return {
       allowed: false,
       reason: 'insufficient_coins',
-      message: motion
-        ? `Motion reels cost ${cost} coins. You have ${balance.coinsAvailable}. Top up with a coin bundle to continue.`
-        : `You\u2019re out of coins. Buy a coin bundle or wait for your monthly reset.`,
-      cost, motion, balance,
+      message: `${getModelTier(effId).name} motion reels cost ${tierCost} coins. You have ${balance.coinsAvailable}. Top up with a coin bundle to continue.`,
+      cost: tierCost, motion, balance,
     };
   }
 
-  return { allowed: true, message: 'OK', cost, motion, balance };
+  return { allowed: true, message: 'OK', cost: tierCost, motion, balance };
 }
 
 /**

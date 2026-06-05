@@ -24,12 +24,16 @@ export async function POST(request: Request) {
     const similarity = typeof body?.similarity === 'number' ? body.similarity : undefined;
     const subtitleStyle = body?.subtitleStyle;  // Partial<SubtitleStyle>
 
+    // Model tier + music selection (Phase 3)
+    const modelTier = typeof body?.modelTier === 'string' ? body.modelTier : undefined; // standard | pro | cinematic
+    const musicTrackId = typeof body?.musicTrackId === 'string' ? body.musicTrackId : undefined;
+
     if (!prompt || !platform || !style || !voice || !mood) {
       return NextResponse.json({ error: 'All fields are required: prompt, platform, style, voice, mood' }, { status: 400 });
     }
 
     // SERVER-SIDE GATE: feature (motion=Premium) + volume (coins) before any paid API call.
-    const gate = await checkGeneration(userId, motion);
+    const gate = await checkGeneration(userId, motion, modelTier);
     if (!gate.allowed) {
       return NextResponse.json({ error: gate.message, reason: gate.reason, balance: gate.balance }, { status: 403 });
     }
@@ -64,6 +68,8 @@ export async function POST(request: Request) {
       stability,
       similarity,
       subtitleStyle,
+      modelTier,
+      musicTrackId,
     };
 
     // Start pipeline (fire-and-forget). Free tier runs a preview built from

@@ -285,6 +285,13 @@ export default function AdminMarginsPage() {
                             {r.mood && <> · Mood: <span className="text-white/50">{r.mood}</span></>}
                           </p>
                         )}
+                        {(r.modelTier || r.musicTrackId || r.voiceTier) && (
+                          <p className="mt-1 text-[10px] text-white/30">
+                            {r.modelTier && <>Model: <span className="text-white/50 capitalize">{r.modelTier}</span></>}
+                            {r.voiceTier && <> · Voice: <span className="text-white/50">{r.voiceTier}</span></>}
+                            {r.musicTrackId && <> · Music: <span className="text-white/50">{r.musicTrackId}</span></>}
+                          </p>
+                        )}
                       </td>
                     </tr>
                   )}

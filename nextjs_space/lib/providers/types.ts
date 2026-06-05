@@ -121,6 +121,10 @@ export interface VideoClipInput {
   mood?: string;
   /** Clip duration in seconds (5 or 10). */
   durationSec: number;
+  /** Override fal.ai video model id (from the selected model tier). */
+  videoModel?: string;
+  /** Override USD/sec pricing for the chosen model. */
+  videoPricePerSec?: number;
 }
 
 export interface VideoClipOutput {

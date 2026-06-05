@@ -1,5 +1,8 @@
 import { prisma } from '@/lib/prisma';
-import { getScriptProvider, getImageProvider, getVoiceProvider, getMusicProvider, getVideoProvider } from '@/lib/providers';
+import { getScriptProvider, getImageProvider, getFluxImageProvider, getVoiceProvider, getMusicProvider, getVideoProvider } from '@/lib/providers';
+import { resolveModelTier } from '@/lib/model-tiers';
+import { matchTrack, getTrackById } from '@/lib/music-library';
+import { getFileUrl } from '@/lib/s3';
 import { selectHeroScenes } from '@/lib/providers/motion-prompts';
 import { buildTemplateScript, fallbackSceneImages } from '@/lib/providers/fallback';
 import { estimateTimestamps } from '@/lib/providers/elevenlabs-voice';
@@ -48,6 +51,8 @@ export interface PipelineOptions {
   stability?: number;      // 0-1
   similarity?: number;     // 0-1
   subtitleStyle?: Partial<SubtitleStyle>;
+  modelTier?: string;      // standard | pro | cinematic
+  musicTrackId?: string;   // explicit library track id or custom-music db id
 }
 
 export async function runGenerationPipeline(
@@ -68,6 +73,11 @@ export async function runGenerationPipeline(
     const sub = await prisma.subscription.findUnique({ where: { userId } });
     const tier = sub?.tier ?? 'free';
     const watermark = isPreview || tier === 'free';
+
+    // Resolve the selected model tier (clamped to what this subscription can use).
+    const modelTier = resolveModelTier(pipelineOpts?.modelTier, tier);
+    const wantsMotion = !isPreview && reel.motion === true && !!process.env.FAL_KEY;
+    console.log(`[pipeline] model tier=${modelTier.id} (video=${modelTier.videoModel}, image=${modelTier.imageModel}), wantsMotion=${wantsMotion}`);
 
     // ----------------------------------------------------------------
     // STEP 1 — Script (LLM, with template fallback)
@@ -115,21 +125,53 @@ export async function runGenerationPipeline(
       imageProviderName = 'fallback-stills';
       costBreakdown['image_cost'] = 0;
       console.log('[pipeline] Preview mode — using bundled stills (expected)');
-    } else try {
-      const ip = getImageProvider();
-      console.log(`[pipeline] Generating ${sceneCount} AI images via ${ip.getName()}...`);
+    } else {
       const imgInput = { scenes: script.scenes.map((s) => ({ imagePrompt: s.imagePrompt })), style: reel.style, mood: reel.mood };
-      const imgs = await ip.generate(imgInput);
-      sceneImageUrls = imgs.sceneImageUrls.filter(Boolean);
-      imageProviderName = imgs.provider;
-      costBreakdown['image_cost'] = ip.estimateCost(imgInput);
-      if (sceneImageUrls.length === 0) throw new Error('no images returned');
-      console.log(`[pipeline] AI images OK: ${sceneImageUrls.length}/${sceneCount} generated, provider=${imageProviderName}, cost=$${costBreakdown['image_cost']}`);
-    } catch (e) {
-      console.error('[pipeline] ⚠ AI image generation FAILED, falling back to bundled stills:', (e as any)?.message);
-      sceneImageUrls = await fallbackSceneImages(reel.style, sceneCount);
-      imageProviderName = 'fallback-stills';
-      costBreakdown['image_cost'] = 0;
+      let done = false;
+
+      // TIER 1 — Flux (per model tier) for motion reels.
+      if (wantsMotion) {
+        try {
+          const fip = getFluxImageProvider(modelTier.imageModel, modelTier.imagePricePerImage);
+          console.log(`[pipeline] Generating ${sceneCount} images via ${fip.getName()}...`);
+          const imgs = await fip.generate(imgInput);
+          const ok = imgs.sceneImageUrls.filter(Boolean);
+          if (ok.length >= Math.ceil(sceneCount / 2)) {
+            // Fill any failed-scene gaps by cycling the successful Flux stills.
+            sceneImageUrls = imgs.sceneImageUrls.map((u, i) => u || ok[i % ok.length]);
+            imageProviderName = imgs.provider;
+            costBreakdown['image_cost'] = (fip as any).estimateCost(imgInput);
+            done = true;
+            console.log(`[pipeline] Flux images OK: ${ok.length}/${sceneCount}, provider=${imageProviderName}, cost=$${costBreakdown['image_cost']}`);
+          } else {
+            console.warn(`[pipeline] Flux only produced ${ok.length}/${sceneCount} — falling back to Abacus images`);
+          }
+        } catch (e) {
+          console.error('[pipeline] Flux image generation failed, falling back to Abacus:', (e as any)?.message);
+        }
+      }
+
+      // TIER 2 — Abacus image generation (default for static reels + Flux fallback).
+      if (!done) try {
+        const ip = getImageProvider();
+        console.log(`[pipeline] Generating ${sceneCount} AI images via ${ip.getName()}...`);
+        const imgs = await ip.generate(imgInput);
+        sceneImageUrls = imgs.sceneImageUrls.filter(Boolean);
+        imageProviderName = imgs.provider;
+        costBreakdown['image_cost'] = ip.estimateCost(imgInput);
+        if (sceneImageUrls.length === 0) throw new Error('no images returned');
+        done = true;
+        console.log(`[pipeline] AI images OK: ${sceneImageUrls.length}/${sceneCount} generated, provider=${imageProviderName}, cost=$${costBreakdown['image_cost']}`);
+      } catch (e) {
+        console.error('[pipeline] ⚠ AI image generation FAILED, falling back to bundled stills:', (e as any)?.message);
+      }
+
+      // TIER 3 — Bundled stills.
+      if (!done) {
+        sceneImageUrls = await fallbackSceneImages(reel.style, sceneCount);
+        imageProviderName = 'fallback-stills';
+        costBreakdown['image_cost'] = 0;
+      }
     }
     // Ensure one image per scene.
     if (sceneImageUrls.length < sceneCount) {
@@ -152,15 +194,32 @@ export async function runGenerationPipeline(
     if (!isPreview && reel.motion && process.env.FAL_KEY) {
       try {
         const heroIndices = selectHeroScenes(sceneCount, 4);
-        const vp = getVideoProvider();
-        const motion = await vp.generate({
+        const motionInput = {
           sceneImageUrls,
           heroIndices,
           imagePrompts: script.scenes.map((s) => s.imagePrompt),
           style: reel.style,
           mood: reel.mood,
           durationSec: 5,
-        });
+          videoModel: modelTier.videoModel,
+          videoPricePerSec: modelTier.videoPricePerSec,
+        };
+        const vp = getVideoProvider(modelTier.videoModel, modelTier.videoPricePerSec);
+        let motion = await vp.generate(motionInput);
+
+        // Cinematic fallback: if the flagship model produced 0 clips (rate
+        // limit / policy / outage), retry ONCE with Kling 2.5 Turbo Pro so the
+        // reel still gets real motion. Reels never break.
+        if (((motion as any).generatedCount ?? 0) === 0 && modelTier.id === 'cinematic') {
+          console.warn('[pipeline] cinematic produced 0 clips, retrying with Kling 2.5 Turbo Pro');
+          const fb = getVideoProvider('fal-ai/kling-video/v2.5-turbo/pro/image-to-video', 0.07);
+          motion = await fb.generate({
+            ...motionInput,
+            videoModel: 'fal-ai/kling-video/v2.5-turbo/pro/image-to-video',
+            videoPricePerSec: 0.07,
+          });
+        }
+
         sceneClipUrls = motion.clipUrls;
         motionClipCount = (motion as any).generatedCount ?? motion.clipUrls.filter(Boolean).length;
         motionProviderName = motion.provider;
@@ -238,16 +297,54 @@ export async function runGenerationPipeline(
     const totalDur = sceneDurations.reduce((a, b) => a + b, 0);
     let musicUrlLocal = resolveReelAssets({ style: reel.style, mood: reel.mood, voice: reel.voice }).musicUrl;
     let musicPublicUrl: string | null = null;
-    try {
-      const mp = getMusicProvider();
-      const m = await mp.generate({ mood: reel.mood, durationSec: totalDur });
-      musicUrlLocal = m.musicUrl;
-      musicPublicUrl = m.publicMusicUrl;
-      costBreakdown['music_cost'] = mp.estimateCost({ mood: reel.mood, durationSec: totalDur });
-    } catch (e) {
-      console.error('[pipeline] Music provider failed, using bundled default:', (e as any)?.message);
-      try { musicPublicUrl = await ensurePublicLocalAsset(musicUrlLocal, 'audio/mpeg'); } catch { musicPublicUrl = null; }
-      costBreakdown['music_cost'] = 0;
+    let musicTrackId: string | null = pipelineOpts?.musicTrackId ?? null;
+    costBreakdown['music_cost'] = 0; // curated library + custom uploads are $0/reel
+
+    // 1) Explicit custom-music upload (db id that isn't in the static library).
+    const libExplicit = musicTrackId ? getTrackById(musicTrackId) : null;
+    if (musicTrackId && !libExplicit) {
+      try {
+        const cm = await prisma.customMusic.findUnique({ where: { id: musicTrackId } });
+        if (cm && cm.userId === userId) {
+          musicPublicUrl = await getFileUrl(cm.cloudStoragePath, cm.isPublic);
+          musicUrlLocal = musicPublicUrl;
+          console.log(`[pipeline] music: custom upload "${cm.name}" (${cm.id})`);
+        } else {
+          musicTrackId = null; // not theirs / missing → fall through to matcher
+        }
+      } catch (e) {
+        console.error('[pipeline] custom music lookup failed:', (e as any)?.message);
+        musicTrackId = null;
+      }
+    }
+
+    // 2) Curated library: explicit pick or the smart matcher.
+    if (!musicPublicUrl) {
+      const matched = libExplicit || matchTrack({ mood: reel.mood, style: reel.style, platform: reel.platform });
+      if (matched) {
+        musicTrackId = matched.id;
+        try {
+          musicPublicUrl = await ensurePublicLocalAsset(matched.file, 'audio/mpeg');
+          musicUrlLocal = matched.file;
+          console.log(`[pipeline] music: matched "${matched.title}" (${matched.id}) bpm=${matched.bpm} energy=${matched.energy}`);
+        } catch (e) {
+          console.error('[pipeline] matched track upload failed, using legacy provider:', (e as any)?.message);
+          musicPublicUrl = null;
+        }
+      }
+    }
+
+    // 3) Legacy fallback (mood→bundled track) so a reel always has music.
+    if (!musicPublicUrl) {
+      try {
+        const mp = getMusicProvider();
+        const m = await mp.generate({ mood: reel.mood, durationSec: totalDur });
+        musicUrlLocal = m.musicUrl;
+        musicPublicUrl = m.publicMusicUrl;
+      } catch (e) {
+        console.error('[pipeline] Music provider failed, using bundled default:', (e as any)?.message);
+        try { musicPublicUrl = await ensurePublicLocalAsset(musicUrlLocal, 'audio/mpeg'); } catch { musicPublicUrl = null; }
+      }
     }
     await prisma.reel.update({ where: { id: reelId }, data: { musicUrl: musicUrlLocal } });
 
@@ -302,6 +399,9 @@ export async function runGenerationPipeline(
           voiceProvider: voiceProviderName,
           motionProvider: motionProviderName,
           motionClipCount,
+          model_tier: modelTier.id,
+          music_track_id: musicTrackId,
+          voice_tier: pipelineOpts?.voiceTier ?? null,
           scenes: script.scenes.map((s, i) => ({
             text: s.text,
             imageUrl: sceneImageUrls[i] ?? null,
