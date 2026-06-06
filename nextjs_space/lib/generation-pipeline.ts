@@ -130,7 +130,9 @@ export interface PipelineOptions {
 export function resolveTargetDuration(v?: number): number {
   const n = Math.round(v ?? 25);
   if (!Number.isFinite(n)) return 25;
-  return Math.min(60, Math.max(10, n));
+  // Floor of 5s supports the free tier's 5-second reels; paid tiers never
+  // request below 15s (enforced by ALLOWED_LENGTHS in the generate route).
+  return Math.min(60, Math.max(5, n));
 }
 
 export async function runGenerationPipeline(
@@ -501,6 +503,7 @@ export async function runGenerationPipeline(
     let musicUrlLocal = resolveReelAssets({ style: reel.style, mood: reel.mood, voice: reel.voice }).musicUrl;
     let musicPublicUrl: string | null = null;
     let musicTrackId: string | null = pipelineOpts?.musicTrackId ?? null;
+    let musicSource: string | null = null; // 'curated_v1' | 'default' | 'custom' | 'legacy'
     costBreakdown['music_cost'] = 0; // curated library + custom uploads are $0/reel
 
     // 1) Explicit custom-music upload (db id that isn't in the static library).
@@ -511,7 +514,8 @@ export async function runGenerationPipeline(
         if (cm && cm.userId === userId) {
           musicPublicUrl = await getFileUrl(cm.cloudStoragePath, cm.isPublic);
           musicUrlLocal = musicPublicUrl;
-          console.log(`[pipeline] music: custom upload "${cm.name}" (${cm.id})`);
+          musicSource = 'custom';
+          console.log(`[pipeline] music: custom upload "${cm.name}" (${cm.id}) source=custom`);
         } else {
           musicTrackId = null; // not theirs / missing → fall through to matcher
         }
@@ -526,10 +530,11 @@ export async function runGenerationPipeline(
       const matched = libExplicit || matchTrack({ mood: reel.mood, style: reel.style, platform: reel.platform });
       if (matched) {
         musicTrackId = matched.id;
+        musicSource = (matched as any).source ?? 'curated_v1';
         try {
           musicPublicUrl = await ensurePublicLocalAsset(matched.file, 'audio/mpeg');
           musicUrlLocal = matched.file;
-          console.log(`[pipeline] music: matched "${matched.title}" (${matched.id}) bpm=${matched.bpm} energy=${matched.energy}`);
+          console.log(`[pipeline] music: matched "${matched.title}" (${matched.id}) source=${musicSource} mood=${reel.mood} bpm=${matched.bpm} energy=${matched.energy}`);
         } catch (e) {
           console.error('[pipeline] matched track upload failed, using legacy provider:', (e as any)?.message);
           musicPublicUrl = null;
@@ -541,6 +546,7 @@ export async function runGenerationPipeline(
     if (!musicPublicUrl) {
       try {
         const mp = getMusicProvider();
+        musicSource = 'legacy';
         const m = await mp.generate({ mood: reel.mood, durationSec: totalDur });
         musicUrlLocal = m.musicUrl;
         musicPublicUrl = m.publicMusicUrl;
@@ -549,7 +555,7 @@ export async function runGenerationPipeline(
         try { musicPublicUrl = await ensurePublicLocalAsset(musicUrlLocal, 'audio/mpeg'); } catch { musicPublicUrl = null; }
       }
     }
-    await prisma.reel.update({ where: { id: reelId }, data: { musicUrl: musicUrlLocal } });
+    await prisma.reel.update({ where: { id: reelId }, data: { musicUrl: musicUrlLocal, musicTrackId: musicTrackId ?? undefined, musicSource: musicSource ?? undefined } });
 
     // Optional intro/outro accent stinger (default OFF).
     let stingerPublicUrl: string | null = null;
@@ -591,6 +597,8 @@ export async function runGenerationPipeline(
         sceneClipUrls,
         subtitleStyle: pipelineOpts?.subtitleStyle,
         watermarkConfig,
+        // Free tier is capped at 720p; paid tiers render at full 1080p.
+        ...(isFree ? { width: 720, height: 1280 } : {}),
       });
       finalVideoUrl = result.videoUrl;
       finalDuration = result.durationSec;
@@ -674,6 +682,8 @@ export async function runGenerationPipeline(
         thumbnailUrl,
         audioUrl: voiceUrl,
         musicUrl: musicUrlLocal,
+        musicTrackId: musicTrackId ?? undefined,
+        musicSource: musicSource ?? undefined,
         durationSec: +finalDuration.toFixed(2),
         scenesJson: {
           composited,

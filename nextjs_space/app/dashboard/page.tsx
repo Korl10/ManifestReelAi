@@ -184,6 +184,9 @@ export default function DashboardPage() {
   const [loadingReels, setLoadingReels] = useState(true);
   const [error, setError] = useState('');
   const [showPaywall, setShowPaywall] = useState(false);
+  const [emailUnverified, setEmailUnverified] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [limitModal, setLimitModal] = useState<{ title: string; message: string } | null>(null);
   const [enableMotion, setEnableMotion] = useState(false);
   const [playingVoice, setPlayingVoice] = useState<string | null>(null);
   const [playingReel, setPlayingReel] = useState<string | null>(null);
@@ -434,9 +437,24 @@ export default function DashboardPage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        // Server-side paywall: show paywall modal on 403 (quota/tier block)
-        if (res.status === 403 && (data?.reason === 'free_tier' || data?.reason === 'insufficient_coins' || data?.reason === 'motion_locked' || data?.reason === 'inactive')) {
+        // Email verification gate
+        if (res.status === 403 && data?.reason === 'email_unverified') {
+          setEmailUnverified(true);
+          toast.error('Please verify your email to start generating');
+          return;
+        }
+        // Free-tier locked premium option
+        if (res.status === 403 && (data?.reason === 'free_tier' || data?.reason === 'free_locked' || data?.reason === 'insufficient_coins' || data?.reason === 'motion_locked' || data?.reason === 'inactive')) {
           setShowPaywall(true);
+          return;
+        }
+        // Rate / budget limits → friendly modal
+        if (res.status === 429) {
+          const hrs = data?.retryAfterHours;
+          setLimitModal({
+            title: data?.reason === 'budget_exhausted' ? 'Free reels are taking a breather' : "You've used your free reels",
+            message: (data?.message ?? 'Please try again later.') + (hrs ? ` You can create more in about ${hrs} hour${hrs === 1 ? '' : 's'}.` : ''),
+          });
           return;
         }
         toast.error(data?.error ?? 'Generation failed');
@@ -473,6 +491,26 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
+
+      {/* Email verification banner */}
+      {emailUnverified && (
+        <div className="p-4 rounded-xl bg-[#D4AF37]/10 border border-[#D4AF37]/30 flex items-center gap-3">
+          <AlertCircle className="w-5 h-5 text-[#D4AF37] shrink-0" />
+          <p className="text-sm text-white/80 flex-1">Please verify your email before creating reels. Check your inbox for the verification link.</p>
+          <button
+            disabled={resending}
+            onClick={async () => {
+              setResending(true);
+              try {
+                const r = await fetch('/api/auth/resend-verification', { method: 'POST' });
+                if (r.ok) toast.success('Verification email sent — check your inbox'); else toast.error('Could not resend. Try again shortly.');
+              } catch { toast.error('Could not resend. Try again shortly.'); }
+              finally { setResending(false); }
+            }}
+            className="shrink-0 text-xs px-3 py-1.5 rounded-lg gold-gradient text-black font-semibold disabled:opacity-60"
+          >{resending ? 'Sending…' : 'Resend email'}</button>
+        </div>
+      )}
 
       {/* Error state */}
       {error && (
@@ -900,6 +938,7 @@ export default function DashboardPage() {
             value={subtitleStyle}
             onChange={setSubtitleStyle}
             previewText={prompt || 'Your abundance is flowing toward you now'}
+            lockedFree={isFreeTier}
           />
         )}
       </section>
@@ -1125,6 +1164,19 @@ export default function DashboardPage() {
         reelsUsed={quota?.reelsUsed ?? 0}
         reelsCap={quota?.reelsCap ?? 0}
       />
+      {/* Free-tier rate / budget limit modal */}
+      {limitModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={() => setLimitModal(null)}>
+          <div className="max-w-md w-full rounded-2xl border border-white/10 bg-[#0F0F12] p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-bold text-white mb-2">{limitModal.title}</h3>
+            <p className="text-sm text-white/60 mb-5">{limitModal.message}</p>
+            <div className="flex gap-3">
+              <button onClick={() => { setLimitModal(null); router.push('/pricing'); }} className="flex-1 gold-gradient text-black font-semibold rounded-xl py-2.5 text-sm">Upgrade for unlimited reels</button>
+              <button onClick={() => setLimitModal(null)} className="px-4 rounded-xl border border-white/10 text-white/60 text-sm">Close</button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Add Your Own Voice Modal */}
       <AddVoiceModal
         open={showVoiceModal}

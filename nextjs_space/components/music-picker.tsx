@@ -238,15 +238,21 @@ export default function MusicPicker({ mood, style, platform, value, onChange, ti
             badge={autoSelected ? 'Matched' : undefined}
           />
 
-          <button
-            type="button"
-            onClick={() => setShowAlternates((s) => !s)}
-            className="flex items-center gap-1.5 text-xs text-[#D4AF37] hover:text-[#E8C766] transition-colors px-1"
-          >
-            <RefreshCw className="w-3.5 h-3.5" /> {showAlternates ? 'Hide alternates' : 'Change track'}
-          </button>
+          {tier === 'free' ? (
+            <Link href="/dashboard/settings" className="flex items-center gap-1.5 text-xs text-white/45 hover:text-white/70 transition-colors px-1">
+              <Lock className="w-3.5 h-3.5" /> Auto-matched to your mood — choose your own track on Pro
+            </Link>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowAlternates((s) => !s)}
+              className="flex items-center gap-1.5 text-xs text-[#D4AF37] hover:text-[#E8C766] transition-colors px-1"
+            >
+              <RefreshCw className="w-3.5 h-3.5" /> {showAlternates ? 'Hide alternates' : 'Change track'}
+            </button>
+          )}
 
-          {showAlternates && (
+          {tier !== 'free' && showAlternates && (
             <div className="space-y-1.5 pl-1">
               {alternates.length === 0 && <p className="text-xs text-white/40">No other matches in this mood.</p>}
               {alternates.map((t) => (

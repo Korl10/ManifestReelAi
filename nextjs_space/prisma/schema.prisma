@@ -16,6 +16,9 @@ model User {
   name          String?
   avatarUrl     String?   @map("avatar_url")
   role          String    @default("user")
+  emailVerified DateTime? @map("email_verified")
+  verifyToken   String?   @map("verify_token")
+  verifyTokenExpiry DateTime? @map("verify_token_expiry")
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
 
@@ -105,6 +108,10 @@ model Reel {
   audioUrl      String?  @map("audio_url")
   thumbnailUrl  String?  @map("thumbnail_url")
   musicUrl      String?  @map("music_url")
+  musicTrackId  String?  @map("music_track_id")
+  musicSource   String?  @map("music_source")
+  tier          String?
+  clientIp      String?  @map("client_ip")
   status        String   @default("draft")
   costBreakdown Json?    @map("cost_breakdown")
   totalCost     Float    @default(0) @map("total_cost")
@@ -283,6 +290,19 @@ model BrandPreset {
 
   @@index([userId])
   @@map("brand_presets")
+}
+
+// Per-day aggregate of free-tier generation spend, used to enforce a daily
+// budget ceiling and to surface the "Free Tier Budget" widget on /admin/margins.
+model DailyFreeStat {
+  id          String   @id @default(cuid())
+  day         String   @unique // YYYY-MM-DD (UTC)
+  spendCents  Int      @default(0) @map("spend_cents")
+  reelCount   Int      @default(0) @map("reel_count")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("daily_free_stats")
 }
 
 model Asset {

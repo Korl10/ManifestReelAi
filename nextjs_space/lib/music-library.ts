@@ -42,6 +42,10 @@ export interface MusicTrack {
   has_vocals: boolean;
   is_stinger: boolean;
   bpm: number | null;
+  /** Provenance of the track. The shipped library is the curated v1 batch.
+   *  A future “default” fallback batch would be tagged 'default' so it can be
+   *  ranked below curated picks and phased out later. */
+  source: 'curated_v1' | 'default';
 }
 
 export interface MatchQuery {
@@ -149,6 +153,7 @@ function normalizeTrack(t: any): MusicTrack {
     has_vocals: t.has_vocals === true,
     is_stinger: t.is_stinger === true,
     bpm: t.bpm != null ? Number(t.bpm) : null,
+    source: (t.source === 'default' ? 'default' : 'curated_v1'),
   };
 }
 
@@ -208,6 +213,9 @@ export function scoreTrack(track: MusicTrack, q: MatchQuery): number {
   // 4) Energy fit — track energy vs. the primary mood's expected intensity.
   const targetEnergy: Energy = (targets.length && MOOD_ENERGY[targets[0]]) || 'mid';
   score += energyScore(targetEnergy, track.energy);
+
+  // 5) Provenance — curated v1 is the priority pool; default is a soft fallback.
+  if (track.source === 'curated_v1') score += 10;
 
   return +score.toFixed(2);
 }

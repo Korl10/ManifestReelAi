@@ -7,8 +7,8 @@ import type { SubtitleStyle } from '@/lib/captions/subtitle-types';
 const CREATE_URL = 'https://apps.abacus.ai/api/createRunFfmpegCommandRequest';
 const STATUS_URL = 'https://apps.abacus.ai/api/getRunFfmpegCommandStatus';
 
-const W = 1080;
-const H = 1920;
+const DEFAULT_W = 1080;
+const DEFAULT_H = 1920;
 const FPS = 30;
 const XFADE = 0.6; // crossfade duration between scenes
 
@@ -50,6 +50,10 @@ export interface CompositeInput {
   sceneClipUrls?: (string | null)[];
   /** Optional subtitle style overrides. */
   subtitleStyle?: Partial<SubtitleStyle>;
+  /** Output frame width (default 1080). Free tier renders at 720 to cap cost/quality. */
+  width?: number;
+  /** Output frame height (default 1920). */
+  height?: number;
 }
 
 export interface CompositeResult {
@@ -150,6 +154,10 @@ function frames(sec: number): number {
 export async function compositeReel(input: CompositeInput): Promise<CompositeResult> {
   const apiKey = process.env.ABACUSAI_API_KEY;
   if (!apiKey) throw new Error('Compositing failed: ABACUSAI_API_KEY not configured.');
+
+  // Output dimensions (free tier = 720x1280; default = 1080x1920). Both 9:16.
+  const W = input.width ?? DEFAULT_W;
+  const H = input.height ?? DEFAULT_H;
 
   const images = input.sceneImageUrls.filter(Boolean);
   const n = images.length;

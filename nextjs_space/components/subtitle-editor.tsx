@@ -8,11 +8,16 @@ import type { SubtitleStyle, SubtitleAnimation, SubtitlePosition, PlatformSafeZo
 import {
   DEFAULT_SUBTITLE_STYLE, SUBTITLE_FONTS, ANIMATION_PRESETS, PLATFORM_SAFE_MARGINS,
 } from '@/lib/captions/subtitle-types';
+import { FREE_FONTS, FREE_COLORS, FREE_ANIMATION } from '@/lib/free-tier';
+import Link from 'next/link';
+import { Lock } from 'lucide-react';
 
 interface SubtitleEditorProps {
   value: SubtitleStyle;
   onChange: (style: SubtitleStyle) => void;
   previewText?: string; // sample text for live preview
+  /** Free tier: restrict to 3 fonts, 3 colors, default animation only. */
+  lockedFree?: boolean;
 }
 
 const POSITIONS: { value: SubtitlePosition; label: string }[] = [
@@ -64,7 +69,9 @@ function RangeInput({ label, value, min, max, step, onChange, suffix }: {
   );
 }
 
-export default function SubtitleEditor({ value, onChange, previewText }: SubtitleEditorProps) {
+export default function SubtitleEditor({ value, onChange, previewText, lockedFree }: SubtitleEditorProps) {
+  const fontOptions = lockedFree ? SUBTITLE_FONTS.filter(f => (FREE_FONTS as readonly string[]).includes(f)) : SUBTITLE_FONTS;
+  const animationOptions = lockedFree ? ANIMATION_PRESETS.filter(a => a.value === FREE_ANIMATION) : ANIMATION_PRESETS;
   const [expandedSection, setExpandedSection] = useState<string | null>('animation');
 
   const update = useCallback(<K extends keyof SubtitleStyle>(key: K, val: SubtitleStyle[K]) => {
@@ -171,7 +178,7 @@ export default function SubtitleEditor({ value, onChange, previewText }: Subtitl
       <div className="order-2 lg:order-1 rounded-xl bg-white/[0.02] border border-white/5 overflow-hidden">
         <Section id="font" icon={<Type className="w-3.5 h-3.5 text-[#D4AF37]" />} title="Font">
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
-            {SUBTITLE_FONTS.map(f => (
+            {fontOptions.map(f => (
               <button
                 key={f}
                 onClick={() => update('fontFamily', f)}
@@ -186,16 +193,39 @@ export default function SubtitleEditor({ value, onChange, previewText }: Subtitl
               </button>
             ))}
           </div>
+          {lockedFree && (
+            <Link href="/dashboard/settings" className="flex items-center gap-1.5 text-[10px] text-white/40 hover:text-white/60 mt-1"><Lock className="w-3 h-3" /> More fonts on Pro</Link>
+          )}
           <RangeInput label="Size" value={value.fontSize} min={40} max={120} onChange={v => update('fontSize', v)} />
         </Section>
 
         <Section id="colors" icon={<Palette className="w-3.5 h-3.5 text-[#D4AF37]" />} title="Colors">
+          {lockedFree ? (
+            <div>
+              <span className="text-[11px] text-white/50 block mb-1.5">Text color</span>
+              <div className="flex items-center gap-2">
+                {FREE_COLORS.map(c => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => update('textColor', c)}
+                    aria-label={`Text color ${c}`}
+                    className={`w-8 h-8 rounded-md border-2 transition ${value.textColor?.toUpperCase() === c ? 'border-[#D4AF37] scale-110' : 'border-white/15'}`}
+                    style={{ backgroundColor: c }}
+                  />
+                ))}
+                <Link href="/dashboard/settings" className="flex items-center gap-1 text-[10px] text-white/40 hover:text-white/60 ml-1"><Lock className="w-3 h-3" /> Full palette on Pro</Link>
+              </div>
+            </div>
+          ) : (
           <div className="grid grid-cols-2 gap-3">
             <ColorInput label="Text" value={value.textColor} onChange={v => update('textColor', v)} />
             <ColorInput label="Active Word" value={value.activeWordColor} onChange={v => update('activeWordColor', v)} />
             <ColorInput label="Stroke" value={value.strokeColor} onChange={v => update('strokeColor', v)} />
             <ColorInput label="Shadow" value={value.shadowColor} onChange={v => update('shadowColor', v)} />
           </div>
+          )}
+          {!lockedFree && (<>
           <RangeInput label="Stroke Width" value={value.strokeWidth} min={0} max={8} onChange={v => update('strokeWidth', v)} suffix="px" />
           <div className="flex items-center gap-2">
             <button
@@ -226,11 +256,12 @@ export default function SubtitleEditor({ value, onChange, previewText }: Subtitl
               <RangeInput label="Depth" value={value.shadowDepth} min={0} max={6} onChange={v => update('shadowDepth', v)} />
             )}
           </div>
+          </>)}
         </Section>
 
         <Section id="animation" icon={<Sparkles className="w-3.5 h-3.5 text-[#D4AF37]" />} title="Animation">
           <div className="grid grid-cols-2 gap-1.5">
-            {ANIMATION_PRESETS.map(a => (
+            {animationOptions.map(a => (
               <button
                 key={a.value}
                 onClick={() => update('animation', a.value)}
@@ -245,6 +276,9 @@ export default function SubtitleEditor({ value, onChange, previewText }: Subtitl
               </button>
             ))}
           </div>
+          {lockedFree && (
+            <Link href="/dashboard/settings" className="flex items-center gap-1.5 text-[10px] text-white/40 hover:text-white/60 mt-1"><Lock className="w-3 h-3" /> More animation styles on Pro</Link>
+          )}
           <RangeInput label="Words Per Phrase" value={value.wordsPerPhrase} min={1} max={6} onChange={v => update('wordsPerPhrase', v)} />
         </Section>
 

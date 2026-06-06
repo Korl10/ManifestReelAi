@@ -5,6 +5,7 @@ import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
 import { PLANS, COIN_COST } from '@/lib/pricing';
 import { moodCoverage } from '@/lib/music-library';
+import { getFreeBudgetToday } from '@/lib/free-tier-limits';
 
 // Retail price per coin (retail value the user pays)
 const CREDIT_RETAIL_VALUE = 0.10; // Part D target: 1 credit = $0.10
@@ -44,7 +45,7 @@ export async function GET() {
     select: {
       id: true, totalCost: true, costBreakdown: true, createdAt: true,
       motion: true, coinCost: true, status: true, style: true, mood: true,
-      scenesJson: true,
+      scenesJson: true, musicTrackId: true, musicSource: true, tier: true,
       user: { select: { email: true } },
     },
     orderBy: { createdAt: 'desc' },
@@ -240,7 +241,19 @@ export async function GET() {
     costByCategory[k] = Math.round(costByCategory[k] * 100) / 100;
   }
 
+  // Music source audit — how many reels used the curated_v1 priority pool vs.
+  // the default/legacy fallback (per Option B merge), for the margins audit.
+  const musicSourceBreakdown: Record<string, number> = {};
+  for (const r of reels as any[]) {
+    const src = r.musicSource ?? 'unrecorded';
+    musicSourceBreakdown[src] = (musicSourceBreakdown[src] ?? 0) + 1;
+  }
+
+  const freeBudget = await getFreeBudgetToday();
+
   return NextResponse.json({
+    freeBudget,
+    musicSourceBreakdown,
     monthlyRevenue: Math.round(monthlyRevenue * 100) / 100,
     totalCost: Math.round(totalCost * 100) / 100,
     totalReels,

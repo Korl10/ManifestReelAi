@@ -83,6 +83,7 @@ export default function AdminMarginsPage() {
     completedReels = 0, avgCostPerReel = 0, margin = 0,
     costByCategory = {}, dailyData = [], weeklyData = [], reelDetails = [],
     musicCoverage = null, durationAccuracy = null, motionAccuracy = null as any,
+    freeBudget = null, musicSourceBreakdown = {},
   } = data ?? {};
 
   return (
@@ -126,6 +127,51 @@ export default function AdminMarginsPage() {
           color="text-blue-400"
         />
       </div>
+
+      {/* ── Free Tier Budget (today) ── */}
+      {freeBudget && (
+        <div className="rounded-xl bg-white/[0.02] border border-white/5 p-5">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-white/70 flex items-center gap-2">
+              <Zap className="w-4 h-4 text-[#D4AF37]" /> Free Tier Budget — Today (UTC {freeBudget.day})
+            </h2>
+            <span className="text-xs text-white/40">{freeBudget.reelCount} free reel{freeBudget.reelCount === 1 ? '' : 's'} today</span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+            <div className="md:col-span-2">
+              <div className="flex justify-between text-xs text-white/50 mb-1.5">
+                <span>Spent {fmt$(freeBudget.spendCents / 100)}</span>
+                <span>Ceiling {fmt$(freeBudget.ceilingCents / 100)}</span>
+              </div>
+              <div className="h-3 rounded-full bg-white/5 overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all ${freeBudget.pctUsed >= 90 ? 'bg-red-500' : freeBudget.pctUsed >= 60 ? 'bg-amber-400' : 'bg-emerald-400'}`}
+                  style={{ width: `${Math.min(100, freeBudget.pctUsed)}%` }}
+                />
+              </div>
+              <p className="text-xs text-white/40 mt-1.5">
+                {fmt$(freeBudget.remainingCents / 100)} remaining ({100 - freeBudget.pctUsed}% of daily pool left)
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="text-3xl font-bold text-[#D4AF37]">{freeBudget.pctUsed}%</p>
+              <p className="text-xs text-white/40">of $20/day pool used</p>
+            </div>
+          </div>
+          {musicSourceBreakdown && Object.keys(musicSourceBreakdown).length > 0 && (
+            <div className="mt-4 pt-4 border-t border-white/5">
+              <p className="text-xs font-semibold text-white/50 mb-2 flex items-center gap-1.5"><Music className="w-3.5 h-3.5" /> Music source mix (all reels)</p>
+              <div className="flex flex-wrap gap-2">
+                {Object.entries(musicSourceBreakdown).map(([src, n]) => (
+                  <span key={src} className={`text-xs px-2.5 py-1 rounded-full border ${src === 'curated_v1' ? 'bg-[#7B2FBE]/15 border-[#7B2FBE]/40 text-purple-200' : 'bg-white/5 border-white/10 text-white/50'}`}>
+                    {src}: {n as number}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ── Charts Row ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">

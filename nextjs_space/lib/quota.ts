@@ -95,14 +95,13 @@ export async function checkGeneration(userId: string, motion: boolean, modelTier
     return { allowed: false, reason: 'inactive', message: 'Your subscription is not active. Please renew to continue.', cost: COIN_COST.static, motion, balance };
   }
 
-  // FREE TIER: no live paid generation. One watermarked preview from cached/sample assets.
+  // FREE TIER: watermarked 5s reels built from cached/sample assets ($0 cost).
+  // VOLUME is now governed by the rate limiter + daily budget in the generate
+  // route (3/day/account, 1/IP/hour, $20/day pool) rather than a 1-ever cap.
+  // Motion stays a paid-only capability.
   if (balance.tier === 'free') {
     if (motion) {
       return { allowed: false, reason: 'motion_locked', message: 'Cinematic motion is a paid feature. Upgrade to Pro or Premium to unlock it.', cost: MODEL_TIERS.standard.coinCost, motion, balance };
-    }
-    const usedPreviews = await prisma.reel.count({ where: { userId, status: { not: 'failed' } } });
-    if (usedPreviews >= FREE_PREVIEW_CAP) {
-      return { allowed: false, reason: 'free_tier', message: 'You\u2019ve used your free preview. Upgrade to Pro or Premium to generate real reels.', cost: 0, motion, balance, isFreePreview: true };
     }
     return { allowed: true, message: 'OK', cost: 0, motion: false, balance, isFreePreview: true };
   }
@@ -258,9 +257,10 @@ export async function checkQuota(userId: string): Promise<QuotaCheckResult> {
     allowed = false;
     message = 'Your subscription is not active. Please renew to continue.';
   } else if (b.tier === 'free') {
-    const usedPreviews = await prisma.reel.count({ where: { userId, status: { not: 'failed' } } });
-    allowed = usedPreviews < FREE_PREVIEW_CAP;
-    message = allowed ? 'OK' : 'Upgrade to Pro or Premium to generate real reels.';
+    // Free tier can always start a reel from the UI; the generate route applies
+    // the daily/IP rate limits and budget pool at request time.
+    allowed = true;
+    message = 'OK';
   } else {
     allowed = b.coinsAvailable >= COIN_COST.static;
     message = allowed ? 'OK' : 'You\u2019re out of coins. Buy a coin bundle or wait for your monthly reset.';

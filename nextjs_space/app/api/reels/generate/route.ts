@@ -6,6 +6,15 @@ import { prisma } from '@/lib/prisma';
 import { checkGeneration, consumeCoins } from '@/lib/quota';
 import { runGenerationPipeline } from '@/lib/generation-pipeline';
 import type { PipelineOptions } from '@/lib/generation-pipeline';
+import { validateFreeTierRequest, clampFreeTierParams, FREE_REEL_EST_COST_CENTS } from '@/lib/free-tier';
+import { checkFreeTierLimits, recordFreeTierSpend } from '@/lib/free-tier-limits';
+
+/** Best-effort client IP from proxy headers (used for free-tier anti-abuse). */
+function getClientIp(request: Request): string | null {
+  const xff = request.headers.get('x-forwarded-for');
+  if (xff) return xff.split(',')[0].trim();
+  return request.headers.get('x-real-ip') || request.headers.get('cf-connecting-ip') || null;
+}
 
 export async function POST(request: Request) {
   try {
@@ -48,7 +57,43 @@ export async function POST(request: Request) {
     }
 
     const isFreePreview = gate.isFreePreview === true;
-    const coinCost = isFreePreview ? 0 : gate.cost;
+    let coinCost = isFreePreview ? 0 : gate.cost;
+    const clientIp = getClientIp(request);
+
+    // ── FREE-TIER ENFORCEMENT (server is the authority) ──────────────────
+    // Every free-tier limit is enforced here, so a raw curl/Postman request
+    // cannot bypass the UI. Premium params are rejected with 403; rate +
+    // budget limits gate volume; clampFreeTierParams normalizes the rest.
+    let freeClamp: ReturnType<typeof clampFreeTierParams> | null = null;
+    if (gate.balance.tier === 'free') {
+      // (a) Email verification gate — no generation until the address is verified.
+      const u = await prisma.user.findUnique({ where: { id: userId }, select: { emailVerified: true } });
+      if (!u?.emailVerified) {
+        return NextResponse.json(
+          { error: 'Please verify your email address to start creating reels. Check your inbox for the verification link.', reason: 'email_unverified' },
+          { status: 403 },
+        );
+      }
+      // (b) Reject any attempt to exceed free-tier feature limits (curl bypass).
+      const v = validateFreeTierRequest(body);
+      if (!v.ok) {
+        return NextResponse.json(
+          { error: v.message, reason: 'free_locked', violations: v.violations, upgrade: true },
+          { status: 403 },
+        );
+      }
+      // (c) Rate limits (3/day/account, 1/IP/hour) + global daily budget.
+      const limit = await checkFreeTierLimits(userId, clientIp);
+      if (!limit.allowed) {
+        return NextResponse.json(
+          { error: limit.message, reason: limit.reason, retryAfterHours: limit.retryAfterHours, usedToday: limit.usedToday, remainingToday: limit.remainingToday, upgrade: true },
+          { status: 429 },
+        );
+      }
+      // (d) Defensive normalization of every param that reaches the pipeline.
+      freeClamp = clampFreeTierParams(body);
+      coinCost = 0;
+    }
 
     // Create reel + job
     // Validate the brand preset belongs to this user (defensive) before linking.
@@ -64,9 +109,17 @@ export async function POST(request: Request) {
         status: 'rendering',
         motion: motion && !isFreePreview,
         coinCost,
+        tier: gate.balance.tier,
+        clientIp: clientIp ?? undefined,
         ...(validPresetId ? { brandPresetId: validPresetId } : {}),
       },
     });
+
+    // Free tier: record the estimated spend up-front so concurrent requests
+    // can't collectively blow past the daily budget pool.
+    if (gate.balance.tier === 'free') {
+      await recordFreeTierSpend(FREE_REEL_EST_COST_CENTS);
+    }
 
     // Track preset usage for analytics (Phase 4b). Best-effort, non-blocking.
     if (validPresetId) {
@@ -84,18 +137,32 @@ export async function POST(request: Request) {
       await consumeCoins(userId, coinCost);
     }
 
-    // Build pipeline options from advanced settings
-    const pipelineOpts: PipelineOptions = {
-      voiceTier,
-      stability,
-      similarity,
-      subtitleStyle,
-      modelTier,
-      musicTrackId,
-      stinger,
-      stingerId,
-      targetDuration,
-    };
+    // Build pipeline options from advanced settings. For free tier, the
+    // server-clamped values (5s / standard / default voice / auto-music /
+    // allowed subtitle style) override anything the client sent.
+    const pipelineOpts: PipelineOptions = freeClamp
+      ? {
+          voiceTier: undefined,
+          stability,
+          similarity,
+          subtitleStyle: freeClamp.subtitleStyle,
+          modelTier: freeClamp.modelTier,
+          musicTrackId: undefined,
+          stinger: false,
+          stingerId: undefined,
+          targetDuration: freeClamp.targetDuration,
+        }
+      : {
+          voiceTier,
+          stability,
+          similarity,
+          subtitleStyle,
+          modelTier,
+          musicTrackId,
+          stinger,
+          stingerId,
+          targetDuration,
+        };
 
     // Start pipeline (fire-and-forget). Free tier runs a preview built from
     // cached/sample assets only — no live paid API calls.
