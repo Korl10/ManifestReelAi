@@ -146,10 +146,50 @@ export async function GET() {
       margin: d.retail > 0 ? Math.round(((d.retail - d.cost) / d.retail) * 100) : 0,
     }));
 
-  // ---- Duration accuracy (last 7 days): % of reels within ±1s of target ----
-  // Reported per model tier with a <95% alert flag for ops monitoring.
   const sevenDaysAgo = new Date(now);
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+  // ---- Motion accuracy (last 7 days): scene-level motion success % ----
+  const motAccMap: Record<string, { totalScenes: number; motionScenes: number; reels: number }> = {};
+  let motTotalScenesAll = 0, motMotionScenesAll = 0, motReelsAll = 0;
+  for (const r of reels) {
+    const d = new Date(r.createdAt);
+    if (d < sevenDaysAgo) continue;
+    if (!(r as any).motion) continue;
+    let meta: any = {};
+    try { meta = typeof (r as any).scenesJson === 'string' ? JSON.parse((r as any).scenesJson) : ((r as any).scenesJson ?? {}); } catch { meta = {}; }
+    const exp = meta.motionExpected ?? 0;
+    const got = meta.motionClipCount ?? 0;
+    if (exp <= 0) continue;
+    const tierKey = meta.model_tier ?? 'unknown';
+    if (!motAccMap[tierKey]) motAccMap[tierKey] = { totalScenes: 0, motionScenes: 0, reels: 0 };
+    motAccMap[tierKey].totalScenes += exp;
+    motAccMap[tierKey].motionScenes += Math.min(got, exp);
+    motAccMap[tierKey].reels += 1;
+    motTotalScenesAll += exp;
+    motMotionScenesAll += Math.min(got, exp);
+    motReelsAll += 1;
+  }
+  const motionAcc = {
+    overallPct: motTotalScenesAll > 0 ? Math.round((motMotionScenesAll / motTotalScenesAll) * 100) : null,
+    totalScenes: motTotalScenesAll,
+    motionScenes: motMotionScenesAll,
+    totalReels: motReelsAll,
+    byTier: Object.entries(motAccMap)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([tier, d]) => ({
+        tier,
+        totalScenes: d.totalScenes,
+        motionScenes: d.motionScenes,
+        reels: d.reels,
+        pct: d.totalScenes > 0 ? Math.round((d.motionScenes / d.totalScenes) * 100) : 0,
+        alert: d.totalScenes > 0 && Math.round((d.motionScenes / d.totalScenes) * 100) < 90,
+      })),
+    alert: motTotalScenesAll > 0 && Math.round((motMotionScenesAll / motTotalScenesAll) * 100) < 90,
+  };
+
+  // ---- Duration accuracy (last 7 days): % of reels within ±1s of target ----
+  // Reported per model tier with a <95% alert flag for ops monitoring.
   const durAccMap: Record<string, { total: number; met: number }> = {};
   let durAccTotalAll = 0, durAccMetAll = 0;
   for (const r of reels) {
@@ -212,6 +252,7 @@ export async function GET() {
     weeklyData,
     reelDetails,
     durationAccuracy,
+    motionAccuracy: motionAcc,
     musicCoverage: moodCoverage(),
   });
 }

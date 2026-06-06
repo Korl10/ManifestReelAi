@@ -82,7 +82,7 @@ export default function AdminMarginsPage() {
     monthlyRevenue = 0, totalCost = 0, totalReels = 0,
     completedReels = 0, avgCostPerReel = 0, margin = 0,
     costByCategory = {}, dailyData = [], weeklyData = [], reelDetails = [],
-    musicCoverage = null, durationAccuracy = null,
+    musicCoverage = null, durationAccuracy = null, motionAccuracy = null as any,
   } = data ?? {};
 
   return (
@@ -195,6 +195,50 @@ export default function AdminMarginsPage() {
                     {t.alert && <span className="ml-1 text-[10px] font-normal align-middle">alert</span>}
                   </p>
                   <p className="text-[10px] text-white/30 font-mono">{t.met}/{t.total} on target</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Motion Accuracy (last 7 days) ── */}
+      {motionAccuracy && (
+        <div className="rounded-xl bg-white/[0.02] border border-white/5 p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-semibold text-white/70 flex items-center gap-2">
+              <Zap className="w-4 h-4 text-[#D4AF37]" />
+              Scene Motion Success (last 7 days)
+            </h2>
+            <div className="flex items-center gap-3 text-xs text-white/50">
+              {motionAccuracy.overallPct != null && (
+                <span className="font-mono">
+                  Overall <span className={motionAccuracy.overallPct >= 90 ? 'text-emerald-400 font-semibold' : 'text-red-400 font-semibold'}>{motionAccuracy.overallPct}%</span>
+                  <span className="text-white/30"> ({motionAccuracy.motionScenes}/{motionAccuracy.totalScenes} scenes)</span>
+                </span>
+              )}
+            </div>
+          </div>
+          {motionAccuracy.alert && (
+            <div className="mb-3 flex items-center gap-2 text-xs text-red-300 bg-red-500/10 border border-red-500/25 rounded-lg px-3 py-2">
+              <AlertCircle className="w-3.5 h-3.5" />
+              ⚠️ Scene-level motion success dropped below 90% on at least one tier. Investigate content-filter rejections.
+            </div>
+          )}
+          {motionAccuracy.totalReels === 0 ? (
+            <p className="text-xs text-white/30">No motion reels in the last 7 days yet.</p>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+              {motionAccuracy.byTier?.map((t: any) => (
+                <div
+                  key={t.tier}
+                  className={`rounded-lg px-3 py-2 text-xs ${
+                    t.alert ? 'bg-red-500/10 border border-red-500/25' : 'bg-white/[0.03] border border-white/5'
+                  }`}
+                >
+                  <p className="capitalize text-white/60 font-medium">{t.tier}</p>
+                  <p className={`text-lg font-bold mt-0.5 ${t.alert ? 'text-red-400' : 'text-emerald-400'}`}>{t.pct}%</p>
+                  <p className="text-[10px] text-white/30 font-mono">{t.motionScenes}/{t.totalScenes} scenes · {t.reels} reels</p>
                 </div>
               ))}
             </div>
