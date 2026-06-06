@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Sparkles, Download, Calendar, RotateCcw, Copy, Edit3, Save, Loader2, ArrowLeft, Hash, FileText, Type, MessageSquare, AlertCircle } from 'lucide-react';
+import { Sparkles, Download, Calendar, RotateCcw, Copy, Edit3, Save, Loader2, ArrowLeft, Hash, FileText, Type, MessageSquare, AlertCircle, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import ReelPlayer from '@/components/reel-player';
@@ -23,6 +23,7 @@ export default function ReelPreviewPage() {
   const [editingHashtags, setEditingHashtags] = useState(false);
   const [saving, setSaving] = useState(false);
   const [regenerating, setRegenerating] = useState('');
+  const [confirmRegen, setConfirmRegen] = useState('');
 
   useEffect(() => {
     if (!reelId) return;
@@ -62,7 +63,8 @@ export default function ReelPreviewPage() {
     finally { setSaving(false); }
   };
 
-  const handleRegenerate = async (section: string) => {
+  const doRegenerate = async (section: string) => {
+    setConfirmRegen('');
     setRegenerating(section);
     try {
       const res = await fetch(`/api/reels/${reelId}/regenerate`, {
@@ -79,6 +81,11 @@ export default function ReelPreviewPage() {
       toast.success(`${section.charAt(0).toUpperCase() + section.slice(1)} regenerated!`);
     } catch { toast.error('Regeneration failed. Please try again.'); }
     finally { setRegenerating(''); }
+  };
+
+  // Guard all regeneration behind a confirmation dialog (BUG #7 fix).
+  const handleRegenerate = (section: string) => {
+    setConfirmRegen(section);
   };
 
   const handleDownload = () => {
@@ -300,6 +307,30 @@ export default function ReelPreviewPage() {
               </button>
             ))}
           </div>
+
+          {/* Confirmation dialog for regeneration */}
+          {confirmRegen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm" onClick={() => setConfirmRegen('')}>
+              <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#121212] p-6 text-center" onClick={e => e.stopPropagation()}>
+                <div className="w-12 h-12 rounded-xl bg-amber-500/15 mx-auto flex items-center justify-center mb-3">
+                  <AlertTriangle className="w-6 h-6 text-amber-400" />
+                </div>
+                <h3 className="font-display text-lg font-bold">Regenerate {confirmRegen}?</h3>
+                <p className="text-white/50 text-sm mt-2">
+                  This will replace the current {confirmRegen} with a new version. This action cannot be undone.
+                </p>
+                <div className="flex gap-3 mt-5">
+                  <button onClick={() => setConfirmRegen('')} className="flex-1 px-4 py-2.5 rounded-xl border border-white/10 text-white/70 text-sm font-medium hover:bg-white/5 transition">Cancel</button>
+                  <button
+                    onClick={() => doRegenerate(confirmRegen)}
+                    className="flex-1 px-4 py-2.5 rounded-xl gold-gradient text-black text-sm font-semibold hover:opacity-90 transition"
+                  >
+                    Regenerate
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Cost breakdown (if available) */}
           {costBreakdown && (

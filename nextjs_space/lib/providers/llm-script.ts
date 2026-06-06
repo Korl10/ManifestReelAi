@@ -1,4 +1,5 @@
 import { Provider, ScriptInput, ScriptOutput, ScriptScene, ScriptLine } from './types';
+import { getMoodStyle } from './mood-styles';
 
 const LLM_URL = 'https://apps.abacus.ai/v1/chat/completions';
 const SCRIPT_MODEL = process.env.SCRIPT_MODEL || 'gpt-5.4';
@@ -43,7 +44,7 @@ REQUIREMENTS:
 - LENGTH BUDGET (critical): this reel is narrated slowly and must fit in ${target} seconds. The ENTIRE narration (the hook PLUS every affirmation line combined) must total NO MORE THAN ${wordBudget} words. Going over ${wordBudget} words will make the video too long and is NOT allowed. Aim slightly under.
 - Write EXACTLY ${affirmationLines} short affirmation/manifestation lines (in addition to the hook, for ${totalScenes} scenes total) that build an emotional arc: hook -> belief -> visualization -> identity shift -> command to the universe -> uplifting close. Do NOT write more than ${affirmationLines} lines.
 - Each line MUST be SHORT (4-9 words), present tense, first or second person, emotionally charged, easy to narrate slowly. Favor brevity so the whole script stays within the ${wordBudget}-word budget.
-- For EACH line (including the hook) write a richly detailed CINEMATIC image prompt for a text-to-image model. Each image prompt must describe a stunning, premium, photoreal yet ethereal vertical 9:16 spiritual scene (e.g. glowing magical rivers, cosmic skies with planets, golden light, fireflies, lotus, sacred geometry, abundance, water reflections, particles, volumetric god-rays, cinematic color grade). NO text, NO words, NO letters in the image. Keep a consistent dreamy, luxurious, cinematic aesthetic across all scenes.
+- For EACH line (including the hook) write a richly detailed CINEMATIC image prompt for a text-to-image model. Each image prompt must describe a stunning, premium, photoreal vertical 9:16 scene that MATCHES the mood "${mood || style}". Visual style guidance for this mood: ${getMoodStyle(mood || style).sceneGuidance}. NO text, NO words, NO letters in the image. Keep a CONSISTENT visual style across all scenes that matches the mood — do NOT default to generic luxury/gold unless the mood calls for it. Vary compositions and subjects between scenes.
 - Write a platform caption (1-2 sentences + a few emojis) and a longer description.
 - Provide 12 highly relevant, high-reach hashtags (mix broad + niche), each starting with #, no spaces.
 

@@ -769,7 +769,7 @@ export default function DashboardPage() {
                 key={len}
                 type="button"
                 onClick={() => setTargetLength(len)}
-                className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                className={`px-4 sm:px-4 py-2.5 sm:py-1.5 rounded-lg text-xs font-semibold transition-all min-w-[44px] min-h-[44px] sm:min-h-0 ${
                   targetLength === len ? 'gold-gradient text-black' : 'text-white/55 hover:text-white'
                 }`}
               >

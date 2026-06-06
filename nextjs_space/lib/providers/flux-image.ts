@@ -1,5 +1,6 @@
 import { Provider, ImageInput, ImageOutput } from './types';
 import { uploadPublicBuffer } from '@/lib/media-storage';
+import { getMoodStyle } from './mood-styles';
 
 /**
  * fal.ai Flux text-to-image provider (model-aware).
@@ -18,10 +19,10 @@ const MAX_CONCURRENCY = 3;
 const IMG_TIMEOUT_MS = 120_000;
 const POLL_INTERVAL_MS = 2_000;
 
-const STYLE_SUFFIX =
-  'Ultra-detailed cinematic photograph, vertical 9:16 composition, dreamy ethereal atmosphere, ' +
-  'volumetric light rays, glowing particles and bokeh, luxurious gold and deep royal-purple color grade, ' +
-  'soft film grain, shallow depth of field, hyper-real, awe-inspiring, premium, no text, no words, no watermark.';
+// Mood-aware style suffix resolved per-generate call (see getMoodStyle).
+// Kept as a mutable module-level ref set by FluxImageProvider.generate()
+// and read by submit helpers within the same async generate() scope.
+let _currentStyleSuffix = '';
 
 function authHeader(): string {
   const key = process.env.FAL_KEY;
@@ -33,7 +34,7 @@ interface SubmitResponse { request_id?: string; status_url?: string; response_ur
 
 async function submitImage(model: string, prompt: string): Promise<SubmitResponse> {
   const body = {
-    prompt: `${prompt}. ${STYLE_SUFFIX}`,
+    prompt: `${prompt}. ${_currentStyleSuffix}`,
     aspect_ratio: '9:16',
     num_images: 1,
     output_format: 'jpeg',
@@ -67,7 +68,7 @@ function reduxModel(model: string): string {
 async function submitRedux(model: string, prompt: string, referenceUrl: string): Promise<SubmitResponse> {
   const body = {
     image_url: referenceUrl,
-    prompt: `${prompt}. ${STYLE_SUFFIX}`,
+    prompt: `${prompt}. ${_currentStyleSuffix}`,
     aspect_ratio: '9:16',
     num_images: 1,
     output_format: 'jpeg',
@@ -164,6 +165,9 @@ export class FluxImageProvider implements Provider<ImageInput, ImageOutput> {
     if (!process.env.FAL_KEY) throw new Error('Flux image generation failed: FAL_KEY not configured.');
     const scenes = input?.scenes ?? [];
     if (scenes.length === 0) throw new Error('Flux image generation failed: no scenes provided.');
+
+    // Resolve mood-aware style suffix so Flux images match the user's intention.
+    _currentStyleSuffix = getMoodStyle(input?.mood).imageSuffix;
 
     const results: (string | null)[] = new Array(scenes.length).fill(null);
     const model = this.model;

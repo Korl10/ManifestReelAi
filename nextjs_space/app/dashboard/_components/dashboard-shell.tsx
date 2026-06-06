@@ -131,7 +131,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       </AnimatePresence>
 
       {/* Main content */}
-      <main className="pt-14 lg:pl-56 min-h-screen">
+      <main className="pt-14 pb-24 lg:pb-0 lg:pl-56 min-h-screen">
         <div className="p-4 md:p-6 max-w-[1200px] mx-auto">
           {children}
         </div>

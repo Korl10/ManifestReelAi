@@ -31,7 +31,7 @@ const PLATFORMS: { value: PlatformSafeZone; label: string; desc: string }[] = [
 function ColorInput({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
   return (
     <label className="flex items-center gap-2">
-      <div className="relative w-7 h-7 rounded-md border border-white/10 overflow-hidden cursor-pointer">
+      <div className="relative w-9 h-9 sm:w-7 sm:h-7 rounded-md border border-white/10 overflow-hidden cursor-pointer">
         <input
           type="color"
           value={value}
@@ -58,7 +58,7 @@ function RangeInput({ label, value, min, max, step, onChange, suffix }: {
       <input
         type="range" min={min} max={max} step={step ?? 1} value={value}
         onChange={e => onChange(Number(e.target.value))}
-        className="w-full h-1 bg-white/10 rounded-full appearance-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#D4AF37] [&::-webkit-slider-thumb]:cursor-pointer"
+        className="w-full h-2 bg-white/10 rounded-full appearance-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#D4AF37] [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-lg"
       />
     </label>
   );
@@ -170,12 +170,12 @@ export default function SubtitleEditor({ value, onChange, previewText }: Subtitl
       {/* ── Controls ── */}
       <div className="order-2 lg:order-1 rounded-xl bg-white/[0.02] border border-white/5 overflow-hidden">
         <Section id="font" icon={<Type className="w-3.5 h-3.5 text-[#D4AF37]" />} title="Font">
-          <div className="grid grid-cols-3 gap-1.5">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
             {SUBTITLE_FONTS.map(f => (
               <button
                 key={f}
                 onClick={() => update('fontFamily', f)}
-                className={`px-2 py-1.5 rounded-md text-[10px] truncate transition ${
+                className={`px-2 py-2.5 sm:py-1.5 rounded-md text-xs sm:text-[10px] truncate transition min-h-[44px] sm:min-h-0 ${
                   value.fontFamily === f
                     ? 'bg-[#D4AF37]/20 text-[#D4AF37] border border-[#D4AF37]/30'
                     : 'bg-white/5 text-white/50 hover:bg-white/10 border border-transparent'
@@ -234,7 +234,7 @@ export default function SubtitleEditor({ value, onChange, previewText }: Subtitl
               <button
                 key={a.value}
                 onClick={() => update('animation', a.value)}
-                className={`px-2 py-2 rounded-md text-left transition ${
+                className={`px-2 py-2.5 rounded-md text-left transition min-h-[44px] ${
                   value.animation === a.value
                     ? 'bg-[#D4AF37]/20 border border-[#D4AF37]/30'
                     : 'bg-white/5 border border-transparent hover:bg-white/10'
@@ -273,7 +273,7 @@ export default function SubtitleEditor({ value, onChange, previewText }: Subtitl
               <button
                 key={p.value}
                 onClick={() => update('platform', p.value)}
-                className={`px-2 py-2 rounded-md text-left transition ${
+                className={`px-2 py-2.5 rounded-md text-left transition min-h-[44px] ${
                   value.platform === p.value
                     ? 'bg-[#D4AF37]/20 border border-[#D4AF37]/30'
                     : 'bg-white/5 border border-transparent hover:bg-white/10'

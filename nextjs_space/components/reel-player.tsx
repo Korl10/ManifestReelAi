@@ -16,6 +16,22 @@ type ReelPlayerProps = {
   composited?: boolean;
 };
 
+/**
+ * Completely stop and dispose an HTMLMediaElement to prevent audio leak.
+ * After this call the element will NOT play any further audio.
+ */
+function disposeMedia(el: HTMLMediaElement | null) {
+  if (!el) return;
+  try {
+    el.pause();
+    el.currentTime = 0;
+    el.src = '';
+    el.load(); // forces release of the previous media resource
+  } catch {
+    /* swallow — element may already be detached */
+  }
+}
+
 export default function ReelPlayer({ videoUrl, posterUrl, musicUrl, hook, script = [], watermarked, title, composited = false }: ReelPlayerProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -34,6 +50,44 @@ export default function ReelPlayer({ videoUrl, posterUrl, musicUrl, hook, script
   const activeLine =
     lines.find((l) => loopT >= (l?.startTime ?? 0) && loopT < (l?.endTime ?? 0)) ??
     (loopT < 1.2 && hook ? { text: hook } : undefined);
+
+  // -----------------------------------------------------------------------
+  // AUDIO LIFECYCLE — stop & dispose on prop changes to prevent overlap.
+  // -----------------------------------------------------------------------
+
+  // When musicUrl or videoUrl changes, STOP everything first to prevent
+  // phantom playback from the old source (BUG #1 fix).
+  const prevMusicUrl = useRef(musicUrl);
+  const prevVideoUrl = useRef(videoUrl);
+
+  useEffect(() => {
+    const musicChanged = musicUrl !== prevMusicUrl.current;
+    const videoChanged = videoUrl !== prevVideoUrl.current;
+    prevMusicUrl.current = musicUrl;
+    prevVideoUrl.current = videoUrl;
+
+    if (musicChanged || videoChanged) {
+      // Immediately stop any active playback so old+new never overlap.
+      if (videoRef.current) {
+        videoRef.current.pause();
+        videoRef.current.currentTime = 0;
+      }
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      }
+      setPlaying(false);
+      setTime(0);
+    }
+  }, [musicUrl, videoUrl]);
+
+  // Full cleanup on unmount — prevents ghost audio when navigating away.
+  useEffect(() => {
+    return () => {
+      disposeMedia(videoRef.current);
+      disposeMedia(audioRef.current);
+    };
+  }, []);
 
   const stopAll = useCallback(() => {
     videoRef.current?.pause();
@@ -127,8 +181,8 @@ export default function ReelPlayer({ videoUrl, posterUrl, musicUrl, hook, script
 
       {/* Watermark overlay (overlay mode only — composited reels bake it in) */}
       {useOverlay && watermarked && (
-        <div className="absolute top-3 right-3 px-2 py-1 rounded-md bg-black/50 backdrop-blur-sm pointer-events-none">
-          <span className="text-[10px] font-semibold text-[#D4AF37] tracking-wide">ManifestReel</span>
+        <div className="absolute bottom-3 left-3 px-2 py-1 rounded-md bg-black/40 backdrop-blur-sm pointer-events-none">
+          <span className="text-[10px] font-semibold text-white/50 tracking-wide">ManifestReel AI</span>
         </div>
       )}
 
@@ -160,7 +214,7 @@ export default function ReelPlayer({ videoUrl, posterUrl, musicUrl, hook, script
 
       {/* Idle hint */}
       {!playing && (
-        <div className="absolute bottom-3 left-3 z-10 flex items-center gap-1.5 px-2 py-1 rounded-md bg-black/40 backdrop-blur-sm pointer-events-none">
+        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 px-2 py-1 rounded-md bg-black/40 backdrop-blur-sm pointer-events-none">
           <Sparkles className="w-3 h-3 text-[#D4AF37]" />
           <span className="text-[10px] text-white/70">{title ? 'Tap to play' : 'Preview'}</span>
         </div>
