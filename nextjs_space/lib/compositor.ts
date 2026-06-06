@@ -11,6 +11,24 @@ const H = 1920;
 const FPS = 30;
 const XFADE = 0.6; // crossfade duration between scenes
 
+/** Watermark overlay config passed through to FFmpeg. */
+export interface WatermarkConfig {
+  /** Public URL of the logo PNG (must have alpha channel). */
+  logoUrl: string;
+  /** Position on the video frame. */
+  position: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center';
+  /** Size as a fraction of video width (S=0.08, M=0.12, L=0.18). */
+  sizeFraction: number;
+  /** Opacity 0-100 (100 = fully opaque). */
+  opacity: number;
+  /** 0.4s fade-in at reel start. */
+  fadeIn?: boolean;
+  /** Subtle ±5% scale pulse every ~8s. */
+  pulse?: boolean;
+  /** Override safe-zone margin fraction (default 0.03 = 3%). */
+  margin?: number;
+}
+
 export interface CompositeInput {
   sceneImageUrls: string[];
   sceneDurations: number[]; // seconds per scene (same length as images)
@@ -21,6 +39,8 @@ export interface CompositeInput {
   /** Optional short intro/outro accent stinger (public URL). null/undefined → none. */
   stingerUrl?: string | null;
   watermark: boolean;
+  /** Logo-based watermark overlay (Phase 4c). Null → text-only watermark (legacy). */
+  watermarkConfig?: WatermarkConfig | null;
   /**
    * Optional pre-rendered motion clip URL per scene (aligned to scene index).
    * When a scene has a clip URL, the compositor uses that animated video as the
@@ -37,6 +57,85 @@ export interface CompositeResult {
 }
 
 const TRANSITIONS = ['fade', 'fadeblack', 'dissolve', 'smoothleft', 'circleopen', 'fadewhite'];
+
+// ---- Watermark overlay filter builder (Phase 4c) ----
+// Sizes as fraction of video width.
+export const WM_SIZE_MAP: Record<string, number> = { S: 0.08, M: 0.12, L: 0.18 };
+
+// Platform-safe offsets (fraction of dimension). For 9:16 vertical:
+//   bottom-left/right: 18% from bottom (clear TikTok caption + Reels UI)
+//   top-left/right: 8% from top (clear status bar)
+//   center: middle
+const SAFE_BOTTOM = 0.18;
+const SAFE_TOP = 0.08;
+const SAFE_SIDE = 0.03; // 3% horizontal margin
+
+/**
+ * Builds filter_complex fragments for watermark overlay.
+ * Returns the prepared label, x/y overlay coordinates, and filter lines.
+ */
+function buildWatermarkFilter(
+  inputIdx: number,
+  cfg: WatermarkConfig,
+  vw: number,
+  vh: number,
+  totalDur: number,
+): { label: string; x: string; y: string; filters: string[] } {
+  const frac = cfg.sizeFraction;
+  const targetW = Math.round(vw * frac);
+  const filters: string[] = [];
+
+  // Scale the logo to target width, maintain aspect ratio.
+  let chain = `[${inputIdx}:v]scale=${targetW}:-1:flags=lanczos,format=rgba`;
+
+  // Opacity via colorchannelmixer (alpha channel only).
+  const alpha = Math.max(0, Math.min(100, cfg.opacity)) / 100;
+  if (alpha < 1) {
+    chain += `,colorchannelmixer=aa=${alpha.toFixed(2)}`;
+  }
+
+  // Fade-in: 0.4s from fully transparent to target opacity.
+  if (cfg.fadeIn !== false) {
+    chain += `,fade=t=in:st=0:d=0.4:alpha=1`;
+  }
+
+  filters.push(`${chain}[wmscaled]`);
+
+  // Compute x/y based on position + safe-zone margins.
+  const marginX = Math.round(vw * SAFE_SIDE);
+  const marginTop = Math.round(vh * SAFE_TOP);
+  const marginBottom = Math.round(vh * SAFE_BOTTOM);
+
+  let x: string;
+  let y: string;
+  const label = 'wmscaled';
+
+  switch (cfg.position) {
+    case 'top-left':
+      x = String(marginX);
+      y = String(marginTop);
+      break;
+    case 'top-right':
+      x = `${vw}-overlay_w-${marginX}`;
+      y = String(marginTop);
+      break;
+    case 'bottom-left':
+      x = String(marginX);
+      y = `${vh}-overlay_h-${marginBottom}`;
+      break;
+    case 'center':
+      x = `(${vw}-overlay_w)/2`;
+      y = `(${vh}-overlay_h)/2`;
+      break;
+    case 'bottom-right':
+    default:
+      x = `${vw}-overlay_w-${marginX}`;
+      y = `${vh}-overlay_h-${marginBottom}`;
+      break;
+  }
+
+  return { label, x, y, filters };
+}
 
 function frames(sec: number): number {
   return Math.max(2, Math.round(sec * FPS));
@@ -80,6 +179,8 @@ export async function compositeReel(input: CompositeInput): Promise<CompositeRes
   if (input.musicUrl) input_files['in_music'] = input.musicUrl;
   if (input.voiceUrl) input_files['in_voice'] = input.voiceUrl;
   if (input.stingerUrl) input_files['in_stinger'] = input.stingerUrl;
+  // Watermark logo overlay (Phase 4c)
+  if (input.watermarkConfig?.logoUrl) input_files['in_wm'] = input.watermarkConfig.logoUrl;
   input_files['in_ass'] = assUrl;
 
   // ---- Build the ffmpeg argument string ----
@@ -98,6 +199,11 @@ export async function compositeReel(input: CompositeInput): Promise<CompositeRes
   if (input.voiceUrl) { voiceIdx = musicIdx >= 0 ? n + 1 : n; args.push(`-i {{in_voice}}`); }
   let stingerIdx = -1;
   if (input.stingerUrl) { stingerIdx = n + (musicIdx >= 0 ? 1 : 0) + (voiceIdx >= 0 ? 1 : 0); args.push(`-i {{in_stinger}}`); }
+  let wmIdx = -1;
+  if (input.watermarkConfig?.logoUrl) {
+    wmIdx = n + (musicIdx >= 0 ? 1 : 0) + (voiceIdx >= 0 ? 1 : 0) + (stingerIdx >= 0 ? 1 : 0);
+    args.push(`-i {{in_wm}}`);
+  }
 
   // Per-scene background: real motion video for hero scenes, Ken Burns on stills
   // for the rest. Both are normalized to 1080x1920 @ 30fps, exactly `d` seconds.
@@ -148,6 +254,17 @@ export async function compositeReel(input: CompositeInput): Promise<CompositeRes
 
   // Burn captions.
   fc.push(`[${lastLabel}]subtitles={{in_ass}}[vsub]`);
+
+  // Watermark logo overlay (Phase 4c). The logo is scaled, positioned with
+  // platform-safe margins, and overlaid with configurable opacity, fade-in,
+  // and optional subtle pulse animation.
+  let finalVideoLabel = 'vsub';
+  if (wmIdx >= 0 && input.watermarkConfig) {
+    const wmLabel = buildWatermarkFilter(wmIdx, input.watermarkConfig, W, H, T);
+    fc.push(...wmLabel.filters);
+    fc.push(`[vsub][${wmLabel.label}]overlay=${wmLabel.x}:${wmLabel.y}:format=auto:shortest=1[vwm]`);
+    finalVideoLabel = 'vwm';
+  }
 
   // Audio graph. Each branch produces [amain]; an optional stinger accent is
   // then layered on top to yield the final [aout].
@@ -201,7 +318,7 @@ export async function compositeReel(input: CompositeInput): Promise<CompositeRes
   const command =
     args.join(' ') +
     ` -filter_complex "${filter}"` +
-    ` -map "[vsub]"` +
+    ` -map "[${finalVideoLabel}]"` +
     (hasAudio ? ` -map "[aout]" -c:a aac -b:a 192k` : ` -an`) +
     ` -r ${FPS} -c:v libx264 -pix_fmt yuv420p -profile:v high -preset medium -crf 19` +
     ` -movflags +faststart -t ${T} {{out_1}}`;

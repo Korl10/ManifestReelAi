@@ -8,7 +8,7 @@ import { buildTemplateScript, fallbackSceneImages } from '@/lib/providers/fallba
 import { estimateTimestamps } from '@/lib/providers/elevenlabs-voice';
 import type { ExtendedVoiceInput } from '@/lib/providers/elevenlabs-voice';
 import { transcribeWithWhisper } from '@/lib/providers/whisper';
-import { compositeReel } from '@/lib/compositor';
+import { compositeReel, type WatermarkConfig, WM_SIZE_MAP } from '@/lib/compositor';
 import { ensurePublicLocalAsset } from '@/lib/media-storage';
 import { resolveReelAssets } from '@/lib/reel-assets';
 import type { ScriptOutput, WordTimestamp } from '@/lib/providers/types';
@@ -74,7 +74,52 @@ export async function runGenerationPipeline(
 
     const sub = await prisma.subscription.findUnique({ where: { userId } });
     const tier = sub?.tier ?? 'free';
-    const watermark = isPreview || tier === 'free';
+    const isFree = isPreview || tier === 'free';
+    // Legacy text-only watermark in captions (disabled when logo overlay is active
+    // to avoid double-watermarking). Falls back to text if logo overlay fails.
+    let watermark = isFree;
+
+    // ---- Resolve watermark overlay config (Phase 4c) ----
+    // Free tier: forced ManifestReel branded watermark.
+    // Paid tier + preset + watermarkShow: user's logo watermark.
+    // Paid tier without: no watermark.
+    let watermarkConfig: WatermarkConfig | null = null;
+    try {
+      if (isFree) {
+        // Force ManifestReel branded watermark for free-tier users.
+        const brandedUrl = await ensurePublicLocalAsset('watermark/manifestreel-watermark.png', 'image/png');
+        watermarkConfig = {
+          logoUrl: brandedUrl,
+          position: 'bottom-right',
+          sizeFraction: WM_SIZE_MAP['M'] ?? 0.12,
+          opacity: 50,
+          fadeIn: true,
+          pulse: false,
+        };
+        console.log('[pipeline] Free-tier: ManifestReel watermark forced.');
+      } else if (reel.brandPresetId) {
+        const preset = await prisma.brandPreset.findUnique({ where: { id: reel.brandPresetId } });
+        if (preset && preset.watermarkShow && preset.logoUrl) {
+          watermarkConfig = {
+            logoUrl: preset.logoUrl,
+            position: (preset.watermarkPosition as any) ?? 'bottom-right',
+            sizeFraction: WM_SIZE_MAP[preset.watermarkSize] ?? WM_SIZE_MAP['M'],
+            opacity: preset.watermarkOpacity ?? 80,
+            fadeIn: true,
+            pulse: !!(preset as any).watermarkPulse,
+          };
+          console.log(`[pipeline] Preset watermark: pos=${preset.watermarkPosition} size=${preset.watermarkSize} opacity=${preset.watermarkOpacity}`);
+        }
+      }
+    } catch (e) {
+      console.warn('[pipeline] watermark config error (continuing without logo overlay):', (e as any)?.message);
+      // Fallback: pipeline continues without logo overlay — text watermark still fires for free tier.
+    }
+    // When we have a proper logo overlay, disable the text-only caption watermark
+    // so users don't get double-branded.
+    if (watermarkConfig) {
+      watermark = false;
+    }
 
     // Resolve the selected model tier (clamped to what this subscription can use).
     const modelTier = resolveModelTier(pipelineOpts?.modelTier, tier);
@@ -389,6 +434,7 @@ export async function runGenerationPipeline(
         watermark,
         sceneClipUrls,
         subtitleStyle: pipelineOpts?.subtitleStyle,
+        watermarkConfig,
       });
       finalVideoUrl = result.videoUrl;
       finalDuration = result.durationSec;
@@ -431,7 +477,7 @@ export async function runGenerationPipeline(
           })),
         } as any,
         status: 'ready',
-        watermarked: watermark,
+        watermarked: watermark || !!watermarkConfig,
         costBreakdown,
         totalCost: Math.round(totalCost * 100) / 100,
       },

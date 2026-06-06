@@ -234,7 +234,7 @@ function IdentityStep({
 
       {/* Logo + colors */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-        <Field label="Brand logo" hint="PNG, SVG, JPG or WebP · max 5MB">
+        <Field label="Brand logo" hint="PNG, SVG, or WebP with transparent background · max 5MB">
           <div className="flex items-center gap-3">
             <div
               className="w-16 h-16 rounded-xl shrink-0 flex items-center justify-center overflow-hidden border border-white/10"
@@ -265,7 +265,7 @@ function IdentityStep({
             <input
               ref={fileRef}
               type="file"
-              accept="image/png,image/svg+xml,image/jpeg,image/webp"
+              accept="image/png,image/svg+xml,image/webp"
               className="hidden"
               onChange={e => { const f = e.target.files?.[0]; if (f) onLogoFile(f); e.target.value = ''; }}
             />
@@ -292,7 +292,7 @@ function IdentityStep({
           checked={form.watermarkShow}
           onChange={v => set('watermarkShow', v)}
         />
-        {form.watermarkShow && (
+        {form.watermarkShow && (<>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1">
             <Field label="Position">
               <Segmented
@@ -318,7 +318,15 @@ function IdentityStep({
               />
             </Field>
           </div>
-        )}
+          <div className="pt-2">
+            <Toggle
+              label="Subtle pulse animation"
+              desc="Logo gently scales ±5% every ~8s for an organic feel"
+              checked={form.watermarkPulse}
+              onChange={v => set('watermarkPulse', v)}
+            />
+          </div>
+        </>)}
       </div>
 
       {/* Metadata defaults */}

@@ -243,6 +243,7 @@ model BrandPreset {
   watermarkPosition String  @default("bottom-right") @map("watermark_position")
   watermarkOpacity  Int     @default(80) @map("watermark_opacity")
   watermarkSize     String  @default("M") @map("watermark_size")
+  watermarkPulse    Boolean @default(false) @map("watermark_pulse")
 
   // Subtitle style (full SubtitleStyle JSON)
   subtitleStyle Json? @map("subtitle_style")

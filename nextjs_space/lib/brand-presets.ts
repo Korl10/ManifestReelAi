@@ -80,6 +80,7 @@ export interface BrandPreset {
   watermarkPosition: WatermarkPosition;
   watermarkOpacity: number; // 0-100
   watermarkSize: WatermarkSize;
+  watermarkPulse: boolean; // subtle scale pulse every ~8s
 
   // Subtitle style
   subtitleStyle: SubtitleStyle;
@@ -131,6 +132,7 @@ export function emptyPreset(): BrandPresetInput {
     watermarkPosition: 'bottom-right',
     watermarkOpacity: 80,
     watermarkSize: 'M',
+    watermarkPulse: false,
     subtitleStyle: { ...DEFAULT_SUBTITLE_STYLE },
     voiceId: 'female-aria',
     voiceStability: 0.5,

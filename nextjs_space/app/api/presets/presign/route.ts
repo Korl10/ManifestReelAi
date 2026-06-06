@@ -6,7 +6,8 @@ import { prisma } from '@/lib/prisma';
 import { generatePresignedUploadUrl, getPublicUrl } from '@/lib/s3';
 import { brandPresetLimit } from '@/lib/brand-presets';
 
-const ALLOWED = ['image/png', 'image/svg+xml', 'image/jpeg', 'image/webp'];
+// Only formats that support alpha/transparency — JPEG intentionally excluded.
+const ALLOWED = ['image/png', 'image/svg+xml', 'image/webp'];
 
 // POST /api/presets/presign — presigned URL for uploading a brand logo.
 // Gated to paid tiers (anyone who can own a preset).
@@ -28,7 +29,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'fileName and contentType are required' }, { status: 400 });
     }
     if (!ALLOWED.includes(String(contentType))) {
-      return NextResponse.json({ error: 'Logo must be a PNG, SVG, JPG, or WebP image.' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Watermark logos need a transparent background. Please upload a PNG, SVG, or WebP (not JPEG/JPG — they don\u2019t support transparency).' },
+        { status: 400 },
+      );
     }
     const safeName = `logo_${String(fileName).replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 80)}`;
     const { uploadUrl, cloud_storage_path } = await generatePresignedUploadUrl(safeName, contentType, true);
