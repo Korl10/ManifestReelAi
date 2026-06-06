@@ -103,6 +103,7 @@ export interface BrandPreset {
   aspectRatio: AspectRatio;
   visualKeywords: string | null;
   motionDefault: boolean;
+  subjectLock: boolean; // keep the same subject/look across all scenes (premium quality)
 
   // Metadata defaults
   defaultPlatform: PresetPlatform;
@@ -147,6 +148,7 @@ export function emptyPreset(): BrandPresetInput {
     aspectRatio: '9:16',
     visualKeywords: '',
     motionDefault: false,
+    subjectLock: true,
     defaultPlatform: 'reels',
     defaultLength: 25,
     ctaText: '',

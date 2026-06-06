@@ -490,6 +490,14 @@ function VisualStep({
             onChange={v => set('motionDefault', v)}
           />
         </Field>
+        <Field label="Subject consistency">
+          <Toggle
+            label="Lock subject across scenes"
+            desc="Keep the same person & look in every shot (recommended for Pro & Cinematic)"
+            checked={form.subjectLock !== false}
+            onChange={v => set('subjectLock', v)}
+          />
+        </Field>
       </div>
 
       <Field label="Visual keywords" hint="Optional — steer the look (e.g. golden hour, luxury, minimal)">

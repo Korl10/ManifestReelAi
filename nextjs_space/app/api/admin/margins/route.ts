@@ -70,6 +70,12 @@ export async function GET() {
       modelTier: meta.model_tier ?? null,
       musicTrackId: meta.music_track_id ?? null,
       voiceTier: meta.voice_tier ?? null,
+      // Motion-integrity signals (P0 billing guardrail).
+      motionVerified: r.motion ? (meta.motionVerified ?? null) : null,
+      motionExpected: meta.motionExpected ?? null,
+      motionClipCount: meta.motionClipCount ?? null,
+      motionDowngraded: meta.motionDowngraded ?? null,
+      refundedCoins: meta.refundedCoins ?? 0,
       status: r.status,
       cost: Math.round(cost * 10000) / 10000,
       retail: Math.round(retail * 100) / 100,

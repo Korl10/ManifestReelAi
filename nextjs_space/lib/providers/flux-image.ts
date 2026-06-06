@@ -53,6 +53,56 @@ async function submitImage(model: string, prompt: string): Promise<SubmitRespons
   return res.json();
 }
 
+/**
+ * Subject-lock submit: use the Flux "redux" image-to-image endpoint to condition
+ * a new scene on a REFERENCE image (scene 1) so the same subject/look carries
+ * across shots. `image_prompt_strength` balances reference fidelity vs. prompt
+ * freedom (higher = stick closer to the reference subject).
+ */
+function reduxModel(model: string): string {
+  // e.g. fal-ai/flux-pro/v1.1-ultra -> fal-ai/flux-pro/v1.1-ultra/redux
+  return model.endsWith('/redux') ? model : `${model}/redux`;
+}
+
+async function submitRedux(model: string, prompt: string, referenceUrl: string): Promise<SubmitResponse> {
+  const body = {
+    image_url: referenceUrl,
+    prompt: `${prompt}. ${STYLE_SUFFIX}`,
+    aspect_ratio: '9:16',
+    num_images: 1,
+    output_format: 'jpeg',
+    image_prompt_strength: 0.18,
+    safety_tolerance: '5',
+  };
+  const res = await fetch(`${QUEUE_BASE}/${reduxModel(model)}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: authHeader() },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const e = await res.text().catch(() => '');
+    console.error(`[flux] REDUX SUBMIT FAILED ${res.status}: ${e.slice(0, 200)}`);
+    throw new Error(`flux redux submit ${res.status}`);
+  }
+  return res.json();
+}
+
+async function generateReferenced(model: string, prompt: string, referenceUrl: string): Promise<string | null> {
+  try {
+    const sub = await submitRedux(model, prompt, referenceUrl);
+    const url = await pollImage(reduxModel(model), sub);
+    if (!url) return null;
+    const imgRes = await fetch(url);
+    if (!imgRes.ok) throw new Error(`download ${imgRes.status}`);
+    const buf = Buffer.from(await imgRes.arrayBuffer());
+    const ct = imgRes.headers.get('content-type') || 'image/jpeg';
+    return uploadPublicBuffer(buf, `scene.${ct.includes('png') ? 'png' : 'jpg'}`, ct);
+  } catch (e) {
+    console.error(`[flux] referenced scene FAILED (fallback to plain text-to-image): ${(e as any)?.message}`);
+    return null;
+  }
+}
+
 async function pollImage(model: string, sub: SubmitResponse): Promise<string | null> {
   const statusUrl = sub.status_url || `${QUEUE_BASE}/${model}/requests/${sub.request_id}/status`;
   const responseUrl = sub.response_url || `${QUEUE_BASE}/${model}/requests/${sub.request_id}`;
@@ -116,15 +166,49 @@ export class FluxImageProvider implements Provider<ImageInput, ImageOutput> {
     if (scenes.length === 0) throw new Error('Flux image generation failed: no scenes provided.');
 
     const results: (string | null)[] = new Array(scenes.length).fill(null);
-    let idx = 0;
     const model = this.model;
-    async function worker() {
-      while (idx < scenes.length) {
-        const i = idx++;
-        results[i] = await generateOne(model, scenes[i].imagePrompt);
+
+    if (input.subjectLock && scenes.length > 1) {
+      // SUBJECT LOCK: generate scene 1 first as the anchor, then condition every
+      // later scene on it (redux) so the same subject/look carries across shots.
+      console.log('[flux] subject-lock ON — anchoring scenes on scene 1 reference');
+      const anchor = await generateOne(model, scenes[0].imagePrompt);
+      results[0] = anchor;
+      if (anchor) {
+        let idx = 1;
+        const ref = anchor;
+        async function lockedWorker() {
+          while (idx < scenes.length) {
+            const i = idx++;
+            // Try referenced generation first; fall back to plain on failure.
+            let url = await generateReferenced(model, scenes[i].imagePrompt, ref);
+            if (!url) url = await generateOne(model, scenes[i].imagePrompt);
+            results[i] = url;
+          }
+        }
+        await Promise.all(Array.from({ length: Math.min(MAX_CONCURRENCY, scenes.length - 1) }, () => lockedWorker()));
+      } else {
+        // Anchor failed — degrade gracefully to independent generation.
+        console.warn('[flux] subject-lock anchor failed; falling back to independent scenes');
+        let idx = 1;
+        async function plainWorker() {
+          while (idx < scenes.length) {
+            const i = idx++;
+            results[i] = await generateOne(model, scenes[i].imagePrompt);
+          }
+        }
+        await Promise.all(Array.from({ length: Math.min(MAX_CONCURRENCY, scenes.length - 1) }, () => plainWorker()));
       }
+    } else {
+      let idx = 0;
+      async function worker() {
+        while (idx < scenes.length) {
+          const i = idx++;
+          results[i] = await generateOne(model, scenes[i].imagePrompt);
+        }
+      }
+      await Promise.all(Array.from({ length: Math.min(MAX_CONCURRENCY, scenes.length) }, () => worker()));
     }
-    await Promise.all(Array.from({ length: Math.min(MAX_CONCURRENCY, scenes.length) }, () => worker()));
 
     const ok = results.filter(Boolean) as string[];
     if (ok.length === 0) throw new Error('Flux returned no images.');

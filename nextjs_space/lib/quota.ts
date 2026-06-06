@@ -184,6 +184,52 @@ export async function consumeCoins(userId: string, amount: number): Promise<numb
   return amount - remaining;
 }
 
+/**
+ * Refund `amount` coins to a user (e.g. when a paid motion render fails to
+ * deliver real motion). Mirrors consumeCoins in reverse:
+ *   1) Credit back the subscription monthly counter first (decrement reelsUsed,
+ *      never below 0).
+ *   2) Return any remainder as a non-expiring bonus coin grant so the coins are
+ *      always recoverable even across billing-period boundaries.
+ * Idempotency is the CALLER's responsibility (guard with a persisted flag).
+ * Returns the number of coins actually credited back.
+ */
+export async function refundCoins(userId: string, amount: number, reason = 'motion_render_failed'): Promise<number> {
+  if (amount <= 0) return 0;
+  const sub = await prisma.subscription.findUnique({ where: { userId } });
+  const tier = sub?.tier ?? 'free';
+  if (tier === 'free') return 0; // free previews never consumed coins
+
+  let remaining = amount;
+
+  // 1) Credit the subscription monthly counter back first.
+  const counter = await getOrCreateCounter(userId, tier);
+  const backToSub = Math.min(counter.reelsUsed, remaining);
+  if (backToSub > 0) {
+    await prisma.usageCounter.update({ where: { id: counter.id }, data: { reelsUsed: { decrement: backToSub } } });
+    remaining -= backToSub;
+  }
+
+  // 2) Any remainder → non-expiring bonus grant (auditable, always recoverable).
+  if (remaining > 0) {
+    await prisma.coinPurchase.create({
+      data: {
+        userId,
+        bundleId: `refund:${reason}`,
+        reelsAdded: remaining,
+        coinsRemaining: remaining,
+        expiresAt: null,
+        amountCents: 0,
+        status: 'completed',
+      },
+    });
+    remaining = 0;
+  }
+
+  console.log(`[quota] REFUND ${amount} coins to user=${userId} reason=${reason} (sub=${backToSub}, bonus=${amount - backToSub})`);
+  return amount;
+}
+
 // ── Legacy compatibility shim ────────────────────────────────────
 // Older UI (dashboard shell, subscription route) reads reelsUsed / reelsCap /
 // bonusReels. We map the coin balance onto those fields so existing UI keeps

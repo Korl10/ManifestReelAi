@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { getScriptProvider, getImageProvider, getFluxImageProvider, getVoiceProvider, getMusicProvider, getVideoProvider } from '@/lib/providers';
-import { resolveModelTier } from '@/lib/model-tiers';
+import { resolveModelTier, getModelTier } from '@/lib/model-tiers';
+import { refundCoins } from '@/lib/quota';
 import { matchTrack, getTrackById, getStingerById, defaultStinger } from '@/lib/music-library';
 import { getFileUrl } from '@/lib/s3';
 import { selectHeroScenes } from '@/lib/providers/motion-prompts';
@@ -126,6 +127,17 @@ export async function runGenerationPipeline(
     const wantsMotion = !isPreview && reel.motion === true && !!process.env.FAL_KEY;
     console.log(`[pipeline] model tier=${modelTier.id} (video=${modelTier.videoModel}, image=${modelTier.imageModel}), wantsMotion=${wantsMotion}`);
 
+    // Subject lock (premium quality): keep the same subject/look across scenes.
+    // Default ON for paid motion reels; a brand preset may override it.
+    let subjectLock = wantsMotion;
+    if (reel.brandPresetId) {
+      try {
+        const p = await prisma.brandPreset.findUnique({ where: { id: reel.brandPresetId }, select: { subjectLock: true } });
+        if (p) subjectLock = !!p.subjectLock && wantsMotion;
+      } catch { /* keep default */ }
+    }
+    console.log(`[pipeline] subjectLock=${subjectLock}`);
+
     // ----------------------------------------------------------------
     // STEP 1 — Script (LLM, with template fallback)
     // ----------------------------------------------------------------
@@ -173,7 +185,7 @@ export async function runGenerationPipeline(
       costBreakdown['image_cost'] = 0;
       console.log('[pipeline] Preview mode — using bundled stills (expected)');
     } else {
-      const imgInput = { scenes: script.scenes.map((s) => ({ imagePrompt: s.imagePrompt })), style: reel.style, mood: reel.mood };
+      const imgInput = { scenes: script.scenes.map((s) => ({ imagePrompt: s.imagePrompt })), style: reel.style, mood: reel.mood, subjectLock };
       let done = false;
 
       // TIER 1 — Flux (per model tier) for motion reels.
@@ -237,10 +249,20 @@ export async function runGenerationPipeline(
     let sceneClipUrls: (string | null)[] | undefined;
     let motionProviderName = 'none';
     let motionClipCount = 0;
+    let motionExpected = 0;
+    let motionVerified = false;
+    let motionDowngraded = false;
+    let motionHardFailed = false;
     costBreakdown['video_cost'] = 0;
-    if (!isPreview && reel.motion && process.env.FAL_KEY) {
+    // A paid motion reel was promised: tier requested motion and we have a key.
+    const motionAttempted = !isPreview && reel.motion === true && !!process.env.FAL_KEY;
+    if (motionAttempted) {
       try {
-        const heroIndices = selectHeroScenes(sceneCount, 4);
+        // Cinematic animates EVERY scene (no slideshow feel). Lower tiers
+        // animate the hero scenes (hook + emotional peaks) to control cost.
+        const maxMotion = modelTier.id === 'cinematic' ? sceneCount : 4;
+        const heroIndices = selectHeroScenes(sceneCount, maxMotion);
+        motionExpected = heroIndices.length;
         const motionInput = {
           sceneImageUrls,
           heroIndices,
@@ -256,7 +278,8 @@ export async function runGenerationPipeline(
 
         // Cinematic fallback: if the flagship model produced 0 clips (rate
         // limit / policy / outage), retry ONCE with Kling 2.5 Turbo Pro so the
-        // reel still gets real motion. Reels never break.
+        // reel still gets REAL motion (cheaper engine). This is a genuine
+        // downgrade — we refund the price delta below.
         if (((motion as any).generatedCount ?? 0) === 0 && modelTier.id === 'cinematic') {
           console.warn('[pipeline] cinematic produced 0 clips, retrying with Kling 2.5 Turbo Pro');
           const fb = getVideoProvider('fal-ai/kling-video/v2.5-turbo/pro/image-to-video', 0.07);
@@ -265,18 +288,65 @@ export async function runGenerationPipeline(
             videoModel: 'fal-ai/kling-video/v2.5-turbo/pro/image-to-video',
             videoPricePerSec: 0.07,
           });
+          if (((motion as any).generatedCount ?? 0) > 0) motionDowngraded = true;
         }
 
         sceneClipUrls = motion.clipUrls;
         motionClipCount = (motion as any).generatedCount ?? motion.clipUrls.filter(Boolean).length;
         motionProviderName = motion.provider;
         costBreakdown['video_cost'] = (motion as any).cost ?? 0;
-        console.log(`[pipeline] motion: ${motionClipCount}/${heroIndices.length} hero clips generated, video_cost=$${costBreakdown['video_cost']}`);
+        console.log(`[pipeline] motion: ${motionClipCount}/${motionExpected} clips generated, provider=${motionProviderName}, downgraded=${motionDowngraded}, video_cost=$${costBreakdown['video_cost']}`);
       } catch (e) {
-        console.error('[pipeline] motion generation failed, all scenes stay Ken Burns:', (e as any)?.message);
+        console.error('[pipeline] motion generation failed, 0 clips:', (e as any)?.message);
         sceneClipUrls = undefined;
+        motionClipCount = 0;
         costBreakdown['video_cost'] = 0;
       }
+    }
+
+    // Motion verification: a motion-tier reel MUST have at least one real clip.
+    motionVerified = motionAttempted ? motionClipCount > 0 : false;
+    if (motionAttempted && !motionVerified) motionHardFailed = true;
+
+    // ----------------------------------------------------------------
+    // GUARDRAIL — Motion render hard-fail (billing integrity)
+    // A premium/cinematic reel that produced ZERO motion clips is NOT a
+    // reel the user paid for. Fail loudly, refund ALL credits, alert admin,
+    // and stop before spending more on voice/music/compositing.
+    // ----------------------------------------------------------------
+    if (motionHardFailed) {
+      const refundAmt = reel.coinCost ?? 0;
+      let refundedCoins = 0;
+      try {
+        refundedCoins = await refundCoins(userId, refundAmt, 'motion_render_failed');
+      } catch (e) {
+        console.error('[pipeline] refund failed during motion hard-fail:', (e as any)?.message);
+      }
+      console.error(`[ALERT][motion-fail] reel=${reelId} user=${userId} tier=${modelTier.id} expected=${motionExpected} clips=0 refunded=${refundedCoins} — Cinematic engines busy / silent fallback prevented.`);
+      await prisma.reel.update({
+        where: { id: reelId },
+        data: {
+          status: 'failed',
+          coinCost: 0,
+          scenesJson: {
+            motionVerified: false,
+            motionExpected,
+            motionClipCount: 0,
+            model_tier: modelTier.id,
+            refundedCoins,
+            failureReason: 'motion_render_failed',
+          } as any,
+        },
+      }).catch(() => {});
+      await prisma.generationJob.update({
+        where: { id: jobId },
+        data: {
+          status: 'failed',
+          currentStep: 'error',
+          errorMessage: 'Cinematic engines were busy — your reel was not charged. Please try again in a few minutes, or switch to Standard for instant generation.',
+        },
+      }).catch(() => {});
+      return;
     }
 
     // ----------------------------------------------------------------
@@ -446,6 +516,22 @@ export async function runGenerationPipeline(
       composited = false;
     }
 
+    // Downgrade refund: a cinematic reel that fell back to a cheaper engine
+    // (real motion, but not the flagship the user paid for) is refunded the
+    // price delta so we never charge cinematic price for pro-tier motion.
+    let refundedCoins = 0;
+    if (motionDowngraded && modelTier.id === 'cinematic') {
+      const delta = (getModelTier('cinematic').coinCost ?? 0) - (getModelTier('pro').coinCost ?? 0);
+      if (delta > 0) {
+        try {
+          refundedCoins = await refundCoins(userId, delta, 'motion_downgraded');
+          console.warn(`[pipeline] motion downgraded cinematic→pro: refunded ${refundedCoins} coins (delta=${delta}) reel=${reelId}`);
+        } catch (e) {
+          console.error('[pipeline] downgrade refund failed:', (e as any)?.message);
+        }
+      }
+    }
+
     const totalCost = Object.values(costBreakdown).reduce((a, b) => a + b, 0);
     console.log(`[pipeline] COST BREAKDOWN reel=${reelId}:`, JSON.stringify(costBreakdown), `TOTAL=$${totalCost.toFixed(4)}`);
     console.log(`[pipeline] PROVIDERS: script=${scriptProviderName} image=${imageProviderName} voice=${voiceProviderName} motion=${motionProviderName}(${motionClipCount}clips)`);
@@ -465,6 +551,10 @@ export async function runGenerationPipeline(
           voiceProvider: voiceProviderName,
           motionProvider: motionProviderName,
           motionClipCount,
+          motionExpected,
+          motionVerified,
+          motionDowngraded,
+          refundedCoins,
           model_tier: modelTier.id,
           music_track_id: musicTrackId,
           stinger_track_id: stingerTrackId,

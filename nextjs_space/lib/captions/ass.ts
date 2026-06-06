@@ -57,10 +57,25 @@ function wordsForLine(lineText: string, pool: WordTimestamp[], cursor: { i: numb
 }
 
 // ── Position helpers ──
+// 9:16 safe-zone audit (1080x1920):
+//  • bottom subtitles must sit >= 18% (346px) above the bottom edge (platform UI).
+//  • top subtitles must sit >= 12% (230px) below the top edge (status bar / notch).
+// MarginV in ASS is measured from the aligned edge: alignment 2 (bottom) → from
+// bottom; alignment 8 (top) → from top; alignment 5 (center) → vertical offset.
+const TOP_SAFE = Math.round(1920 * 0.12);    // 230px from the top edge
 function resolveMarginV(style: SubtitleStyle): number {
+  const custom = style.customYOffset ?? 0;
+  if (style.position === 'top') {
+    // alignment 8 → margin from TOP. Never let it rise above the 12% top safe zone.
+    return Math.max(TOP_SAFE, TOP_SAFE + custom);
+  }
+  if (style.position === 'center') {
+    // alignment 5 → centered; MarginV acts as a small vertical nudge only.
+    return custom;
+  }
+  // bottom: alignment 2 → margin from BOTTOM. Never drop below the platform safe zone.
   const basePlatform = PLATFORM_SAFE_MARGINS[style.platform] ?? PLATFORM_SAFE_MARGINS.none;
-  const posOffset = style.position === 'top' ? 1400 : style.position === 'center' ? 700 : 0;
-  return basePlatform + posOffset + (style.customYOffset ?? 0);
+  return Math.max(basePlatform, basePlatform + custom);
 }
 
 function resolveAlignment(style: SubtitleStyle): number {

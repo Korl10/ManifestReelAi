@@ -266,6 +266,7 @@ export default function AdminMarginsPage() {
                 <th className="text-left py-2 pr-2 font-medium">Date</th>
                 <th className="text-left py-2 px-2 font-medium">User</th>
                 <th className="text-left py-2 px-2 font-medium">Type</th>
+                <th className="text-left py-2 px-2 font-medium">Motion</th>
                 <th className="text-left py-2 px-2 font-medium">Status</th>
                 <th className="text-right py-2 px-2 font-medium">Cost</th>
                 <th className="text-right py-2 px-2 font-medium">Retail</th>
@@ -296,6 +297,27 @@ export default function AdminMarginsPage() {
                       </span>
                     </td>
                     <td className="py-2 px-2">
+                      {r.type === 'motion' ? (
+                        r.motionVerified === false ? (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-red-500/20 text-red-400" title="Silent fallback / no real motion">
+                            🚩 no
+                          </span>
+                        ) : r.motionDowngraded ? (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-500/20 text-amber-400" title="Real motion, but downgraded engine — price delta refunded">
+                            yes · ↓
+                          </span>
+                        ) : r.motionVerified === true ? (
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-500/15 text-emerald-400">
+                            yes{r.motionExpected ? ` ${r.motionClipCount ?? '?'}/${r.motionExpected}` : ''}
+                          </span>
+                        ) : (
+                          <span className="px-1.5 py-0.5 rounded text-[10px] text-white/30">—</span>
+                        )
+                      ) : (
+                        <span className="text-white/20 text-[10px]">—</span>
+                      )}
+                    </td>
+                    <td className="py-2 px-2">
                       <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${statusBadge(r.status)}`}>
                         {r.status}
                       </span>
@@ -311,7 +333,7 @@ export default function AdminMarginsPage() {
                   {expandedReel === r.id && (
                     <tr className="bg-white/[0.01]">
                       <td></td>
-                      <td colSpan={7} className="py-3 px-2">
+                      <td colSpan={8} className="py-3 px-2">
                         <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
                           {Object.entries(r.breakdown as Record<string, number>).map(([k, v]) => (
                             <div key={k} className="text-center">
@@ -333,13 +355,21 @@ export default function AdminMarginsPage() {
                             {r.musicTrackId && <> · Music: <span className="text-white/50">{r.musicTrackId}</span></>}
                           </p>
                         )}
+                        {r.type === 'motion' && (
+                          <p className="mt-1 text-[10px] text-white/30">
+                            Motion verified: <span className={r.motionVerified === false ? 'text-red-400 font-semibold' : 'text-white/50'}>{r.motionVerified === false ? 'NO 🚩' : r.motionVerified === true ? 'yes' : 'unknown'}</span>
+                            {r.motionExpected != null && <> · Clips: <span className="text-white/50">{r.motionClipCount ?? 0}/{r.motionExpected}</span></>}
+                            {r.motionDowngraded && <> · <span className="text-amber-400">downgraded engine</span></>}
+                            {r.refundedCoins > 0 && <> · <span className="text-emerald-400">refunded {r.refundedCoins} coins</span></>}
+                          </p>
+                        )}
                       </td>
                     </tr>
                   )}
                 </Fragment>
               ))}
               {reelDetails.length === 0 && (
-                <tr><td colSpan={8} className="py-8 text-center text-white/25">No reels generated yet</td></tr>
+                <tr><td colSpan={9} className="py-8 text-center text-white/25">No reels generated yet</td></tr>
               )}
             </tbody>
           </table>

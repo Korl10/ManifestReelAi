@@ -59,6 +59,12 @@ export interface ImageInput {
   scenes: { imagePrompt: string }[];
   style: string;
   mood: string;
+  /**
+   * Subject lock (premium quality): generate scene 1 first, then condition
+   * scenes 2..N on that reference image so the same subject/look carries across
+   * the whole reel instead of a different person per shot.
+   */
+  subjectLock?: boolean;
 }
 
 export interface ImageOutput {

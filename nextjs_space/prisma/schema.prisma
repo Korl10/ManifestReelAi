@@ -245,6 +245,9 @@ model BrandPreset {
   watermarkSize     String  @default("M") @map("watermark_size")
   watermarkPulse    Boolean @default(false) @map("watermark_pulse")
 
+  // Subject lock: chain scene-1 as visual reference for later scenes (premium quality)
+  subjectLock       Boolean @default(true) @map("subject_lock")
+
   // Subtitle style (full SubtitleStyle JSON)
   subtitleStyle Json? @map("subtitle_style")
 
