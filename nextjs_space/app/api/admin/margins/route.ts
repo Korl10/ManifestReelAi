@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
 import { PLANS, COIN_COST } from '@/lib/pricing';
+import { moodCoverage } from '@/lib/music-library';
 
 // Retail price per coin (retail value the user pays)
 const CREDIT_RETAIL_VALUE = 0.10; // Part D target: 1 credit = $0.10
@@ -170,5 +171,6 @@ export async function GET() {
     dailyData,
     weeklyData,
     reelDetails,
+    musicCoverage: moodCoverage(),
   });
 }

@@ -200,6 +200,7 @@ export default function DashboardPage() {
   const [showSubtitleEditor, setShowSubtitleEditor] = useState(false);
   const [modelTier, setModelTier] = useState<ModelTierId>('standard');
   const [musicTrackId, setMusicTrackId] = useState<string | null>(null);
+  const [enableStinger, setEnableStinger] = useState(false);
 
   const toggleVoicePreview = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
@@ -364,6 +365,7 @@ export default function DashboardPage() {
           motion: enableMotion,
           modelTier: enableMotion ? modelTier : undefined,
           musicTrackId: musicTrackId || undefined,
+          stinger: enableStinger,
           voiceTier,
           stability,
           similarity,
@@ -809,6 +811,30 @@ export default function DashboardPage() {
         onChange={setMusicTrackId}
         tier={quota?.tier}
       />
+
+      {/* Stinger accent toggle — optional intro/outro sound */}
+      <button
+        type="button"
+        onClick={() => setEnableStinger(v => !v)}
+        className={`w-full flex items-center justify-between gap-3 p-3.5 rounded-xl border transition-all text-left ${
+          enableStinger
+            ? 'bg-[#A855F7]/10 border-[#A855F7]/40'
+            : 'bg-white/5 border-white/10 hover:bg-white/[0.07]'
+        }`}
+      >
+        <div className="flex items-center gap-3">
+          <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${enableStinger ? 'bg-[#A855F7]/20 text-[#A855F7]' : 'bg-white/5 text-white/40'}`}>
+            <Zap className="w-4 h-4" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-white">Intro/Outro Accent</p>
+            <p className="text-xs text-white/40">Adds a short branded sound sting to open &amp; close your reel</p>
+          </div>
+        </div>
+        <div className={`relative w-10 h-6 rounded-full transition-colors ${enableStinger ? 'bg-[#A855F7]' : 'bg-white/15'}`}>
+          <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform ${enableStinger ? 'translate-x-4' : ''}`} />
+        </div>
+      </button>
 
       {/* Cinematic Motion + Model Tier picker — LIVE */}
       {(() => {

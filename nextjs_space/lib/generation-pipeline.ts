@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { getScriptProvider, getImageProvider, getFluxImageProvider, getVoiceProvider, getMusicProvider, getVideoProvider } from '@/lib/providers';
 import { resolveModelTier } from '@/lib/model-tiers';
-import { matchTrack, getTrackById } from '@/lib/music-library';
+import { matchTrack, getTrackById, getStingerById, defaultStinger } from '@/lib/music-library';
 import { getFileUrl } from '@/lib/s3';
 import { selectHeroScenes } from '@/lib/providers/motion-prompts';
 import { buildTemplateScript, fallbackSceneImages } from '@/lib/providers/fallback';
@@ -53,6 +53,8 @@ export interface PipelineOptions {
   subtitleStyle?: Partial<SubtitleStyle>;
   modelTier?: string;      // standard | pro | cinematic
   musicTrackId?: string;   // explicit library track id or custom-music db id
+  stinger?: boolean;       // add intro/outro accent stinger
+  stingerId?: string;      // explicit stinger id (optional; else platform default)
 }
 
 export async function runGenerationPipeline(
@@ -348,6 +350,23 @@ export async function runGenerationPipeline(
     }
     await prisma.reel.update({ where: { id: reelId }, data: { musicUrl: musicUrlLocal } });
 
+    // Optional intro/outro accent stinger (default OFF).
+    let stingerPublicUrl: string | null = null;
+    let stingerTrackId: string | null = null;
+    if (pipelineOpts?.stinger) {
+      const sting = getStingerById(pipelineOpts.stingerId || '') || defaultStinger(reel.platform);
+      if (sting) {
+        try {
+          stingerPublicUrl = await ensurePublicLocalAsset(sting.file, 'audio/mpeg');
+          stingerTrackId = sting.id;
+          console.log(`[pipeline] stinger: "${sting.title}" (${sting.id})`);
+        } catch (e) {
+          console.error('[pipeline] stinger upload failed, skipping:', (e as any)?.message);
+          stingerPublicUrl = null;
+        }
+      }
+    }
+
     // ----------------------------------------------------------------
     // STEP 5 — Render / composite the final reel
     // ----------------------------------------------------------------
@@ -366,6 +385,7 @@ export async function runGenerationPipeline(
         words,
         voiceUrl,
         musicUrl: musicPublicUrl,
+        stingerUrl: stingerPublicUrl,
         watermark,
         sceneClipUrls,
         subtitleStyle: pipelineOpts?.subtitleStyle,
@@ -401,6 +421,7 @@ export async function runGenerationPipeline(
           motionClipCount,
           model_tier: modelTier.id,
           music_track_id: musicTrackId,
+          stinger_track_id: stingerTrackId,
           voice_tier: pipelineOpts?.voiceTier ?? null,
           scenes: script.scenes.map((s, i) => ({
             text: s.text,

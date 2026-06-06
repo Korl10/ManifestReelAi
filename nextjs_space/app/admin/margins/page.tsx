@@ -2,7 +2,7 @@
 import React, { useState, useEffect, Fragment } from 'react';
 import {
   Loader2, TrendingUp, AlertCircle, DollarSign, BarChart3,
-  ChevronDown, ChevronRight, Users, Layers, Activity,
+  ChevronDown, ChevronRight, Users, Layers, Activity, Music, Zap,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 
@@ -82,6 +82,7 @@ export default function AdminMarginsPage() {
     monthlyRevenue = 0, totalCost = 0, totalReels = 0,
     completedReels = 0, avgCostPerReel = 0, margin = 0,
     costByCategory = {}, dailyData = [], weeklyData = [], reelDetails = [],
+    musicCoverage = null,
   } = data ?? {};
 
   return (
@@ -155,6 +156,46 @@ export default function AdminMarginsPage() {
           </div>
         </div>
       </div>
+
+      {/* ── Music Library Coverage ── */}
+      {musicCoverage && (
+        <div className="rounded-xl bg-white/[0.02] border border-white/5 p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-semibold text-white/70 flex items-center gap-2">
+              <Music className="w-4 h-4 text-[#A855F7]" />
+              Music Library Coverage
+            </h2>
+            <div className="flex items-center gap-3 text-xs text-white/50">
+              <span className="flex items-center gap-1"><Zap className="w-3.5 h-3.5 text-[#A855F7]" /> {musicCoverage.stingers} stingers</span>
+              <span className="font-mono">{musicCoverage.total} tracks total</span>
+            </div>
+          </div>
+          {musicCoverage.moods?.some((m: any) => m.low) && (
+            <div className="mb-3 flex items-center gap-2 text-xs text-amber-300 bg-amber-400/10 border border-amber-400/20 rounded-lg px-3 py-2">
+              <AlertCircle className="w-3.5 h-3.5" />
+              Some moods have fewer than 3 tracks — add more in the next batch to improve match variety.
+            </div>
+          )}
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2">
+            {musicCoverage.moods?.map((m: any) => (
+              <div
+                key={m.mood}
+                className={`rounded-lg border px-3 py-2.5 ${
+                  m.low
+                    ? 'bg-amber-400/10 border-amber-400/30'
+                    : 'bg-white/[0.03] border-white/10'
+                }`}
+              >
+                <p className="text-[11px] uppercase tracking-wide text-white/40 capitalize">{m.mood}</p>
+                <p className={`text-lg font-bold font-mono ${m.low ? 'text-amber-300' : 'text-white'}`}>
+                  {m.count}
+                  {m.low && <span className="ml-1 text-[10px] font-normal align-middle">low</span>}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ── Tabbed Time Summaries ── */}
       <div className="rounded-xl bg-white/[0.02] border border-white/5 p-5">

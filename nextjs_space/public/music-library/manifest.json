@@ -1,236 +1,1014 @@
-[
-  {
-    "id": "plh_manifest_golden",
-    "title": "Golden Manifestation",
-    "file": "/reel-music/manifestation.mp3",
-    "mood": ["manifestation", "abundance"],
-    "style": ["ambient", "cinematic"],
-    "bpm": 80,
-    "duration": 30,
-    "platforms": ["all"],
-    "energy": "medium",
-    "has_vocals": false,
-    "source": "placeholder"
-  },
-  {
-    "id": "plh_manifest_flow",
-    "title": "Abundance Flow",
-    "file": "/reel-music/manifestation.mp3",
-    "mood": ["manifestation", "abundance", "wealth"],
-    "style": ["ambient", "uplifting"],
-    "bpm": 90,
-    "duration": 30,
-    "platforms": ["tiktok", "instagram-reels"],
-    "energy": "medium",
-    "has_vocals": false,
-    "source": "placeholder"
-  },
-  {
-    "id": "plh_manifest_quiet",
-    "title": "Quiet Affirmations",
-    "file": "/reel-music/manifestation.mp3",
-    "mood": ["manifestation", "meditation", "calm"],
-    "style": ["ambient", "meditative"],
-    "bpm": 62,
-    "duration": 30,
-    "platforms": ["all"],
-    "energy": "low",
-    "has_vocals": false,
-    "source": "placeholder"
-  },
-  {
-    "id": "plh_meditation_stillness",
-    "title": "Deep Stillness",
-    "file": "/reel-music/meditation.mp3",
-    "mood": ["meditation", "calm", "serene"],
-    "style": ["ambient", "meditative"],
-    "bpm": 60,
-    "duration": 30,
-    "platforms": ["all"],
-    "energy": "low",
-    "has_vocals": false,
-    "source": "placeholder"
-  },
-  {
-    "id": "plh_meditation_528",
-    "title": "528Hz Healing",
-    "file": "/reel-music/meditation.mp3",
-    "mood": ["meditation", "healing", "calm"],
-    "style": ["solfeggio", "ambient"],
-    "bpm": 55,
-    "duration": 30,
-    "platforms": ["all"],
-    "energy": "low",
-    "has_vocals": false,
-    "source": "placeholder"
-  },
-  {
-    "id": "plh_serene_waters",
-    "title": "Serene Waters",
-    "file": "/reel-music/serene.mp3",
-    "mood": ["serene", "peace", "calm"],
-    "style": ["ambient"],
-    "bpm": 65,
-    "duration": 30,
-    "platforms": ["all"],
-    "energy": "low",
-    "has_vocals": false,
-    "source": "placeholder"
-  },
-  {
-    "id": "plh_serene_dawn",
-    "title": "Tranquil Dawn",
-    "file": "/reel-music/serene.mp3",
-    "mood": ["serene", "dreamy"],
-    "style": ["ambient", "ethereal"],
-    "bpm": 70,
-    "duration": 30,
-    "platforms": ["youtube-shorts", "instagram-reels"],
-    "energy": "low",
-    "has_vocals": false,
-    "source": "placeholder"
-  },
-  {
-    "id": "plh_wealth_frequency",
-    "title": "Wealth Frequency",
-    "file": "/reel-music/wealth-frequency.mp3",
-    "mood": ["wealth", "money", "abundance", "manifestation"],
-    "style": ["cinematic", "powerful"],
-    "bpm": 95,
-    "duration": 30,
-    "platforms": ["all"],
-    "energy": "medium",
-    "has_vocals": false,
-    "source": "placeholder"
-  },
-  {
-    "id": "plh_wealth_luxury",
-    "title": "Luxury Mindset",
-    "file": "/reel-music/wealth-frequency.mp3",
-    "mood": ["wealth", "luxury", "powerful"],
-    "style": ["cinematic", "modern"],
-    "bpm": 110,
-    "duration": 30,
-    "platforms": ["tiktok", "instagram-reels"],
-    "energy": "high",
-    "has_vocals": false,
-    "source": "placeholder"
-  },
-  {
-    "id": "plh_cinematic_horizon",
-    "title": "Epic Horizon",
-    "file": "/reel-music/cinematic.mp3",
-    "mood": ["cinematic", "epic", "powerful"],
-    "style": ["cinematic", "orchestral"],
-    "bpm": 100,
-    "duration": 30,
-    "platforms": ["all"],
-    "energy": "high",
-    "has_vocals": false,
-    "source": "placeholder"
-  },
-  {
-    "id": "plh_cinematic_rise",
-    "title": "Dramatic Rise",
-    "file": "/reel-music/cinematic.mp3",
-    "mood": ["cinematic", "dramatic", "uplifting"],
-    "style": ["orchestral", "build"],
-    "bpm": 115,
-    "duration": 30,
-    "platforms": ["youtube-shorts"],
-    "energy": "high",
-    "has_vocals": false,
-    "source": "placeholder"
-  },
-  {
-    "id": "plh_dreamy_ethereal",
-    "title": "Ethereal Dream",
-    "file": "/reel-music/dreamy.mp3",
-    "mood": ["dreamy", "ethereal", "ambient"],
-    "style": ["ambient", "dreamy"],
-    "bpm": 72,
-    "duration": 30,
-    "platforms": ["all"],
-    "energy": "low",
-    "has_vocals": false,
-    "source": "placeholder"
-  },
-  {
-    "id": "plh_dreamy_clouds",
-    "title": "Floating Clouds",
-    "file": "/reel-music/dreamy.mp3",
-    "mood": ["dreamy", "serene", "calm"],
-    "style": ["ambient", "ethereal"],
-    "bpm": 68,
-    "duration": 30,
-    "platforms": ["instagram-reels"],
-    "energy": "low",
-    "has_vocals": false,
-    "source": "placeholder"
-  },
-  {
-    "id": "plh_uplifting_rise",
-    "title": "Rise & Shine",
-    "file": "/reel-music/uplifting.mp3",
-    "mood": ["uplifting", "happy", "inspiring"],
-    "style": ["uplifting", "modern"],
-    "bpm": 118,
-    "duration": 30,
-    "platforms": ["all"],
-    "energy": "high",
-    "has_vocals": false,
-    "source": "placeholder"
-  },
-  {
-    "id": "plh_uplifting_future",
-    "title": "Bright Future",
-    "file": "/reel-music/uplifting.mp3",
-    "mood": ["uplifting", "inspiring", "manifestation"],
-    "style": ["uplifting", "pop"],
-    "bpm": 122,
-    "duration": 30,
-    "platforms": ["tiktok"],
-    "energy": "high",
-    "has_vocals": false,
-    "source": "placeholder"
-  },
-  {
-    "id": "plh_uplifting_gratitude",
-    "title": "Morning Gratitude",
-    "file": "/reel-music/uplifting.mp3",
-    "mood": ["uplifting", "manifestation", "happy"],
-    "style": ["ambient", "uplifting"],
-    "bpm": 100,
-    "duration": 30,
-    "platforms": ["all"],
-    "energy": "medium",
-    "has_vocals": false,
-    "source": "placeholder"
-  },
-  {
-    "id": "plh_powerful_unstoppable",
-    "title": "Unstoppable",
-    "file": "/reel-music/powerful.mp3",
-    "mood": ["powerful", "intense", "energetic"],
-    "style": ["trap", "modern", "powerful"],
-    "bpm": 130,
-    "duration": 30,
-    "platforms": ["tiktok", "instagram-reels"],
-    "energy": "high",
-    "has_vocals": false,
-    "source": "placeholder"
-  },
-  {
-    "id": "plh_powerful_strength",
-    "title": "Inner Strength",
-    "file": "/reel-music/powerful.mp3",
-    "mood": ["powerful", "confidence", "energetic"],
-    "style": ["cinematic", "modern"],
-    "bpm": 125,
-    "duration": 30,
-    "platforms": ["all"],
-    "energy": "high",
-    "has_vocals": false,
-    "source": "placeholder"
-  }
-]
+{
+  "version": "1.0",
+  "track_count": 45,
+  "tracks": [
+    {
+      "id": "abundant_01_crown_energy_e",
+      "title": "Crown Energy E",
+      "file": "/music-library/abundant/abundant_01_crown_energy_e_xs.mp3",
+      "mood": [
+        "abundant"
+      ],
+      "style": [
+        "luxury",
+        "wealth",
+        "law-of-attraction"
+      ],
+      "duration_sec": 32.5,
+      "energy": "mid-high",
+      "platforms": [
+        "reels",
+        "tiktok",
+        "shorts"
+      ],
+      "has_vocals": false,
+      "bpm": null,
+      "is_stinger": false
+    },
+    {
+      "id": "abundant_02_dark",
+      "title": "Dark",
+      "file": "/music-library/abundant/abundant_02_dark_xs.mp3",
+      "mood": [
+        "abundant"
+      ],
+      "style": [
+        "luxury",
+        "wealth",
+        "law-of-attraction"
+      ],
+      "duration_sec": 30.48,
+      "energy": "mid-high",
+      "platforms": [
+        "reels",
+        "tiktok",
+        "shorts"
+      ],
+      "has_vocals": false,
+      "bpm": null,
+      "is_stinger": false
+    },
+    {
+      "id": "abundant_03_diamond_hours",
+      "title": "Diamond Hours",
+      "file": "/music-library/abundant/abundant_03_diamond_hours_xs.mp3",
+      "mood": [
+        "abundant"
+      ],
+      "style": [
+        "luxury",
+        "wealth",
+        "law-of-attraction"
+      ],
+      "duration_sec": 29.35,
+      "energy": "mid-high",
+      "platforms": [
+        "reels",
+        "tiktok",
+        "shorts"
+      ],
+      "has_vocals": false,
+      "bpm": null,
+      "is_stinger": false
+    },
+    {
+      "id": "abundant_04_empire_mindset",
+      "title": "Empire Mindset",
+      "file": "/music-library/abundant/abundant_04_empire_mindset_xs.mp3",
+      "mood": [
+        "abundant"
+      ],
+      "style": [
+        "luxury",
+        "wealth",
+        "law-of-attraction"
+      ],
+      "duration_sec": 30.22,
+      "energy": "mid-high",
+      "platforms": [
+        "reels",
+        "tiktok",
+        "shorts"
+      ],
+      "has_vocals": false,
+      "bpm": null,
+      "is_stinger": false
+    },
+    {
+      "id": "abundant_05_gold_standard",
+      "title": "Gold Standard",
+      "file": "/music-library/abundant/abundant_05_gold_standard_xs.mp3",
+      "mood": [
+        "abundant"
+      ],
+      "style": [
+        "luxury",
+        "wealth",
+        "law-of-attraction"
+      ],
+      "duration_sec": 30.12,
+      "energy": "mid-high",
+      "platforms": [
+        "reels",
+        "tiktok",
+        "shorts"
+      ],
+      "has_vocals": false,
+      "bpm": null,
+      "is_stinger": false
+    },
+    {
+      "id": "abundant_06_manifest",
+      "title": "Manifest",
+      "file": "/music-library/abundant/abundant_06_manifest_xs.mp3",
+      "mood": [
+        "abundant"
+      ],
+      "style": [
+        "luxury",
+        "wealth",
+        "law-of-attraction"
+      ],
+      "duration_sec": 30.7,
+      "energy": "mid-high",
+      "platforms": [
+        "reels",
+        "tiktok",
+        "shorts"
+      ],
+      "has_vocals": false,
+      "bpm": null,
+      "is_stinger": false
+    },
+    {
+      "id": "calm_01_breathe_healing_43",
+      "title": "Breathe Healing 43",
+      "file": "/music-library/calm/calm_01_breathe_healing_43_xs.mp3",
+      "mood": [
+        "calm"
+      ],
+      "style": [
+        "meditation",
+        "spiritual",
+        "aesthetic"
+      ],
+      "duration_sec": 34.3,
+      "energy": "low",
+      "platforms": [
+        "reels",
+        "shorts",
+        "tiktok"
+      ],
+      "has_vocals": false,
+      "bpm": null,
+      "is_stinger": false
+    },
+    {
+      "id": "calm_02_depths",
+      "title": "Depths",
+      "file": "/music-library/calm/calm_02_depths_xs.mp3",
+      "mood": [
+        "calm"
+      ],
+      "style": [
+        "meditation",
+        "spiritual",
+        "aesthetic"
+      ],
+      "duration_sec": 31.27,
+      "energy": "low",
+      "platforms": [
+        "reels",
+        "shorts",
+        "tiktok"
+      ],
+      "has_vocals": false,
+      "bpm": null,
+      "is_stinger": false
+    },
+    {
+      "id": "calm_03_soft_focus",
+      "title": "Soft Focus",
+      "file": "/music-library/calm/calm_03_soft_focus_xs.mp3",
+      "mood": [
+        "calm"
+      ],
+      "style": [
+        "meditation",
+        "spiritual",
+        "aesthetic"
+      ],
+      "duration_sec": 31.87,
+      "energy": "low",
+      "platforms": [
+        "reels",
+        "shorts",
+        "tiktok"
+      ],
+      "has_vocals": false,
+      "bpm": null,
+      "is_stinger": false
+    },
+    {
+      "id": "calm_04_stillwater",
+      "title": "Stillwater",
+      "file": "/music-library/calm/calm_04_stillwater_xs.mp3",
+      "mood": [
+        "calm"
+      ],
+      "style": [
+        "meditation",
+        "spiritual",
+        "aesthetic"
+      ],
+      "duration_sec": 31.13,
+      "energy": "low",
+      "platforms": [
+        "reels",
+        "shorts",
+        "tiktok"
+      ],
+      "has_vocals": false,
+      "bpm": null,
+      "is_stinger": false
+    },
+    {
+      "id": "calm_05_twilight_mind",
+      "title": "Twilight Mind",
+      "file": "/music-library/calm/calm_05_twilight_mind_xs.mp3",
+      "mood": [
+        "calm"
+      ],
+      "style": [
+        "meditation",
+        "spiritual",
+        "aesthetic"
+      ],
+      "duration_sec": 31.85,
+      "energy": "low",
+      "platforms": [
+        "reels",
+        "shorts",
+        "tiktok"
+      ],
+      "has_vocals": false,
+      "bpm": null,
+      "is_stinger": false
+    },
+    {
+      "id": "empowered_01_apex",
+      "title": "Apex",
+      "file": "/music-library/empowered/empowered_01_apex_xs.mp3",
+      "mood": [
+        "empowered"
+      ],
+      "style": [
+        "motivational",
+        "wealth"
+      ],
+      "duration_sec": 32.3,
+      "energy": "high",
+      "platforms": [
+        "reels",
+        "tiktok",
+        "shorts"
+      ],
+      "has_vocals": false,
+      "bpm": null,
+      "is_stinger": false
+    },
+    {
+      "id": "empowered_02_build_it",
+      "title": "Build It",
+      "file": "/music-library/empowered/empowered_02_build_it_xs.mp3",
+      "mood": [
+        "empowered"
+      ],
+      "style": [
+        "motivational",
+        "wealth"
+      ],
+      "duration_sec": 31.54,
+      "energy": "high",
+      "platforms": [
+        "reels",
+        "tiktok",
+        "shorts"
+      ],
+      "has_vocals": false,
+      "bpm": null,
+      "is_stinger": false
+    },
+    {
+      "id": "empowered_03_discipline",
+      "title": "Discipline",
+      "file": "/music-library/empowered/empowered_03_discipline_xs.mp3",
+      "mood": [
+        "empowered"
+      ],
+      "style": [
+        "motivational",
+        "wealth"
+      ],
+      "duration_sec": 30.17,
+      "energy": "high",
+      "platforms": [
+        "reels",
+        "tiktok",
+        "shorts"
+      ],
+      "has_vocals": false,
+      "bpm": null,
+      "is_stinger": false
+    },
+    {
+      "id": "empowered_04_in_the_zon",
+      "title": "In The Zon",
+      "file": "/music-library/empowered/empowered_04_in_the_zon_xs.mp3",
+      "mood": [
+        "empowered"
+      ],
+      "style": [
+        "motivational",
+        "wealth"
+      ],
+      "duration_sec": 30.94,
+      "energy": "high",
+      "platforms": [
+        "reels",
+        "tiktok",
+        "shorts"
+      ],
+      "has_vocals": false,
+      "bpm": null,
+      "is_stinger": false
+    },
+    {
+      "id": "empowered_05_locked_in",
+      "title": "Locked In",
+      "file": "/music-library/empowered/empowered_05_locked_in_xs.mp3",
+      "mood": [
+        "empowered"
+      ],
+      "style": [
+        "motivational",
+        "wealth"
+      ],
+      "duration_sec": 31.94,
+      "energy": "high",
+      "platforms": [
+        "reels",
+        "tiktok",
+        "shorts"
+      ],
+      "has_vocals": false,
+      "bpm": null,
+      "is_stinger": false
+    },
+    {
+      "id": "empowered_06_rise_now",
+      "title": "Rise Now",
+      "file": "/music-library/empowered/empowered_06_rise_now_xs.mp3",
+      "mood": [
+        "empowered"
+      ],
+      "style": [
+        "motivational",
+        "wealth"
+      ],
+      "duration_sec": 33.02,
+      "energy": "high",
+      "platforms": [
+        "reels",
+        "tiktok",
+        "shorts"
+      ],
+      "has_vocals": false,
+      "bpm": null,
+      "is_stinger": false
+    },
+    {
+      "id": "empowered_07_the_climb",
+      "title": "The Climb",
+      "file": "/music-library/empowered/empowered_07_the_climb_xs.mp3",
+      "mood": [
+        "empowered"
+      ],
+      "style": [
+        "motivational",
+        "wealth"
+      ],
+      "duration_sec": 31.73,
+      "energy": "high",
+      "platforms": [
+        "reels",
+        "tiktok",
+        "shorts"
+      ],
+      "has_vocals": false,
+      "bpm": null,
+      "is_stinger": false
+    },
+    {
+      "id": "grateful_01_chimes",
+      "title": "Chimes",
+      "file": "/music-library/grateful/grateful_01_chimes_xs.mp3",
+      "mood": [
+        "grateful"
+      ],
+      "style": [
+        "spiritual",
+        "meditation"
+      ],
+      "duration_sec": 139.92,
+      "energy": "low",
+      "platforms": [
+        "reels",
+        "shorts",
+        "tiktok"
+      ],
+      "has_vocals": false,
+      "bpm": null,
+      "is_stinger": false
+    },
+    {
+      "id": "grateful_02_inner_light_io",
+      "title": "Inner Light Io",
+      "file": "/music-library/grateful/grateful_02_inner_light_io_xs.mp3",
+      "mood": [
+        "grateful"
+      ],
+      "style": [
+        "spiritual",
+        "meditation"
+      ],
+      "duration_sec": 30.24,
+      "energy": "low",
+      "platforms": [
+        "reels",
+        "shorts",
+        "tiktok"
+      ],
+      "has_vocals": false,
+      "bpm": null,
+      "is_stinger": false
+    },
+    {
+      "id": "grateful_03_quite_devotion",
+      "title": "Quite Devotion",
+      "file": "/music-library/grateful/grateful_03_quite_devotion_xs.mp3",
+      "mood": [
+        "grateful"
+      ],
+      "style": [
+        "spiritual",
+        "meditation"
+      ],
+      "duration_sec": 30.67,
+      "energy": "low",
+      "platforms": [
+        "reels",
+        "shorts",
+        "tiktok"
+      ],
+      "has_vocals": false,
+      "bpm": null,
+      "is_stinger": false
+    },
+    {
+      "id": "grateful_04_sacred_sunrise",
+      "title": "Sacred Sunrise",
+      "file": "/music-library/grateful/grateful_04_sacred_sunrise_xs.mp3",
+      "mood": [
+        "grateful"
+      ],
+      "style": [
+        "spiritual",
+        "meditation"
+      ],
+      "duration_sec": 189.84,
+      "energy": "low",
+      "platforms": [
+        "reels",
+        "shorts",
+        "tiktok"
+      ],
+      "has_vocals": false,
+      "bpm": null,
+      "is_stinger": false
+    },
+    {
+      "id": "grateful_05_sanctuary",
+      "title": "Sanctuary",
+      "file": "/music-library/grateful/grateful_05_sanctuary_xs.mp3",
+      "mood": [
+        "grateful"
+      ],
+      "style": [
+        "spiritual",
+        "meditation"
+      ],
+      "duration_sec": 30.41,
+      "energy": "low",
+      "platforms": [
+        "reels",
+        "shorts",
+        "tiktok"
+      ],
+      "has_vocals": false,
+      "bpm": null,
+      "is_stinger": false
+    },
+    {
+      "id": "hype_01_drop_zone",
+      "title": "Drop Zone",
+      "file": "/music-library/hype/hype_01_drop_zone_xs.mp3",
+      "mood": [
+        "hype"
+      ],
+      "style": [
+        "modern",
+        "tiktok"
+      ],
+      "duration_sec": 32.62,
+      "energy": "very-high",
+      "platforms": [
+        "tiktok",
+        "reels",
+        "shorts"
+      ],
+      "has_vocals": false,
+      "bpm": null,
+      "is_stinger": false
+    },
+    {
+      "id": "hype_02_glow_up_tiktok_energy",
+      "title": "Glow Up Tiktok Energy",
+      "file": "/music-library/hype/hype_02_glow_up_tiktok_energy_xs.mp3",
+      "mood": [
+        "hype"
+      ],
+      "style": [
+        "modern",
+        "tiktok"
+      ],
+      "duration_sec": 31.99,
+      "energy": "very-high",
+      "platforms": [
+        "tiktok",
+        "reels",
+        "shorts"
+      ],
+      "has_vocals": false,
+      "bpm": null,
+      "is_stinger": false
+    },
+    {
+      "id": "hype_03_run_it_tiktok_energy",
+      "title": "Run It Tiktok Energy",
+      "file": "/music-library/hype/hype_03_run_it_tiktok_energy_xs.mp3",
+      "mood": [
+        "hype"
+      ],
+      "style": [
+        "modern",
+        "tiktok"
+      ],
+      "duration_sec": 28.63,
+      "energy": "very-high",
+      "platforms": [
+        "tiktok",
+        "reels",
+        "shorts"
+      ],
+      "has_vocals": false,
+      "bpm": null,
+      "is_stinger": false
+    },
+    {
+      "id": "hype_04_viral_pulse",
+      "title": "Viral Pulse",
+      "file": "/music-library/hype/hype_04_viral_pulse_xs.mp3",
+      "mood": [
+        "hype"
+      ],
+      "style": [
+        "modern",
+        "tiktok"
+      ],
+      "duration_sec": 31.44,
+      "energy": "very-high",
+      "platforms": [
+        "tiktok",
+        "reels",
+        "shorts"
+      ],
+      "has_vocals": false,
+      "bpm": null,
+      "is_stinger": false
+    },
+    {
+      "id": "hype_05_execute_it",
+      "title": "Execute It",
+      "file": "/music-library/hype/hype_05_execute_it_xs.mp3",
+      "mood": [
+        "hype"
+      ],
+      "style": [
+        "modern",
+        "tiktok"
+      ],
+      "duration_sec": 31.03,
+      "energy": "very-high",
+      "platforms": [
+        "tiktok",
+        "reels",
+        "shorts"
+      ],
+      "has_vocals": false,
+      "bpm": null,
+      "is_stinger": false
+    },
+    {
+      "id": "inspired_01_echoes_of_you_cinematic_universal",
+      "title": "Echoes Of You Cinematic Universal",
+      "file": "/music-library/inspired/inspired_01_echoes_of_you_cinematic_universal_xs.mp3",
+      "mood": [
+        "inspired"
+      ],
+      "style": [
+        "cinematic",
+        "emotional"
+      ],
+      "duration_sec": 31.73,
+      "energy": "mid",
+      "platforms": [
+        "reels",
+        "shorts",
+        "tiktok"
+      ],
+      "has_vocals": false,
+      "bpm": null,
+      "is_stinger": false
+    },
+    {
+      "id": "inspired_02_horizon_cinematic_universal",
+      "title": "Horizon Cinematic Universal",
+      "file": "/music-library/inspired/inspired_02_horizon_cinematic_universal_xs.mp3",
+      "mood": [
+        "inspired"
+      ],
+      "style": [
+        "cinematic",
+        "emotional"
+      ],
+      "duration_sec": 31.56,
+      "energy": "mid",
+      "platforms": [
+        "reels",
+        "shorts",
+        "tiktok"
+      ],
+      "has_vocals": false,
+      "bpm": null,
+      "is_stinger": false
+    },
+    {
+      "id": "inspired_03_the_promise_cinematic_universal",
+      "title": "The Promise Cinematic Universal",
+      "file": "/music-library/inspired/inspired_03_the_promise_cinematic_universal_xs.mp3",
+      "mood": [
+        "inspired"
+      ],
+      "style": [
+        "cinematic",
+        "emotional"
+      ],
+      "duration_sec": 34.49,
+      "energy": "mid",
+      "platforms": [
+        "reels",
+        "shorts",
+        "tiktok"
+      ],
+      "has_vocals": false,
+      "bpm": null,
+      "is_stinger": false
+    },
+    {
+      "id": "inspired_04_unfolding",
+      "title": "Unfolding",
+      "file": "/music-library/inspired/inspired_04_unfolding_xs.mp3",
+      "mood": [
+        "inspired"
+      ],
+      "style": [
+        "cinematic",
+        "emotional"
+      ],
+      "duration_sec": 31.94,
+      "energy": "mid",
+      "platforms": [
+        "reels",
+        "shorts",
+        "tiktok"
+      ],
+      "has_vocals": false,
+      "bpm": null,
+      "is_stinger": false
+    },
+    {
+      "id": "inspired_05_becoming_cinematic_universal",
+      "title": "Becoming Cinematic Universal",
+      "file": "/music-library/inspired/inspired_05_becoming_cinematic_universal_xs.mp3",
+      "mood": [
+        "inspired"
+      ],
+      "style": [
+        "cinematic",
+        "emotional"
+      ],
+      "duration_sec": 32.66,
+      "energy": "mid",
+      "platforms": [
+        "reels",
+        "shorts",
+        "tiktok"
+      ],
+      "has_vocals": false,
+      "bpm": null,
+      "is_stinger": false
+    },
+    {
+      "id": "joyful_01_blossom_blooms",
+      "title": "Blossom Blooms",
+      "file": "/music-library/joyful/joyful_01_blossom_blooms_xs.mp3",
+      "mood": [
+        "joyful"
+      ],
+      "style": [
+        "general",
+        "spiritual",
+        "abundance"
+      ],
+      "duration_sec": 31.25,
+      "energy": "mid",
+      "platforms": [
+        "reels",
+        "shorts",
+        "tiktok"
+      ],
+      "has_vocals": false,
+      "bpm": null,
+      "is_stinger": false
+    },
+    {
+      "id": "joyful_02_bright_morning",
+      "title": "Bright Morning",
+      "file": "/music-library/joyful/joyful_02_bright_morning_xs.mp3",
+      "mood": [
+        "joyful"
+      ],
+      "style": [
+        "general",
+        "spiritual",
+        "abundance"
+      ],
+      "duration_sec": 31.56,
+      "energy": "mid",
+      "platforms": [
+        "reels",
+        "shorts",
+        "tiktok"
+      ],
+      "has_vocals": false,
+      "bpm": null,
+      "is_stinger": false
+    },
+    {
+      "id": "joyful_03_bloom",
+      "title": "Bloom",
+      "file": "/music-library/joyful/joyful_03_bloom_xs.mp3",
+      "mood": [
+        "joyful"
+      ],
+      "style": [
+        "general",
+        "spiritual",
+        "abundance"
+      ],
+      "duration_sec": 30.91,
+      "energy": "mid",
+      "platforms": [
+        "reels",
+        "shorts",
+        "tiktok"
+      ],
+      "has_vocals": false,
+      "bpm": null,
+      "is_stinger": false
+    },
+    {
+      "id": "joyful_04_hope",
+      "title": "Hope",
+      "file": "/music-library/joyful/joyful_04_hope_xs.mp3",
+      "mood": [
+        "joyful"
+      ],
+      "style": [
+        "general",
+        "spiritual",
+        "abundance"
+      ],
+      "duration_sec": 31.61,
+      "energy": "mid",
+      "platforms": [
+        "reels",
+        "shorts",
+        "tiktok"
+      ],
+      "has_vocals": false,
+      "bpm": null,
+      "is_stinger": false
+    },
+    {
+      "id": "joyful_05_joy",
+      "title": "Joy",
+      "file": "/music-library/joyful/joyful_05_joy_xs.mp3",
+      "mood": [
+        "joyful"
+      ],
+      "style": [
+        "general",
+        "spiritual",
+        "abundance"
+      ],
+      "duration_sec": 30.58,
+      "energy": "mid",
+      "platforms": [
+        "reels",
+        "shorts",
+        "tiktok"
+      ],
+      "has_vocals": false,
+      "bpm": null,
+      "is_stinger": false
+    },
+    {
+      "id": "joyful_06_lightness",
+      "title": "Lightness",
+      "file": "/music-library/joyful/joyful_06_lightness_xs.mp3",
+      "mood": [
+        "joyful"
+      ],
+      "style": [
+        "general",
+        "spiritual",
+        "abundance"
+      ],
+      "duration_sec": 30.91,
+      "energy": "mid",
+      "platforms": [
+        "reels",
+        "shorts",
+        "tiktok"
+      ],
+      "has_vocals": false,
+      "bpm": null,
+      "is_stinger": false
+    },
+    {
+      "id": "joyful_07_open_skies",
+      "title": "Open Skies",
+      "file": "/music-library/joyful/joyful_07_open_skies_xs.mp3",
+      "mood": [
+        "joyful"
+      ],
+      "style": [
+        "general",
+        "spiritual",
+        "abundance"
+      ],
+      "duration_sec": 32.02,
+      "energy": "mid",
+      "platforms": [
+        "reels",
+        "shorts",
+        "tiktok"
+      ],
+      "has_vocals": false,
+      "bpm": null,
+      "is_stinger": false
+    },
+    {
+      "id": "stingers_01_cta_punch_3_5_sec",
+      "title": "CTA Punch",
+      "file": "/music-library/stingers/stingers_01_cta_punch_3_5_sec_xs.mp3",
+      "mood": [
+        "stingers"
+      ],
+      "style": [
+        "intro",
+        "outro"
+      ],
+      "duration_sec": 5.88,
+      "energy": "high",
+      "platforms": [
+        "reels",
+        "tiktok",
+        "shorts"
+      ],
+      "has_vocals": false,
+      "bpm": null,
+      "is_stinger": true
+    },
+    {
+      "id": "stingers_02_open_3_5_sec",
+      "title": "Intro Open",
+      "file": "/music-library/stingers/stingers_02_open_3_5_sec_xs.mp3",
+      "mood": [
+        "stingers"
+      ],
+      "style": [
+        "intro",
+        "outro"
+      ],
+      "duration_sec": 9.72,
+      "energy": "high",
+      "platforms": [
+        "reels",
+        "tiktok",
+        "shorts"
+      ],
+      "has_vocals": false,
+      "bpm": null,
+      "is_stinger": true
+    },
+    {
+      "id": "stingers_03_reels_open",
+      "title": "Reels Open",
+      "file": "/music-library/stingers/stingers_03_reels_open_xs.mp3",
+      "mood": [
+        "stingers"
+      ],
+      "style": [
+        "intro",
+        "outro"
+      ],
+      "duration_sec": 4.99,
+      "energy": "high",
+      "platforms": [
+        "reels",
+        "tiktok",
+        "shorts"
+      ],
+      "has_vocals": false,
+      "bpm": null,
+      "is_stinger": true
+    },
+    {
+      "id": "stingers_04_soft_close_3_5_sec",
+      "title": "Soft Close",
+      "file": "/music-library/stingers/stingers_04_soft_close_3_5_sec_xs.mp3",
+      "mood": [
+        "stingers"
+      ],
+      "style": [
+        "intro",
+        "outro"
+      ],
+      "duration_sec": 19.22,
+      "energy": "high",
+      "platforms": [
+        "reels",
+        "tiktok",
+        "shorts"
+      ],
+      "has_vocals": false,
+      "bpm": null,
+      "is_stinger": true
+    },
+    {
+      "id": "stingers_05_tiktok_reels_open",
+      "title": "TikTok Open",
+      "file": "/music-library/stingers/stingers_05_tiktok_reels_open_xs.mp3",
+      "mood": [
+        "stingers"
+      ],
+      "style": [
+        "intro",
+        "outro"
+      ],
+      "duration_sec": 4.51,
+      "energy": "high",
+      "platforms": [
+        "reels",
+        "tiktok",
+        "shorts"
+      ],
+      "has_vocals": false,
+      "bpm": null,
+      "is_stinger": true
+    }
+  ]
+}

@@ -27,6 +27,8 @@ export async function POST(request: Request) {
     // Model tier + music selection (Phase 3)
     const modelTier = typeof body?.modelTier === 'string' ? body.modelTier : undefined; // standard | pro | cinematic
     const musicTrackId = typeof body?.musicTrackId === 'string' ? body.musicTrackId : undefined;
+    const stinger = body?.stinger === true;
+    const stingerId = typeof body?.stingerId === 'string' ? body.stingerId : undefined;
 
     if (!prompt || !platform || !style || !voice || !mood) {
       return NextResponse.json({ error: 'All fields are required: prompt, platform, style, voice, mood' }, { status: 400 });
@@ -70,6 +72,8 @@ export async function POST(request: Request) {
       subtitleStyle,
       modelTier,
       musicTrackId,
+      stinger,
+      stingerId,
     };
 
     // Start pipeline (fire-and-forget). Free tier runs a preview built from

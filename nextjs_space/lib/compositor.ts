@@ -18,6 +18,8 @@ export interface CompositeInput {
   words: WordTimestamp[];
   voiceUrl: string | null;
   musicUrl: string | null; // public URL
+  /** Optional short intro/outro accent stinger (public URL). null/undefined → none. */
+  stingerUrl?: string | null;
   watermark: boolean;
   /**
    * Optional pre-rendered motion clip URL per scene (aligned to scene index).
@@ -77,6 +79,7 @@ export async function compositeReel(input: CompositeInput): Promise<CompositeRes
   images.forEach((url, i) => { input_files[`in_${i + 1}`] = isMotion(i) ? (clips[i] as string) : url; });
   if (input.musicUrl) input_files['in_music'] = input.musicUrl;
   if (input.voiceUrl) input_files['in_voice'] = input.voiceUrl;
+  if (input.stingerUrl) input_files['in_stinger'] = input.stingerUrl;
   input_files['in_ass'] = assUrl;
 
   // ---- Build the ffmpeg argument string ----
@@ -93,6 +96,8 @@ export async function compositeReel(input: CompositeInput): Promise<CompositeRes
   if (input.musicUrl) { musicIdx = n; args.push(`-stream_loop 4 -i {{in_music}}`); }
   let voiceIdx = -1;
   if (input.voiceUrl) { voiceIdx = musicIdx >= 0 ? n + 1 : n; args.push(`-i {{in_voice}}`); }
+  let stingerIdx = -1;
+  if (input.stingerUrl) { stingerIdx = n + (musicIdx >= 0 ? 1 : 0) + (voiceIdx >= 0 ? 1 : 0); args.push(`-i {{in_stinger}}`); }
 
   // Per-scene background: real motion video for hero scenes, Ken Burns on stills
   // for the rest. Both are normalized to 1080x1920 @ 30fps, exactly `d` seconds.
@@ -144,8 +149,11 @@ export async function compositeReel(input: CompositeInput): Promise<CompositeRes
   // Burn captions.
   fc.push(`[${lastLabel}]subtitles={{in_ass}}[vsub]`);
 
-  // Audio graph.
+  // Audio graph. Each branch produces [amain]; an optional stinger accent is
+  // then layered on top to yield the final [aout].
   let hasAudio = true;
+  const hasMain = voiceIdx >= 0 || musicIdx >= 0;
+  const mainLabel = stingerIdx >= 0 ? 'amain' : 'aout';
   if (voiceIdx >= 0 && musicIdx >= 0) {
     // Sidechain ducking: the music bed sits at ~-8dB (0.40) in the gaps and is
     // pulled down to ~-18dB whenever the voiceover is present, then restored.
@@ -155,17 +163,38 @@ export async function compositeReel(input: CompositeInput): Promise<CompositeRes
       `[${voiceIdx}:a]aformat=sample_rates=44100:channel_layouts=stereo,volume=1.0,asplit=2[vo][vokey];` +
       `[musbed][vokey]sidechaincompress=threshold=0.03:ratio=10:attack=20:release=300:makeup=1[mduck];` +
       `[mduck]afade=t=in:st=0:d=0.3,afade=t=out:st=${(T - 0.8).toFixed(2)}:d=0.8[musf];` +
-      `[vo][musf]amix=inputs=2:duration=longest:dropout_transition=0:normalize=0[aout]`,
+      `[vo][musf]amix=inputs=2:duration=longest:dropout_transition=0:normalize=0[${mainLabel}]`,
     );
   } else if (voiceIdx >= 0) {
-    fc.push(`[${voiceIdx}:a]aformat=sample_rates=44100:channel_layouts=stereo,volume=1.0,afade=t=out:st=${(T - 0.8).toFixed(2)}:d=0.8[aout]`);
+    fc.push(`[${voiceIdx}:a]aformat=sample_rates=44100:channel_layouts=stereo,volume=1.0,afade=t=out:st=${(T - 0.8).toFixed(2)}:d=0.8[${mainLabel}]`);
   } else if (musicIdx >= 0) {
     // Music-only reel: slightly louder bed with the same 300ms/800ms fades.
     fc.push(
-      `[${musicIdx}:a]aformat=sample_rates=44100:channel_layouts=stereo,volume=0.6,afade=t=in:st=0:d=0.3,afade=t=out:st=${(T - 0.8).toFixed(2)}:d=0.8[aout]`,
+      `[${musicIdx}:a]aformat=sample_rates=44100:channel_layouts=stereo,volume=0.6,afade=t=in:st=0:d=0.3,afade=t=out:st=${(T - 0.8).toFixed(2)}:d=0.8[${mainLabel}]`,
     );
-  } else {
+  } else if (stingerIdx < 0) {
     hasAudio = false;
+  }
+
+  // Optional intro/outro accent stinger. One copy fires at t=0 (intro), a second
+  // copy is delayed to the tail (outro). Layered over the main mix at ~-3dB.
+  if (stingerIdx >= 0) {
+    const outroDelayMs = Math.max(0, Math.round((T - 3.0) * 1000));
+    if (hasMain) {
+      fc.push(
+        `[${stingerIdx}:a]aformat=sample_rates=44100:channel_layouts=stereo,volume=0.7,asplit=2[stga][stgb];` +
+        `[stgb]adelay=${outroDelayMs}|${outroDelayMs}[stgo];` +
+        `[amain][stga][stgo]amix=inputs=3:duration=first:dropout_transition=0:normalize=0[aout]`,
+      );
+    } else {
+      // No voice/music: stinger alone provides the audio track.
+      fc.push(
+        `[${stingerIdx}:a]aformat=sample_rates=44100:channel_layouts=stereo,volume=0.8,asplit=2[stga][stgb];` +
+        `[stgb]adelay=${outroDelayMs}|${outroDelayMs}[stgo];` +
+        `[stga][stgo]amix=inputs=2:duration=longest:dropout_transition=0:normalize=0[aout]`,
+      );
+      hasAudio = true;
+    }
   }
 
   const filter = fc.join(';');

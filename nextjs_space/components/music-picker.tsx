@@ -1,7 +1,10 @@
 'use client';
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Music2, RefreshCw, Upload, Trash2, Check, Play, Pause, Lock, Loader2, Sparkles } from 'lucide-react';
+import {
+  Music2, RefreshCw, Upload, Trash2, Check, Play, Pause, Lock, Loader2, Sparkles,
+  Gem, Waves, Flame, Heart, Rocket, Sun,
+} from 'lucide-react';
 import Link from 'next/link';
 import type { MusicTrack } from '@/lib/music-library';
 
@@ -23,10 +26,29 @@ interface Props {
   tier?: string | null;
 }
 
-function energyDot(energy: string) {
-  if (energy === 'high') return 'bg-[#A855F7]';
-  if (energy === 'low') return 'bg-sky-400';
-  return 'bg-[#D4AF37]';
+// Mood-based icon + accent colour (no per-track cover art).
+const MOOD_META: Record<string, { icon: any; color: string; bg: string; label: string }> = {
+  abundant:  { icon: Gem,    color: '#D4AF37', bg: 'rgba(212,175,55,0.14)', label: 'Abundant' },
+  calm:      { icon: Waves,  color: '#38BDF8', bg: 'rgba(56,189,248,0.14)', label: 'Calm' },
+  empowered: { icon: Flame,  color: '#A855F7', bg: 'rgba(168,85,247,0.16)', label: 'Empowered' },
+  grateful:  { icon: Heart,  color: '#FB7185', bg: 'rgba(251,113,133,0.14)', label: 'Grateful' },
+  hype:      { icon: Rocket, color: '#FB923C', bg: 'rgba(251,146,60,0.16)', label: 'Hype' },
+  inspired:  { icon: Sparkles, color: '#FBBF24', bg: 'rgba(251,191,36,0.14)', label: 'Inspired' },
+  joyful:    { icon: Sun,    color: '#FACC15', bg: 'rgba(250,204,21,0.16)', label: 'Joyful' },
+};
+const FALLBACK_META = { icon: Music2, color: '#D4AF37', bg: 'rgba(212,175,55,0.12)', label: 'Music' };
+
+function metaFor(track: MusicTrack) {
+  const m = (track.mood || []).find((x) => MOOD_META[x]);
+  return (m && MOOD_META[m]) || FALLBACK_META;
+}
+
+function fmtDur(sec?: number | null): string {
+  if (!sec || sec <= 0) return '';
+  const s = Math.round(sec);
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+  return `${m}:${r.toString().padStart(2, '0')}`;
 }
 
 export default function MusicPicker({ mood, style, platform, value, onChange, tier }: Props) {
@@ -196,7 +218,7 @@ export default function MusicPicker({ mood, style, platform, value, onChange, ti
           {autoSelected && <Check className="w-4 h-4 text-[#D4AF37] ml-auto" />}
         </div>
         <p className="text-xs text-white/50 mt-1">
-          We pick the best instrumental track for your mood, style &amp; platform automatically.
+          We pick the best instrumental for your mood, style &amp; platform automatically.
         </p>
       </button>
 
@@ -213,7 +235,7 @@ export default function MusicPicker({ mood, style, platform, value, onChange, ti
             playing={playingId === primary.id}
             onPlay={() => playPreview(primary.id, primary.file)}
             onSelect={() => onChange(primary.id)}
-            badge={autoSelected ? 'Auto-matched' : undefined}
+            badge={autoSelected ? 'Matched' : undefined}
           />
 
           <button
@@ -226,7 +248,7 @@ export default function MusicPicker({ mood, style, platform, value, onChange, ti
 
           {showAlternates && (
             <div className="space-y-1.5 pl-1">
-              {alternates.length === 0 && <p className="text-xs text-white/40">No other matches found.</p>}
+              {alternates.length === 0 && <p className="text-xs text-white/40">No other matches in this mood.</p>}
               {alternates.map((t) => (
                 <TrackRow
                   key={t.id}
@@ -235,7 +257,6 @@ export default function MusicPicker({ mood, style, platform, value, onChange, ti
                   playing={playingId === t.id}
                   onPlay={() => playPreview(t.id, t.file)}
                   onSelect={() => onChange(t.id)}
-                  compact
                 />
               ))}
             </div>
@@ -300,7 +321,7 @@ export default function MusicPicker({ mood, style, platform, value, onChange, ti
           </>
         ) : (
           <Link
-            href="/settings"
+            href="/dashboard/settings"
             className="flex items-center gap-2 text-xs text-white/50 hover:text-white/80 transition-colors"
           >
             <Lock className="w-3.5 h-3.5" />
@@ -319,7 +340,6 @@ function TrackRow({
   onPlay,
   onSelect,
   badge,
-  compact,
 }: {
   track: MusicTrack;
   selected: boolean;
@@ -327,24 +347,25 @@ function TrackRow({
   onPlay: () => void;
   onSelect: () => void;
   badge?: string;
-  compact?: boolean;
 }) {
+  const meta = metaFor(track);
+  const Icon = meta.icon;
+  const dur = fmtDur(track.duration);
   return (
     <div
-      className={`flex items-center gap-2 rounded-xl border p-2 transition-all ${
+      className={`flex items-center gap-2.5 rounded-xl border p-2 transition-all ${
         selected ? 'border-[#D4AF37] bg-[#D4AF37]/10' : 'border-white/10 bg-white/[0.02]'
       }`}
     >
-      <button
-        type="button"
-        onClick={onPlay}
-        className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors shrink-0"
+      {/* mood-accent icon tile */}
+      <div
+        className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
+        style={{ backgroundColor: meta.bg }}
       >
-        {playing ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 ml-0.5" />}
-      </button>
+        <Icon className="w-4 h-4" style={{ color: meta.color }} />
+      </div>
       <button type="button" onClick={onSelect} className="flex-1 text-left min-w-0">
         <div className="flex items-center gap-2">
-          <span className={`w-1.5 h-1.5 rounded-full ${energyDot(track.energy)}`} />
           <p className="text-sm text-white truncate">{track.title}</p>
           {badge && (
             <span className="text-[9px] uppercase tracking-wide text-[#D4AF37] bg-[#D4AF37]/10 px-1.5 py-0.5 rounded-full shrink-0">
@@ -352,11 +373,18 @@ function TrackRow({
             </span>
           )}
         </div>
-        {!compact && (
-          <p className="text-[10px] text-white/40 mt-0.5">
-            {track.bpm} BPM · {track.energy} energy
-          </p>
-        )}
+        <p className="text-[10px] text-white/45 mt-0.5">
+          {dur && <>{dur} · </>}
+          <span style={{ color: meta.color }}>{meta.label}</span>
+        </p>
+      </button>
+      <button
+        type="button"
+        onClick={onPlay}
+        className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors shrink-0"
+        aria-label={playing ? 'Pause preview' : 'Play preview'}
+      >
+        {playing ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 ml-0.5" />}
       </button>
       {selected && <Check className="w-4 h-4 text-[#D4AF37] shrink-0" />}
     </div>
