@@ -3,12 +3,13 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
-import { Sparkles, Home, Library, Settings, Shield, LogOut, Menu, X, Zap, Crown } from 'lucide-react';
+import { Sparkles, Home, Library, Settings, Shield, LogOut, Menu, X, Zap, Crown, Palette } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const NAV_ITEMS = [
   { href: '/dashboard', label: 'Create', icon: Home },
   { href: '/dashboard/library', label: 'My Reels', icon: Library },
+  { href: '/dashboard/craft', label: 'Craft', icon: Palette },
   { href: '/dashboard/settings', label: 'Settings', icon: Settings },
 ];
 

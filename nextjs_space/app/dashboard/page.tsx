@@ -202,6 +202,62 @@ export default function DashboardPage() {
   const [musicTrackId, setMusicTrackId] = useState<string | null>(null);
   const [enableStinger, setEnableStinger] = useState(false);
 
+  // Phase 4: applied brand preset (Craft)
+  const [appliedPresetId, setAppliedPresetId] = useState<string | null>(null);
+  const [appliedPresetName, setAppliedPresetName] = useState<string | null>(null);
+
+  // Phase 4: prefill the entire form from a brand preset via ?preset=ID
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const pid = new URLSearchParams(window.location.search).get('preset');
+    if (!pid) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const r = await fetch(`/api/presets/${pid}`);
+        if (!r.ok) return;
+        const { preset } = await r.json();
+        if (cancelled || !preset) return;
+        applyPreset(preset);
+      } catch { /* ignore */ }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const applyPreset = (preset: any) => {
+    const platformMap: Record<string, string> = {
+      reels: 'Instagram Reels',
+      tiktok: 'TikTok',
+      shorts: 'YouTube Shorts',
+      youtube: 'YouTube Shorts',
+    };
+    if (preset.defaultPlatform && platformMap[preset.defaultPlatform]) setPlatform(platformMap[preset.defaultPlatform]);
+    if (preset.voiceId) { setVoice(preset.voiceId); setSpeed('normal'); }
+    if (preset.voiceTier) setVoiceTier(preset.voiceTier as VoiceTier);
+    if (typeof preset.voiceStability === 'number') setStability(preset.voiceStability);
+    if (typeof preset.voiceSimilarity === 'number') setSimilarity(preset.voiceSimilarity);
+    if (preset.subtitleStyle) setSubtitleStyle({ ...DEFAULT_SUBTITLE_STYLE, ...preset.subtitleStyle });
+    if (preset.modelTier) setModelTier(preset.modelTier as ModelTierId);
+    setEnableMotion(!!preset.motionDefault);
+    setEnableStinger(!!preset.stingerEnabled);
+    if (preset.lockedTrackId) setMusicTrackId(preset.lockedTrackId);
+    setAppliedPresetId(preset.id);
+    setAppliedPresetName(preset.name ?? 'Brand preset');
+    toast.success(`Loaded preset “${preset.name ?? 'Brand preset'}”`);
+  };
+
+  const clearPreset = () => {
+    setAppliedPresetId(null);
+    setAppliedPresetName(null);
+    // Strip ?preset= from the URL without a navigation
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('preset');
+      window.history.replaceState({}, '', url.toString());
+    }
+  };
+
   const toggleVoicePreview = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     const current = audioRefs.current[id];
@@ -370,6 +426,7 @@ export default function DashboardPage() {
           stability,
           similarity,
           subtitleStyle,
+          brandPresetId: appliedPresetId || undefined,
         }),
       });
       const data = await res.json();
@@ -421,6 +478,25 @@ export default function DashboardPage() {
           <p className="text-sm text-red-300">{error}</p>
           <button onClick={() => window.location.reload()} className="ml-auto text-xs text-red-400 hover:text-red-300 underline">Retry</button>
         </div>
+      )}
+
+      {/* Applied brand preset banner (Phase 4 — Craft) */}
+      {appliedPresetId && (
+        <motion.div
+          initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}
+          className="flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-[#D4AF37]/12 to-[#7B2FBE]/12 border border-[#D4AF37]/25"
+        >
+          <span className="w-8 h-8 rounded-lg gold-gradient flex items-center justify-center shrink-0">
+            <Wand2 className="w-4 h-4 text-black" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-white truncate">Using preset: {appliedPresetName}</p>
+            <p className="text-[11px] text-white/50">Voice, music, subtitle &amp; visual settings are pre-filled. Just add your intention.</p>
+          </div>
+          <button onClick={clearPreset} className="shrink-0 text-xs px-3 py-1.5 rounded-lg border border-white/15 text-white/65 hover:text-white hover:bg-white/8 transition">
+            Clear
+          </button>
+        </motion.div>
       )}
 
       {/* Prompt */}

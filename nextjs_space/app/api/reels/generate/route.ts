@@ -29,6 +29,7 @@ export async function POST(request: Request) {
     const musicTrackId = typeof body?.musicTrackId === 'string' ? body.musicTrackId : undefined;
     const stinger = body?.stinger === true;
     const stingerId = typeof body?.stingerId === 'string' ? body.stingerId : undefined;
+    const brandPresetId = typeof body?.brandPresetId === 'string' ? body.brandPresetId : undefined;
 
     if (!prompt || !platform || !style || !voice || !mood) {
       return NextResponse.json({ error: 'All fields are required: prompt, platform, style, voice, mood' }, { status: 400 });
@@ -44,14 +45,27 @@ export async function POST(request: Request) {
     const coinCost = isFreePreview ? 0 : gate.cost;
 
     // Create reel + job
+    // Validate the brand preset belongs to this user (defensive) before linking.
+    let validPresetId: string | undefined = undefined;
+    if (brandPresetId) {
+      const owned = await prisma.brandPreset.findFirst({ where: { id: brandPresetId, userId }, select: { id: true } });
+      if (owned) validPresetId = owned.id;
+    }
+
     const reel = await prisma.reel.create({
       data: {
         userId, prompt, platform, style, voice, mood,
         status: 'rendering',
         motion: motion && !isFreePreview,
         coinCost,
+        ...(validPresetId ? { brandPresetId: validPresetId } : {}),
       },
     });
+
+    // Track preset usage for analytics (Phase 4b). Best-effort, non-blocking.
+    if (validPresetId) {
+      prisma.brandPreset.update({ where: { id: validPresetId }, data: { usageCount: { increment: 1 } } }).catch(() => {});
+    }
 
     const job = await prisma.generationJob.create({
       data: { userId, reelId: reel.id, status: 'queued', currentStep: 'queued', progressPct: 0, startedAt: new Date() },

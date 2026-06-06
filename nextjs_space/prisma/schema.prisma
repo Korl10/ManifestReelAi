@@ -29,6 +29,7 @@ model User {
   socialAccounts SocialAccount[]
   customVoices   CustomVoice[]
   customMusic    CustomMusic[]
+  brandPresets   BrandPreset[]
 
   @@map("users")
 }
@@ -110,14 +111,17 @@ model Reel {
   watermarked   Boolean  @default(true)
   scheduledAt   DateTime? @map("scheduled_at")
   scheduledPlatform String? @map("scheduled_platform")
+  brandPresetId String?  @map("brand_preset_id")
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
   user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   generationJob  GenerationJob?
   assets         Asset[]
+  brandPreset    BrandPreset?    @relation(fields: [brandPresetId], references: [id], onDelete: SetNull)
 
   @@index([userId, status])
+  @@index([brandPresetId])
   @@map("reels")
 }
 
@@ -219,6 +223,62 @@ model CustomMusic {
 
   @@index([userId])
   @@map("custom_music")
+}
+
+model BrandPreset {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  name        String
+  isDefault   Boolean  @default(false) @map("is_default")
+  usageCount  Int      @default(0) @map("usage_count")
+
+  // Brand identity
+  logoPath     String?  @map("logo_path")
+  logoUrl      String?  @map("logo_url")
+  primaryColor String   @default("#D4AF37") @map("primary_color")
+  accentColor  String   @default("#7B2FBE") @map("accent_color")
+
+  // Watermark
+  watermarkShow     Boolean @default(true) @map("watermark_show")
+  watermarkPosition String  @default("bottom-right") @map("watermark_position")
+  watermarkOpacity  Int     @default(80) @map("watermark_opacity")
+  watermarkSize     String  @default("M") @map("watermark_size")
+
+  // Subtitle style (full SubtitleStyle JSON)
+  subtitleStyle Json? @map("subtitle_style")
+
+  // Voice lock
+  voiceId         String? @map("voice_id")
+  voiceStability  Float   @default(0.5)  @map("voice_stability")
+  voiceSimilarity Float   @default(0.75) @map("voice_similarity")
+  voiceTier       String  @default("multilingual") @map("voice_tier")
+  clonedVoiceId   String? @map("cloned_voice_id")
+
+  // Music lock
+  musicMoods     String[] @map("music_moods")
+  musicStyles    String[] @map("music_styles")
+  stingerEnabled Boolean  @default(false) @map("stinger_enabled")
+  lockedTrackId  String?  @map("locked_track_id")
+
+  // Visual style lock
+  modelTier      String  @default("standard") @map("model_tier")
+  aspectRatio    String  @default("9:16") @map("aspect_ratio")
+  visualKeywords String? @map("visual_keywords")
+  motionDefault  Boolean @default(false) @map("motion_default")
+
+  // Metadata defaults
+  defaultPlatform String  @default("reels") @map("default_platform")
+  defaultLength   Int     @default(25) @map("default_length")
+  ctaText         String? @map("cta_text")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reels Reel[]
+
+  @@index([userId])
+  @@map("brand_presets")
 }
 
 model Asset {
