@@ -173,6 +173,7 @@ export default function DashboardPage() {
   const [voice, setVoice] = useState('female-aria');
   const [voiceCategory, setVoiceCategory] = useState('Female');
   const [speed, setSpeed] = useState('normal');
+  const [targetLength, setTargetLength] = useState(25);
   const [customVoices, setCustomVoices] = useState<any[]>([]);
   const [showVoiceModal, setShowVoiceModal] = useState(false);
   const [mood, setMood] = useState('Manifestation');
@@ -239,6 +240,7 @@ export default function DashboardPage() {
     if (typeof preset.voiceSimilarity === 'number') setSimilarity(preset.voiceSimilarity);
     if (preset.subtitleStyle) setSubtitleStyle({ ...DEFAULT_SUBTITLE_STYLE, ...preset.subtitleStyle });
     if (preset.modelTier) setModelTier(preset.modelTier as ModelTierId);
+    if (typeof preset.defaultLength === 'number') setTargetLength(preset.defaultLength);
     setEnableMotion(!!preset.motionDefault);
     setEnableStinger(!!preset.stingerEnabled);
     if (preset.lockedTrackId) setMusicTrackId(preset.lockedTrackId);
@@ -418,6 +420,7 @@ export default function DashboardPage() {
           style: style.toLowerCase(),
           voice: speed === 'normal' ? voice : `${voice}@${speed}`,
           mood: mood.toLowerCase(),
+          targetLength,
           motion: enableMotion,
           modelTier: enableMotion ? modelTier : undefined,
           musicTrackId: musicTrackId || undefined,
@@ -752,6 +755,29 @@ export default function DashboardPage() {
             ))}
           </div>
           <span className="text-[11px] text-white/40">Controls how fast the narration is spoken in your reel.</span>
+        </div>
+
+        {/* Reel length — guaranteed output duration */}
+        <div className="mt-4 flex flex-col sm:flex-row sm:items-center gap-3">
+          <div className="flex items-center gap-2">
+            <Clock className="w-4 h-4 text-[#D4AF37]" />
+            <span className="text-sm font-medium text-white">Reel Length</span>
+          </div>
+          <div className="inline-flex rounded-xl bg-white/5 border border-white/10 p-1">
+            {[15, 20, 25, 30].map((len) => (
+              <button
+                key={len}
+                type="button"
+                onClick={() => setTargetLength(len)}
+                className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  targetLength === len ? 'gold-gradient text-black' : 'text-white/55 hover:text-white'
+                }`}
+              >
+                {len}s
+              </button>
+            ))}
+          </div>
+          <span className="text-[11px] text-white/40">Your reel is guaranteed to be this length (±1s) or your credits are refunded.</span>
         </div>
 
         {/* Hidden audio elements (rendered once so playback survives tab switches) */}

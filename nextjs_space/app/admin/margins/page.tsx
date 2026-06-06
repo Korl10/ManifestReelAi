@@ -2,7 +2,7 @@
 import React, { useState, useEffect, Fragment } from 'react';
 import {
   Loader2, TrendingUp, AlertCircle, DollarSign, BarChart3,
-  ChevronDown, ChevronRight, Users, Layers, Activity, Music, Zap,
+  ChevronDown, ChevronRight, Users, Layers, Activity, Music, Zap, Clock,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 
@@ -82,7 +82,7 @@ export default function AdminMarginsPage() {
     monthlyRevenue = 0, totalCost = 0, totalReels = 0,
     completedReels = 0, avgCostPerReel = 0, margin = 0,
     costByCategory = {}, dailyData = [], weeklyData = [], reelDetails = [],
-    musicCoverage = null,
+    musicCoverage = null, durationAccuracy = null,
   } = data ?? {};
 
   return (
@@ -156,6 +156,51 @@ export default function AdminMarginsPage() {
           </div>
         </div>
       </div>
+
+      {/* ── Duration Accuracy (last 7 days) ── */}
+      {durationAccuracy && (
+        <div className="rounded-xl bg-white/[0.02] border border-white/5 p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-semibold text-white/70 flex items-center gap-2">
+              <Clock className="w-4 h-4 text-[#D4AF37]" />
+              Duration Accuracy <span className="text-white/30 font-normal">±1s target, last 7 days</span>
+            </h2>
+            <div className="flex items-center gap-3 text-xs text-white/50">
+              {durationAccuracy.overallPct != null && (
+                <span className="font-mono">
+                  Overall <span className={durationAccuracy.overallPct >= 95 ? 'text-emerald-400 font-semibold' : 'text-red-400 font-semibold'}>{durationAccuracy.overallPct}%</span>
+                  <span className="text-white/30"> ({durationAccuracy.metReels}/{durationAccuracy.totalReels})</span>
+                </span>
+              )}
+            </div>
+          </div>
+          {durationAccuracy.alert && (
+            <div className="mb-3 flex items-center gap-2 text-xs text-red-300 bg-red-500/10 border border-red-500/25 rounded-lg px-3 py-2">
+              <AlertCircle className="w-3.5 h-3.5" />
+              A tier dropped below 95% on-target delivery in the last 7 days — investigate the duration pipeline.
+            </div>
+          )}
+          {durationAccuracy.totalReels === 0 ? (
+            <p className="text-xs text-white/30">No gated reels in the last 7 days yet.</p>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+              {durationAccuracy.byTier?.map((t: any) => (
+                <div
+                  key={t.tier}
+                  className={`rounded-lg border px-3 py-2.5 ${t.alert ? 'bg-red-500/10 border-red-500/30' : 'bg-white/[0.03] border-white/10'}`}
+                >
+                  <p className="text-[11px] uppercase tracking-wide text-white/40 capitalize">{t.tier}</p>
+                  <p className={`text-lg font-bold font-mono ${t.alert ? 'text-red-300' : 'text-emerald-400'}`}>
+                    {t.pct}%
+                    {t.alert && <span className="ml-1 text-[10px] font-normal align-middle">alert</span>}
+                  </p>
+                  <p className="text-[10px] text-white/30 font-mono">{t.met}/{t.total} on target</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ── Music Library Coverage ── */}
       {musicCoverage && (
@@ -267,6 +312,7 @@ export default function AdminMarginsPage() {
                 <th className="text-left py-2 px-2 font-medium">User</th>
                 <th className="text-left py-2 px-2 font-medium">Type</th>
                 <th className="text-left py-2 px-2 font-medium">Motion</th>
+                <th className="text-left py-2 px-2 font-medium">Duration</th>
                 <th className="text-left py-2 px-2 font-medium">Status</th>
                 <th className="text-right py-2 px-2 font-medium">Cost</th>
                 <th className="text-right py-2 px-2 font-medium">Retail</th>
@@ -318,6 +364,19 @@ export default function AdminMarginsPage() {
                       )}
                     </td>
                     <td className="py-2 px-2">
+                      {r.durationMet === false ? (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-red-500/20 text-red-400" title={`Off target by ${r.durationDelta}s`}>
+                          🚩 no{r.durationDelta != null ? ` ${r.durationDelta > 0 ? '+' : ''}${r.durationDelta}s` : ''}
+                        </span>
+                      ) : r.durationMet === true ? (
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-500/15 text-emerald-400" title={`Target ${r.targetDuration}s, Δ${r.durationDelta}s`}>
+                          yes{r.targetDuration ? ` ${r.targetDuration}s` : ''}
+                        </span>
+                      ) : (
+                        <span className="px-1.5 py-0.5 rounded text-[10px] text-white/30">—</span>
+                      )}
+                    </td>
+                    <td className="py-2 px-2">
                       <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${statusBadge(r.status)}`}>
                         {r.status}
                       </span>
@@ -333,7 +392,7 @@ export default function AdminMarginsPage() {
                   {expandedReel === r.id && (
                     <tr className="bg-white/[0.01]">
                       <td></td>
-                      <td colSpan={8} className="py-3 px-2">
+                      <td colSpan={9} className="py-3 px-2">
                         <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
                           {Object.entries(r.breakdown as Record<string, number>).map(([k, v]) => (
                             <div key={k} className="text-center">
@@ -355,6 +414,13 @@ export default function AdminMarginsPage() {
                             {r.musicTrackId && <> · Music: <span className="text-white/50">{r.musicTrackId}</span></>}
                           </p>
                         )}
+                        {(r.durationMet !== null && r.durationMet !== undefined) && (
+                          <p className="mt-1 text-[10px] text-white/30">
+                            Duration met: <span className={r.durationMet === false ? 'text-red-400 font-semibold' : 'text-emerald-400'}>{r.durationMet ? 'yes' : 'NO 🚩'}</span>
+                            {r.targetDuration != null && <> · Target: <span className="text-white/50">{r.targetDuration}s</span></>}
+                            {r.durationDelta != null && <> · Δ <span className={Math.abs(r.durationDelta) <= 1 ? 'text-white/50' : 'text-red-400'}>{r.durationDelta > 0 ? '+' : ''}{r.durationDelta}s</span></>}
+                          </p>
+                        )}
                         {r.type === 'motion' && (
                           <p className="mt-1 text-[10px] text-white/30">
                             Motion verified: <span className={r.motionVerified === false ? 'text-red-400 font-semibold' : 'text-white/50'}>{r.motionVerified === false ? 'NO 🚩' : r.motionVerified === true ? 'yes' : 'unknown'}</span>
@@ -369,7 +435,7 @@ export default function AdminMarginsPage() {
                 </Fragment>
               ))}
               {reelDetails.length === 0 && (
-                <tr><td colSpan={9} className="py-8 text-center text-white/25">No reels generated yet</td></tr>
+                <tr><td colSpan={10} className="py-8 text-center text-white/25">No reels generated yet</td></tr>
               )}
             </tbody>
           </table>

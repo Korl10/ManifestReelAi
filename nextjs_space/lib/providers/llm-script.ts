@@ -11,8 +11,24 @@ function wordCount(s: string): number {
   return (s || '').trim().split(/\s+/).filter(Boolean).length;
 }
 
+// Map a requested reel length to a TOTAL spoken-word budget + line count so the
+// narration reliably lands UNDER the target — the pipeline then pads/holds the
+// final scene to hit the exact requested duration (never cuts speech).
+// Slow affirmation narration runs ~0.55s per word (including natural pauses),
+// so we budget words for (target - 2.5s) of speech to leave padding headroom.
+const SEC_PER_SPOKEN_WORD = 0.55;
+function scriptPlanForDuration(targetDuration?: number): { affirmationLines: number; totalScenes: number; wordBudget: number } {
+  const target = Math.min(60, Math.max(10, Math.round(targetDuration ?? 25)));
+  const wordBudget = Math.max(16, Math.round((target - 2.5) / SEC_PER_SPOKEN_WORD));
+  const totalScenes = Math.max(4, Math.round(wordBudget / 7)); // ~7 words per scene incl. hook
+  const affirmationLines = Math.max(3, totalScenes - 1);
+  return { affirmationLines, totalScenes, wordBudget };
+}
+
 function buildPrompt(input: ScriptInput): string {
   const { prompt, platform, style, mood } = input;
+  const { affirmationLines, totalScenes, wordBudget } = scriptPlanForDuration(input.targetDuration);
+  const target = Math.min(60, Math.max(10, Math.round(input.targetDuration ?? 25)));
   return `You are an elite short-form scriptwriter who has written hundreds of VIRAL manifestation, Law of Attraction, abundance and spiritual reels for Instagram Reels, TikTok and YouTube Shorts. You understand hooks, retention, emotional pacing and the hypnotic affirmation cadence that makes these videos go viral and get saved/shared.
 
 Write a complete script for ONE vertical reel.
@@ -24,8 +40,9 @@ PLATFORM: ${platform}
 
 REQUIREMENTS:
 - Open with a SCROLL-STOPPING hook (first 3 seconds). It must create curiosity, emotion or a bold promise. Speak directly to "you".
-- Then 5 to 6 short, powerful affirmation/manifestation lines that build an emotional arc: hook -> belief -> visualization -> identity shift -> command to the universe -> uplifting close.
-- Each line MUST be short (6-12 words), present tense, first or second person, emotionally charged, easy to narrate slowly.
+- LENGTH BUDGET (critical): this reel is narrated slowly and must fit in ${target} seconds. The ENTIRE narration (the hook PLUS every affirmation line combined) must total NO MORE THAN ${wordBudget} words. Going over ${wordBudget} words will make the video too long and is NOT allowed. Aim slightly under.
+- Write EXACTLY ${affirmationLines} short affirmation/manifestation lines (in addition to the hook, for ${totalScenes} scenes total) that build an emotional arc: hook -> belief -> visualization -> identity shift -> command to the universe -> uplifting close. Do NOT write more than ${affirmationLines} lines.
+- Each line MUST be SHORT (4-9 words), present tense, first or second person, emotionally charged, easy to narrate slowly. Favor brevity so the whole script stays within the ${wordBudget}-word budget.
 - For EACH line (including the hook) write a richly detailed CINEMATIC image prompt for a text-to-image model. Each image prompt must describe a stunning, premium, photoreal yet ethereal vertical 9:16 spiritual scene (e.g. glowing magical rivers, cosmic skies with planets, golden light, fireflies, lotus, sacred geometry, abundance, water reflections, particles, volumetric god-rays, cinematic color grade). NO text, NO words, NO letters in the image. Keep a consistent dreamy, luxurious, cinematic aesthetic across all scenes.
 - Write a platform caption (1-2 sentences + a few emojis) and a longer description.
 - Provide 12 highly relevant, high-reach hashtags (mix broad + niche), each starting with #, no spaces.
@@ -93,6 +110,17 @@ export class LLMScriptProvider implements Provider<ScriptInput, ScriptOutput> {
       sceneSeeds.push({ text, imagePrompt: (l?.imagePrompt || l?.image_prompt || text).toString().trim() });
     }
     if (sceneSeeds.length === 0) throw new Error('LLM script generation failed: empty script returned.');
+
+    // SAFETY NET: if the LLM ignored the word budget and the narration runs long,
+    // drop TRAILING affirmation scenes (always keep the hook + first affirmation,
+    // min 4 scenes) until total spoken words fit within ~1.15x the budget. This
+    // guarantees the narration never overruns the requested duration; the pipeline
+    // then pads/holds the final scene to land exactly on target.
+    const { wordBudget } = scriptPlanForDuration(input.targetDuration);
+    const totalWords = () => sceneSeeds.reduce((sum, s) => sum + wordCount(s.text), 0);
+    while (sceneSeeds.length > 4 && totalWords() > Math.round(wordBudget * 1.15)) {
+      sceneSeeds.pop();
+    }
 
     // Time the scenes by word count.
     let t = 0;

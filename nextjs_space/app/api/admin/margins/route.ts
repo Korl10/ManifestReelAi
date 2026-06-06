@@ -76,6 +76,10 @@ export async function GET() {
       motionClipCount: meta.motionClipCount ?? null,
       motionDowngraded: meta.motionDowngraded ?? null,
       refundedCoins: meta.refundedCoins ?? 0,
+      // Duration-guarantee signals (P0 billing guardrail).
+      durationMet: meta.durationMet ?? null,
+      targetDuration: meta.targetDuration ?? null,
+      durationDelta: meta.durationDelta ?? null,
       status: r.status,
       cost: Math.round(cost * 10000) / 10000,
       retail: Math.round(retail * 100) / 100,
@@ -142,6 +146,36 @@ export async function GET() {
       margin: d.retail > 0 ? Math.round(((d.retail - d.cost) / d.retail) * 100) : 0,
     }));
 
+  // ---- Duration accuracy (last 7 days): % of reels within ±1s of target ----
+  // Reported per model tier with a <95% alert flag for ops monitoring.
+  const sevenDaysAgo = new Date(now);
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+  const durAccMap: Record<string, { total: number; met: number }> = {};
+  let durAccTotalAll = 0, durAccMetAll = 0;
+  for (const r of reels) {
+    if (new Date((r as any).createdAt) < sevenDaysAgo) continue;
+    let meta: any = {};
+    try { meta = typeof (r as any).scenesJson === 'string' ? JSON.parse((r as any).scenesJson) : ((r as any).scenesJson ?? {}); } catch { meta = {}; }
+    if (meta.durationMet === null || meta.durationMet === undefined) continue; // only reels that ran the gate
+    const tierKey = meta.model_tier ?? 'standard';
+    if (!durAccMap[tierKey]) durAccMap[tierKey] = { total: 0, met: 0 };
+    durAccMap[tierKey].total += 1;
+    durAccTotalAll += 1;
+    if (meta.durationMet === true) { durAccMap[tierKey].met += 1; durAccMetAll += 1; }
+  }
+  const durationAccuracy = {
+    overallPct: durAccTotalAll > 0 ? Math.round((durAccMetAll / durAccTotalAll) * 100) : null,
+    totalReels: durAccTotalAll,
+    metReels: durAccMetAll,
+    byTier: Object.entries(durAccMap)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([tier, v]) => {
+        const pct = v.total > 0 ? Math.round((v.met / v.total) * 100) : 0;
+        return { tier, total: v.total, met: v.met, pct, alert: pct < 95 };
+      }),
+    alert: Object.values(durAccMap).some((v) => v.total > 0 && (v.met / v.total) * 100 < 95),
+  };
+
   // Totals
   const totalCost = reels.reduce((s: number, r: any) => s + (r.totalCost ?? 0), 0);
   const totalReels = reels.length;
@@ -177,6 +211,7 @@ export async function GET() {
     dailyData,
     weeklyData,
     reelDetails,
+    durationAccuracy,
     musicCoverage: moodCoverage(),
   });
 }

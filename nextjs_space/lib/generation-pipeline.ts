@@ -29,6 +29,73 @@ const STEP_PCT: Record<string, number> = {
  * Greedily map a flat word-timestamp list onto the ordered scene texts and
  * derive a real per-scene duration from the actual narration timing.
  */
+// MUST match the crossfade used by the compositor (lib/compositor.ts XFADE).
+const PIPELINE_XFADE = 0.6;
+
+/**
+ * Per-scene minimum spoken span (seconds) WITHOUT breathing padding — the
+ * floor below which we cannot shrink a scene without cutting actual speech.
+ */
+function speechSpansFromWords(lineTexts: string[], words: WordTimestamp[]): number[] {
+  const out: number[] = [];
+  let cursor = 0;
+  for (let s = 0; s < lineTexts.length; s++) {
+    const count = (lineTexts[s] || '').trim().split(/\s+/).filter(Boolean).length;
+    const slice = words.slice(cursor, cursor + count);
+    cursor += count;
+    if (slice.length === 0) { out.push(1.2); continue; }
+    const span = slice[slice.length - 1].end - slice[0].start;
+    out.push(Math.max(1.0, +span.toFixed(2)));
+  }
+  return out;
+}
+
+/**
+ * Enforce the requested duration target on the scene timeline.
+ * Compositor final length T = sum(durations) - XFADE*(n-1). We solve for
+ * sum(durations) = target + XFADE*(n-1):
+ *   - Under target  -> hold/extend the FINAL scene (slow-zoom + music sustain).
+ *   - Over target   -> shrink scene padding proportionally, never below the
+ *                      spoken span of each scene (never cut narration).
+ * Returns the adjusted durations plus whether the target is mathematically
+ * reachable without cutting speech (gate enforces the actual rendered output).
+ */
+function enforceDurationTarget(
+  sceneDurations: number[],
+  speechFloors: number[],
+  targetDur: number,
+): { durations: number[]; predictedTimeline: number; fitFeasible: boolean } {
+  const n = sceneDurations.length;
+  if (n === 0) return { durations: sceneDurations, predictedTimeline: 0, fitFeasible: false };
+  const xfadeTotal = PIPELINE_XFADE * Math.max(0, n - 1);
+  const targetSum = targetDur + xfadeTotal; // sum of raw scene durations needed
+  const durs = sceneDurations.slice();
+  const curSum = durs.reduce((a, b) => a + b, 0);
+
+  if (curSum <= targetSum) {
+    // UNDER target: extend the final scene (held frame + slow zoom + ambient).
+    durs[n - 1] = +(durs[n - 1] + (targetSum - curSum)).toFixed(2);
+    const timeline = durs.reduce((a, b) => a + b, 0) - xfadeTotal;
+    return { durations: durs, predictedTimeline: +timeline.toFixed(2), fitFeasible: true };
+  }
+
+  // OVER target: shrink the non-speech padding proportionally, floored at the
+  // spoken span so we never cut narration.
+  const floors = speechFloors.length === n ? speechFloors.slice() : durs.map((d) => Math.min(d, 1.5));
+  const floorSum = floors.reduce((a, b) => a + b, 0);
+  if (floorSum >= targetSum) {
+    // Even at the speech floor we exceed target — cannot fit without cutting
+    // speech. Use the floors (tightest possible); the gate decides pass/fail.
+    return { durations: floors.map((d) => +d.toFixed(2)), predictedTimeline: +(floorSum - xfadeTotal).toFixed(2), fitFeasible: false };
+  }
+  const slack = curSum - floorSum;          // total shrinkable padding available
+  const needShrink = curSum - targetSum;    // how much we must remove
+  const ratio = needShrink / slack;          // 0..1 portion of padding to remove
+  const fitted = durs.map((d, i) => +(d - (d - floors[i]) * ratio).toFixed(2));
+  const timeline = fitted.reduce((a, b) => a + b, 0) - xfadeTotal;
+  return { durations: fitted, predictedTimeline: +timeline.toFixed(2), fitFeasible: true };
+}
+
 function sceneDurationsFromWords(lineTexts: string[], words: WordTimestamp[], fallback: number[]): number[] {
   if (!words || words.length === 0) return fallback;
   const out: number[] = [];
@@ -56,6 +123,14 @@ export interface PipelineOptions {
   musicTrackId?: string;   // explicit library track id or custom-music db id
   stinger?: boolean;       // add intro/outro accent stinger
   stingerId?: string;      // explicit stinger id (optional; else platform default)
+  targetDuration?: number; // requested final reel length in seconds (15/20/25/30)
+}
+
+// Clamp + default the requested reel length. The output MUST land within ±1s.
+export function resolveTargetDuration(v?: number): number {
+  const n = Math.round(v ?? 25);
+  if (!Number.isFinite(n)) return 25;
+  return Math.min(60, Math.max(10, n));
 }
 
 export async function runGenerationPipeline(
@@ -124,6 +199,9 @@ export async function runGenerationPipeline(
 
     // Resolve the selected model tier (clamped to what this subscription can use).
     const modelTier = resolveModelTier(pipelineOpts?.modelTier, tier);
+    // Requested final reel length — hard duration target enforced below.
+    const targetDur = resolveTargetDuration(pipelineOpts?.targetDuration);
+    console.log(`[pipeline] target duration = ${targetDur}s`);
     const wantsMotion = !isPreview && reel.motion === true && !!process.env.FAL_KEY;
     console.log(`[pipeline] model tier=${modelTier.id} (video=${modelTier.videoModel}, image=${modelTier.imageModel}), wantsMotion=${wantsMotion}`);
 
@@ -149,7 +227,7 @@ export async function runGenerationPipeline(
       costBreakdown['script_cost'] = 0;
     } else try {
       const sp = getScriptProvider();
-      script = await sp.generate({ prompt: reel.prompt, platform: reel.platform, style: reel.style, mood: reel.mood });
+      script = await sp.generate({ prompt: reel.prompt, platform: reel.platform, style: reel.style, mood: reel.mood, targetDuration: targetDur });
       scriptProviderName = sp.getName();
       costBreakdown['script_cost'] = sp.estimateCost({ prompt: reel.prompt, platform: reel.platform, style: reel.style });
     } catch (e) {
@@ -403,9 +481,17 @@ export async function runGenerationPipeline(
 
     // Per-scene durations: lock to real narration timing when we have a voice.
     const fallbackDurs = script.scenes.map((s) => Math.max(2.4, s.endTime - s.startTime));
-    const sceneDurations = voiceUrl
+    const rawSceneDurations = voiceUrl
       ? sceneDurationsFromWords(lineTexts, words, fallbackDurs)
       : fallbackDurs;
+
+    // ---- Duration guarantee: fit/extend the timeline to the requested target ----
+    const speechFloors = voiceUrl
+      ? speechSpansFromWords(lineTexts, words)
+      : rawSceneDurations.map((d) => Math.max(1.0, d - 0.9));
+    const naturalTimeline = +(rawSceneDurations.reduce((a, b) => a + b, 0) - PIPELINE_XFADE * Math.max(0, rawSceneDurations.length - 1)).toFixed(2);
+    const { durations: sceneDurations, predictedTimeline, fitFeasible } = enforceDurationTarget(rawSceneDurations, speechFloors, targetDur);
+    console.log(`[pipeline] duration fit: natural=${naturalTimeline}s -> target=${targetDur}s, predicted=${predictedTimeline}s, feasible=${fitFeasible}`);
 
     // ----------------------------------------------------------------
     // STEP 4 — Music
@@ -516,6 +602,51 @@ export async function runGenerationPipeline(
       composited = false;
     }
 
+    // ----------------------------------------------------------------
+    // GUARDRAIL — Duration validation gate (billing integrity)
+    // The user selected a length; the delivered MP4 MUST be target ±1s.
+    // If it isn't, fail loudly, refund ALL credits and alert admin rather
+    // than charging full price for a short-delivered reel.
+    // ----------------------------------------------------------------
+    const durationDelta = +(finalDuration - targetDur).toFixed(2);
+    const durationMet = Math.abs(durationDelta) <= 1;
+    console.log(`[pipeline] duration check: target=${targetDur}s actual=${finalDuration.toFixed(2)}s delta=${durationDelta}s met=${durationMet}`);
+    if (!isPreview && !durationMet) {
+      const refundAmt = reel.coinCost ?? 0;
+      let refundedDur = 0;
+      try {
+        refundedDur = await refundCoins(userId, refundAmt, 'duration_check_failed');
+      } catch (e) {
+        console.error('[pipeline] refund failed during duration hard-fail:', (e as any)?.message);
+      }
+      console.error(`[ALERT][duration-fail] reel=${reelId} user=${userId} tier=${modelTier.id} target=${targetDur}s actual=${finalDuration.toFixed(2)}s delta=${durationDelta}s refunded=${refundedDur} — output failed duration guarantee, credits refunded.`);
+      await prisma.reel.update({
+        where: { id: reelId },
+        data: {
+          status: 'failed',
+          coinCost: 0,
+          durationSec: +finalDuration.toFixed(2),
+          scenesJson: {
+            durationMet: false,
+            targetDuration: targetDur,
+            durationDelta,
+            model_tier: modelTier.id,
+            refundedCoins: refundedDur,
+            failureReason: 'duration_check_failed',
+          } as any,
+        },
+      }).catch(() => {});
+      await prisma.generationJob.update({
+        where: { id: jobId },
+        data: {
+          status: 'failed',
+          currentStep: 'error',
+          errorMessage: 'Render failed duration check — credits refunded, please retry.',
+        },
+      }).catch(() => {});
+      return;
+    }
+
     // Downgrade refund: a cinematic reel that fell back to a cheaper engine
     // (real motion, but not the flagship the user paid for) is refunded the
     // price delta so we never charge cinematic price for pro-tier motion.
@@ -555,6 +686,9 @@ export async function runGenerationPipeline(
           motionVerified,
           motionDowngraded,
           refundedCoins,
+          durationMet,
+          targetDuration: targetDur,
+          durationDelta,
           model_tier: modelTier.id,
           music_track_id: musicTrackId,
           stinger_track_id: stingerTrackId,

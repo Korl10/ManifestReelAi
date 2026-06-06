@@ -9,6 +9,9 @@ export interface ScriptInput {
   platform: string;
   style: string;
   mood?: string;
+  /** Requested final reel length in seconds (15/20/25/30). Drives line count so
+   *  narration lands close to (and slightly under) the target for pad-to-target. */
+  targetDuration?: number;
 }
 
 export interface ScriptLine {

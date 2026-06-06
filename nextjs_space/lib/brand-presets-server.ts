@@ -9,7 +9,7 @@ const WATERMARK_POSITIONS = ['top-left', 'top-right', 'bottom-left', 'bottom-rig
 const WATERMARK_SIZES = ['S', 'M', 'L'];
 const ASPECT_RATIOS = ['9:16', '1:1', '16:9'];
 const PLATFORMS = ['reels', 'tiktok', 'shorts', 'youtube'];
-const LENGTHS = [15, 25, 30];
+const LENGTHS = [15, 20, 25, 30];
 
 function clampInt(v: any, min: number, max: number, dflt: number): number {
   const n = Math.round(Number(v));

@@ -44,6 +44,7 @@ export const PRESET_PLATFORMS: { id: PresetPlatform; label: string }[] = [
 
 export const REEL_LENGTHS: { id: number; label: string }[] = [
   { id: 15, label: '15s' },
+  { id: 20, label: '20s' },
   { id: 25, label: '25s' },
   { id: 30, label: '30s' },
 ];

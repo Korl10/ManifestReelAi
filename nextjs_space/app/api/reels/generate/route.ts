@@ -31,6 +31,12 @@ export async function POST(request: Request) {
     const stingerId = typeof body?.stingerId === 'string' ? body.stingerId : undefined;
     const brandPresetId = typeof body?.brandPresetId === 'string' ? body.brandPresetId : undefined;
 
+    // Requested reel length (seconds). Must be one of the offered options; the
+    // pipeline guarantees the delivered MP4 lands within ±1s of this.
+    const ALLOWED_LENGTHS = [15, 20, 25, 30];
+    const reqLen = Number(body?.targetLength ?? body?.targetDuration);
+    const targetDuration = ALLOWED_LENGTHS.includes(reqLen) ? reqLen : 25;
+
     if (!prompt || !platform || !style || !voice || !mood) {
       return NextResponse.json({ error: 'All fields are required: prompt, platform, style, voice, mood' }, { status: 400 });
     }
@@ -88,6 +94,7 @@ export async function POST(request: Request) {
       musicTrackId,
       stinger,
       stingerId,
+      targetDuration,
     };
 
     // Start pipeline (fire-and-forget). Free tier runs a preview built from
