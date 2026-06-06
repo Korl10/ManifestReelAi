@@ -1,5 +1,6 @@
 import { WordTimestamp } from '@/lib/providers/types';
 import { buildAss } from '@/lib/captions/ass';
+import { buildSubtitleMkv } from '@/lib/captions/font-embed';
 import { uploadPublicText } from '@/lib/media-storage';
 import type { SubtitleStyle } from '@/lib/captions/subtitle-types';
 
@@ -167,6 +168,15 @@ export async function compositeReel(input: CompositeInput): Promise<CompositeRes
   });
   const assUrl = await uploadPublicText(ass, 'captions.ass', 'text/plain');
 
+  // ---- Embed the chosen subtitle font ----
+  // The FFmpeg workers don't ship our Google fonts and the `fontsdir` filter
+  // option is blocked by the API, so libass would otherwise fall back to a
+  // default font. We mux the .ass + chosen .ttf into a tiny .mkv (stream copy)
+  // and burn from that; libass reads the embedded font automatically. On any
+  // failure we fall back to the raw .ass (default font, never breaks).
+  const subtitleFont = input.subtitleStyle?.fontFamily;
+  const subsMkvUrl = await buildSubtitleMkv(assUrl, subtitleFont, apiKey);
+
   // Per-scene motion clips (optional). A scene is "animated" only when it has
   // a clip URL; otherwise it stays a Ken Burns still.
   const clips = (input.sceneClipUrls || []).slice(0, n);
@@ -181,7 +191,8 @@ export async function compositeReel(input: CompositeInput): Promise<CompositeRes
   if (input.stingerUrl) input_files['in_stinger'] = input.stingerUrl;
   // Watermark logo overlay (Phase 4c)
   if (input.watermarkConfig?.logoUrl) input_files['in_wm'] = input.watermarkConfig.logoUrl;
-  input_files['in_ass'] = assUrl;
+  if (subsMkvUrl) input_files['in_subs'] = subsMkvUrl;
+  else input_files['in_ass'] = assUrl;
 
   // ---- Build the ffmpeg argument string ----
   const args: string[] = [];
@@ -253,7 +264,10 @@ export async function compositeReel(input: CompositeInput): Promise<CompositeRes
   }
 
   // Burn captions.
-  fc.push(`[${lastLabel}]subtitles={{in_ass}}[vsub]`);
+  // Burn captions from the embedded-font .mkv when available (renders the exact
+  // chosen font); otherwise from the raw .ass (default font fallback).
+  const subSource = subsMkvUrl ? '{{in_subs}}' : '{{in_ass}}';
+  fc.push(`[${lastLabel}]subtitles=${subSource}[vsub]`);
 
   // Watermark logo overlay (Phase 4c). The logo is scaled, positioned with
   // platform-safe margins, and overlaid with configurable opacity, fade-in,

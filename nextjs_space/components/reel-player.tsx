@@ -1,6 +1,7 @@
 'use client';
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Play, Pause, Volume2, VolumeX, Sparkles } from 'lucide-react';
+import type { SubtitleStyle } from '@/lib/captions/subtitle-types';
 
 type ScriptLine = { text?: string; startTime?: number; endTime?: number };
 
@@ -14,6 +15,8 @@ type ReelPlayerProps = {
   title?: string | null;
   /** When true, the video already has audio + captions burned in. */
   composited?: boolean;
+  /** Subtitle styling so the live overlay matches the final burned-in captions (WYSIWYG). */
+  subtitleStyle?: Partial<SubtitleStyle> | null;
 };
 
 /**
@@ -32,7 +35,7 @@ function disposeMedia(el: HTMLMediaElement | null) {
   }
 }
 
-export default function ReelPlayer({ videoUrl, posterUrl, musicUrl, hook, script = [], watermarked, title, composited = false }: ReelPlayerProps) {
+export default function ReelPlayer({ videoUrl, posterUrl, musicUrl, hook, script = [], watermarked, title, composited = false, subtitleStyle }: ReelPlayerProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [playing, setPlaying] = useState(false);
@@ -164,14 +167,42 @@ export default function ReelPlayer({ videoUrl, posterUrl, musicUrl, hook, script
       {/* Readability scrim (overlay mode only — composited reels are pre-graded) */}
       {useOverlay && <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-black/40 pointer-events-none" />}
 
-      {/* Live synced caption (overlay mode only) */}
+      {/* Live synced caption (overlay mode only). Honors subtitleStyle so the preview matches the final MP4. */}
       {useOverlay && (
-        <div className="absolute inset-x-0 bottom-0 top-1/3 flex items-center justify-center px-5 pointer-events-none">
+        <div
+          className="absolute left-5 right-5 flex items-center justify-center pointer-events-none"
+          style={
+            subtitleStyle?.position === 'top'
+              ? { top: '10%' }
+              : subtitleStyle?.position === 'center'
+                ? { top: '42%' }
+                : { bottom: '14%' }
+          }
+        >
           {activeLine?.text && (
             <p
               key={activeLine.text}
-              className="text-center font-display font-extrabold leading-tight text-white text-xl sm:text-2xl drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)] animate-[fadeIn_0.4s_ease]"
-              style={{ textShadow: '0 2px 16px rgba(0,0,0,0.95)' }}
+              className="text-center leading-tight animate-[fadeIn_0.4s_ease]"
+              style={{
+                fontFamily: subtitleStyle?.fontFamily ? `'${subtitleStyle.fontFamily}', sans-serif` : undefined,
+                fontWeight: 700,
+                color: subtitleStyle?.textColor ?? '#FFFFFF',
+                fontSize: 'clamp(1.1rem, 6vw, 1.9rem)',
+                WebkitTextStroke:
+                  subtitleStyle?.strokeWidth && subtitleStyle.strokeWidth > 0
+                    ? `${Math.max(0.5, subtitleStyle.strokeWidth / 4)}px ${subtitleStyle.strokeColor ?? '#000000'}`
+                    : undefined,
+                textShadow:
+                  subtitleStyle?.shadowEnabled === false
+                    ? 'none'
+                    : `${subtitleStyle?.shadowDepth ?? 2}px ${subtitleStyle?.shadowDepth ?? 2}px ${(subtitleStyle?.shadowDepth ?? 2) * 2}px ${subtitleStyle?.shadowColor ?? 'rgba(0,0,0,0.95)'}`,
+                backgroundColor:
+                  subtitleStyle?.highlightEnabled && subtitleStyle?.highlightColor
+                    ? `${subtitleStyle.highlightColor}${Math.round((subtitleStyle.highlightOpacity ?? 60) * 2.55).toString(16).padStart(2, '0')}`
+                    : 'transparent',
+                padding: subtitleStyle?.highlightEnabled ? '2px 8px' : undefined,
+                borderRadius: subtitleStyle?.highlightEnabled ? 6 : undefined,
+              }}
             >
               {activeLine.text}
             </p>

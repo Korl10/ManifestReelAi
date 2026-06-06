@@ -155,6 +155,7 @@ export default function ReelPreviewPage() {
             watermarked={reel?.watermarked}
             title={reel?.title}
             composited={isComposited}
+            subtitleStyle={reel?.subtitleStyle as any}
           />
           {reel?.watermarked && (
             <p className="mt-2 text-center text-[10px] text-[#D4AF37]/80">Watermarked • Upgrade to remove</p>

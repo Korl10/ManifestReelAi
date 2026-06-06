@@ -2,6 +2,27 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Subtitle fonts — loaded from the SAME .ttf files that get embedded into the
+ * final reel server-side, so the in-app preview/editor matches the rendered
+ * video exactly (true WYSIWYG). Family names match SUBTITLE_FONTS / ASS Fontname.
+ */
+@font-face { font-family: 'Inter'; src: url('/fonts/subtitles/Inter.ttf') format('truetype'); font-display: swap; }
+@font-face { font-family: 'Poppins'; src: url('/fonts/subtitles/Poppins.ttf') format('truetype'); font-display: swap; }
+@font-face { font-family: 'Bebas Neue'; src: url('/fonts/subtitles/BebasNeue.ttf') format('truetype'); font-display: swap; }
+@font-face { font-family: 'Montserrat'; src: url('/fonts/subtitles/Montserrat.ttf') format('truetype'); font-display: swap; }
+@font-face { font-family: 'Anton'; src: url('/fonts/subtitles/Anton.ttf') format('truetype'); font-display: swap; }
+@font-face { font-family: 'Oswald'; src: url('/fonts/subtitles/Oswald.ttf') format('truetype'); font-display: swap; }
+@font-face { font-family: 'Playfair Display'; src: url('/fonts/subtitles/PlayfairDisplay.ttf') format('truetype'); font-display: swap; }
+@font-face { font-family: 'Roboto Condensed'; src: url('/fonts/subtitles/RobotoCondensed.ttf') format('truetype'); font-display: swap; }
+@font-face { font-family: 'Archivo Black'; src: url('/fonts/subtitles/ArchivoBlack.ttf') format('truetype'); font-display: swap; }
+@font-face { font-family: 'Karla'; src: url('/fonts/subtitles/Karla.ttf') format('truetype'); font-display: swap; }
+@font-face { font-family: 'Lato'; src: url('/fonts/subtitles/Lato.ttf') format('truetype'); font-display: swap; }
+@font-face { font-family: 'Raleway'; src: url('/fonts/subtitles/Raleway.ttf') format('truetype'); font-display: swap; }
+@font-face { font-family: 'Open Sans'; src: url('/fonts/subtitles/OpenSans.ttf') format('truetype'); font-display: swap; }
+@font-face { font-family: 'Bangers'; src: url('/fonts/subtitles/Bangers.ttf') format('truetype'); font-display: swap; }
+@font-face { font-family: 'DM Sans'; src: url('/fonts/subtitles/DMSans.ttf') format('truetype'); font-weight: 400 700; font-display: swap; }
+
 @layer base {
   :root {
     --background: 0 0% 4%;
