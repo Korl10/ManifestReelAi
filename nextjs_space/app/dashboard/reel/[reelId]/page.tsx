@@ -156,6 +156,8 @@ export default function ReelPreviewPage() {
             title={reel?.title}
             composited={isComposited}
             subtitleStyle={reel?.subtitleStyle as any}
+            isFree={reel?.tier === 'free'}
+            onUpgradeClick={() => router.push('/dashboard/settings')}
           />
           {reel?.watermarked && (
             <p className="mt-2 text-center text-[10px] text-[#D4AF37]/80">Watermarked • Upgrade to remove</p>

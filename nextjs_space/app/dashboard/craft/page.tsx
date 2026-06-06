@@ -187,7 +187,7 @@ export default function CraftPage() {
             tier={data?.tier ?? 'free'}
             limitLabel={data?.limitLabel ?? 'no presets'}
             onClose={() => setUpgradeOpen(false)}
-            onUpgrade={() => router.push('/pricing')}
+            onUpgrade={() => router.push('/dashboard/settings')}
           />
         )}
       </AnimatePresence>

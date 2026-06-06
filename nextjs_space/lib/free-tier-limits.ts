@@ -1,68 +1,46 @@
-// ── Free-tier rate limiting + daily budget (server-side) ────────────────
+// ── Free-tier volume guards: per-IP rate limit + daily budget (server) ──
 import { prisma } from '@/lib/prisma';
 import {
-  FREE_REELS_PER_DAY,
   FREE_REELS_PER_IP_PER_HOUR,
   FREE_DAILY_BUDGET_CENTS,
   FREE_REEL_EST_COST_CENTS,
   utcDayKey,
 } from '@/lib/free-tier';
 
-export type FreeBlockReason = 'daily_quota' | 'ip_quota' | 'budget_exhausted';
+export type FreeBlockReason = 'ip_quota' | 'budget_exhausted';
 
 export interface FreeLimitCheck {
   allowed: boolean;
   reason?: FreeBlockReason;
   message: string;
-  /** Hours until the relevant window frees up (for the “back in X hours” modal). */
+  /** Hours until the relevant window frees up (for the "back in X hours" modal). */
   retryAfterHours?: number;
-  usedToday: number;
-  remainingToday: number;
 }
 
 /**
- * Enforce: (1) per-account 3 reels / 24h, (2) per-IP 1 reel / 60m,
- * (3) global free-tier daily budget ceiling. Counts only successful/in-flight
- * reels (status != 'failed') so failed attempts don't burn quota.
+ * Enforce volume guards for the free tier's single lifetime reel:
+ * (1) per-IP 1 reel / 60m (anti signup-spam), (2) global daily budget ceiling.
+ * The once-per-account lifetime gate (User.freeReelUsed) is enforced in the
+ * generate route. Counts only successful/in-flight reels (status != 'failed').
  */
 export async function checkFreeTierLimits(userId: string, clientIp?: string | null): Promise<FreeLimitCheck> {
   const now = new Date();
-  const dayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
   const hourAgo = new Date(now.getTime() - 60 * 60 * 1000);
 
-  // (1) Per-account daily quota (rolling 24h).
-  const usedToday = await prisma.reel.count({
-    where: { userId, status: { not: 'failed' }, createdAt: { gte: dayAgo } },
-  });
-  const remainingToday = Math.max(0, FREE_REELS_PER_DAY - usedToday);
-  if (usedToday >= FREE_REELS_PER_DAY) {
-    // Hours until the oldest reel in the window ages out.
-    const oldest = await prisma.reel.findFirst({
-      where: { userId, status: { not: 'failed' }, createdAt: { gte: dayAgo } },
-      orderBy: { createdAt: 'asc' }, select: { createdAt: true },
-    });
-    const freesAt = oldest ? new Date(oldest.createdAt.getTime() + 24 * 60 * 60 * 1000) : now;
-    const retryAfterHours = Math.max(1, Math.ceil((freesAt.getTime() - now.getTime()) / 3.6e6));
-    return {
-      allowed: false, reason: 'daily_quota', usedToday, remainingToday: 0, retryAfterHours,
-      message: 'You’ve used your 3 free reels for today. Upgrade to keep creating — or come back tomorrow.',
-    };
-  }
-
-  // (2) Per-IP hourly quota (anti-abuse). Skipped if we can't resolve an IP.
+  // (1) Per-IP hourly quota (anti-abuse). Skipped if we can't resolve an IP.
   if (clientIp) {
     const ipCount = await prisma.reel.count({
       where: { clientIp, status: { not: 'failed' }, createdAt: { gte: hourAgo } },
     });
     if (ipCount >= FREE_REELS_PER_IP_PER_HOUR) {
       return {
-        allowed: false, reason: 'ip_quota', usedToday, remainingToday, retryAfterHours: 1,
+        allowed: false, reason: 'ip_quota', retryAfterHours: 1,
         message: 'Too many free reels from this network right now. Please try again in about an hour, or upgrade for unlimited creating.',
       };
     }
   }
 
-  // (3) Global daily budget ceiling.
+  // (2) Global daily budget ceiling (protects against signup waves).
   const day = utcDayKey(now);
   const stat = await prisma.dailyFreeStat.findUnique({ where: { day } });
   const spent = stat?.spendCents ?? 0;
@@ -71,12 +49,12 @@ export async function checkFreeTierLimits(userId: string, clientIp?: string | nu
     const reset = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1));
     const retryAfterHours = Math.max(1, Math.ceil((reset.getTime() - now.getTime()) / 3.6e6));
     return {
-      allowed: false, reason: 'budget_exhausted', usedToday, remainingToday, retryAfterHours,
+      allowed: false, reason: 'budget_exhausted', retryAfterHours,
       message: `Free reels have hit today’s maximum. They’ll be back in about ${retryAfterHours} hour${retryAfterHours === 1 ? '' : 's'} — or upgrade for unlimited creating now.`,
     };
   }
 
-  return { allowed: true, usedToday, remainingToday, message: 'OK' };
+  return { allowed: true, message: 'OK' };
 }
 
 /** Atomically record free-tier spend for today's budget pool. */

@@ -731,6 +731,15 @@ export async function runGenerationPipeline(
       where: { id: reelId },
       data: { status: 'failed' },
     }).catch(() => {});
+    // A free-tier reel that failed should NOT burn the user's single lifetime
+    // free reel — restore their entitlement so they can retry.
+    try {
+      const r = await prisma.reel.findUnique({ where: { id: reelId }, select: { tier: true, userId: true } });
+      if (r?.tier === 'free' && r.userId) {
+        await prisma.user.update({ where: { id: r.userId }, data: { freeReelUsed: false } });
+        console.log(`[pipeline] Free reel failed — restored freeReelUsed=false for user=${r.userId}`);
+      }
+    } catch { /* best-effort */ }
   }
 }
 

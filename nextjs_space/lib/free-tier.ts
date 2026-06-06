@@ -20,12 +20,19 @@ export const FREE_FONTS = ['DM Sans', 'Bebas Neue', 'Anton'] as const;
 export const FREE_COLORS = ['#FFFFFF', '#D4AF37', '#7B2FBE'] as const; // white / gold / purple
 
 // Account & rate limits ------------------------------------------------------
-export const FREE_REELS_PER_DAY = 3;         // per account, rolling 24h
+// LIFETIME model: each account gets exactly ONE real-AI free reel, ever. A 5s
+// watermarked reel is the “wow” demo, not a usable product — so there is no
+// daily renewal. The lifetime gate (User.freeReelUsed) lives in the generate
+// route; the per-IP limit below still guards against signup-spam abuse.
+export const FREE_LIFETIME_REELS = 1;        // one real-AI free reel per account, ever
 export const FREE_REELS_PER_IP_PER_HOUR = 1; // anti-abuse, rolling 60m
 
 // Cost protection ------------------------------------------------------------
 export const FREE_DAILY_BUDGET_CENTS = 2000; // $20.00/day ceiling for ALL free reels
-export const FREE_REEL_EST_COST_CENTS = 3;   // ~$0.03 per 5s free reel (template + cached stills)
+// Real AI generation (Standard engine: LLM script + AI images + auto music +
+// subtitle compositing) at 5s/720p ≈ $0.25/reel → ~80 new free reels/day before
+// the $20 pool protects against signup waves.
+export const FREE_REEL_EST_COST_CENTS = 25;  // ~$0.25 per 5s real-AI free reel
 
 export type FreeViolation =
   | 'duration'

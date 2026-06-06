@@ -19,6 +19,7 @@ model User {
   emailVerified DateTime? @map("email_verified")
   verifyToken   String?   @map("verify_token")
   verifyTokenExpiry DateTime? @map("verify_token_expiry")
+  freeReelUsed  Boolean   @default(false) @map("free_reel_used")
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
 

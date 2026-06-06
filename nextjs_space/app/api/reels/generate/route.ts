@@ -67,14 +67,21 @@ export async function POST(request: Request) {
     let freeClamp: ReturnType<typeof clampFreeTierParams> | null = null;
     if (gate.balance.tier === 'free') {
       // (a) Email verification gate — no generation until the address is verified.
-      const u = await prisma.user.findUnique({ where: { id: userId }, select: { emailVerified: true } });
+      const u = await prisma.user.findUnique({ where: { id: userId }, select: { emailVerified: true, freeReelUsed: true } });
       if (!u?.emailVerified) {
         return NextResponse.json(
           { error: 'Please verify your email address to start creating reels. Check your inbox for the verification link.', reason: 'email_unverified' },
           { status: 403 },
         );
       }
-      // (b) Reject any attempt to exceed free-tier feature limits (curl bypass).
+      // (b) LIFETIME gate — each account gets exactly ONE real-AI free reel, ever.
+      if (u.freeReelUsed) {
+        return NextResponse.json(
+          { error: 'You\u2019ve already created your free AI reel. Upgrade to Pro to keep creating \u2014 longer reels, no watermark, custom voices, music & more.', reason: 'free_lifetime_exhausted', upgrade: true },
+          { status: 403 },
+        );
+      }
+      // (c) Reject any attempt to exceed free-tier feature limits (curl bypass).
       const v = validateFreeTierRequest(body);
       if (!v.ok) {
         return NextResponse.json(
@@ -82,15 +89,24 @@ export async function POST(request: Request) {
           { status: 403 },
         );
       }
-      // (c) Rate limits (3/day/account, 1/IP/hour) + global daily budget.
+      // (d) Volume guards: per-IP 1/hour (anti signup-spam) + global daily budget.
       const limit = await checkFreeTierLimits(userId, clientIp);
       if (!limit.allowed) {
         return NextResponse.json(
-          { error: limit.message, reason: limit.reason, retryAfterHours: limit.retryAfterHours, usedToday: limit.usedToday, remainingToday: limit.remainingToday, upgrade: true },
+          { error: limit.message, reason: limit.reason, retryAfterHours: limit.retryAfterHours, upgrade: true },
           { status: 429 },
         );
       }
-      // (d) Defensive normalization of every param that reaches the pipeline.
+      // (e) Atomically CLAIM the lifetime free reel (race-safe against double
+      //     submits / concurrent curl). Only one request can flip false→true.
+      const claim = await prisma.user.updateMany({ where: { id: userId, freeReelUsed: false }, data: { freeReelUsed: true } });
+      if (claim.count === 0) {
+        return NextResponse.json(
+          { error: 'You\u2019ve already created your free AI reel. Upgrade to Pro to keep creating.', reason: 'free_lifetime_exhausted', upgrade: true },
+          { status: 403 },
+        );
+      }
+      // (f) Defensive normalization of every param that reaches the pipeline.
       freeClamp = clampFreeTierParams(body);
       coinCost = 0;
     }
@@ -164,9 +180,12 @@ export async function POST(request: Request) {
           targetDuration,
         };
 
-    // Start pipeline (fire-and-forget). Free tier runs a preview built from
-    // cached/sample assets only — no live paid API calls.
-    runGenerationPipeline(job.id, reel.id, userId, isFreePreview ? 'preview' : 'full', pipelineOpts).catch(console.error);
+    // Start pipeline (fire-and-forget). The free tier now runs REAL AI
+    // generation (LLM script + AI images + auto-matched music + subtitle
+    // compositing) on the Standard engine — always 'full' mode. The watermark
+    // and 720p cap are applied by the pipeline based on the reel's free tier;
+    // a failed free reel restores the user's lifetime entitlement.
+    runGenerationPipeline(job.id, reel.id, userId, 'full', pipelineOpts).catch(console.error);
 
     return NextResponse.json({
       jobId: job.id,
