@@ -72,17 +72,9 @@ const MUSIC_MAP: Record<string, string> = {
 
 const DEFAULT_MUSIC = '/reel-music/manifestation.mp3';
 
-// ---- Voice samples present in /public/voices/library ----
-const VOICE_SAMPLES = new Set<string>([
-  'female-aria','female-ava','female-emma','female-jenny','female-michelle','female-natasha','female-libby','female-sonia','female-maisie','female-clara','female-emily','female-leah','female-ana','female-aria-soft','female-sonia-bright',
-  'male-andrew','male-brian','male-christopher','male-eric','male-guy','male-roger','male-steffan','male-ryan','male-thomas','male-william','male-liam','male-connor','male-luke','male-guy-deep','male-roger-warm',
-  'mys-aria','mys-brian','mys-sonia','mys-thomas','mys-natasha',
-  'his-thomas','his-ryan','his-libby','his-roger',
-  'bib-guy','bib-christopher','bib-andrew','bib-william',
-  'mot-andrew','mot-aria','mot-guy','mot-brian','mot-emma',
-  'edu-michelle','edu-eric','edu-libby','edu-thomas',
-  'med-ava','med-eric','med-libby','med-sonia','med-emily',
-]);
+// Voice samples are now served via ElevenLabs previewUrl in the catalog,
+// not local /public/voices/library/ files. Legacy set kept for backwards compat.
+const VOICE_SAMPLES = new Set<string>();
 
 function norm(v?: string | null): string {
   return (v ?? '').toString().trim().toLowerCase();
