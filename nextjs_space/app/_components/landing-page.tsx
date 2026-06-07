@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Sparkles, Wand2, Music, Video, Type, Zap, Crown, Star, ArrowRight, Check, Menu, X, Heart, MessageCircle, Share2, Bookmark, ThumbsUp, ThumbsDown, Plus, MoreHorizontal, Music2 } from 'lucide-react';
 import Link from 'next/link';
@@ -217,10 +217,11 @@ const FEATURES = [
 ];
 
 const TIERS = [
-  { name: 'Free', monthly: 0, features: ['Demo gallery access', '7s watermarked preview', 'Explore all styles & moods', 'No card required'], cta: 'Start Free', tier: 'free', popular: false },
-  { name: 'Starter', monthly: 19.99, features: ['200 coins / month', 'Standard + Pro tiers', 'HD exports, no watermark', '160 AI voices', 'Manual export only'], cta: 'Get Starter', tier: 'starter', popular: false },
-  { name: 'Pro', monthly: 39.99, features: ['500 coins / month', 'All 3 quality tiers', 'Auto-post IG + TikTok', '1080p exports', '3 Craft presets'], cta: 'Get Pro', tier: 'pro', popular: true },
-  { name: 'Premium', monthly: 89.99, features: ['1,200 coins / month', 'All tiers + 4K exports', 'Brand Kit', 'Auto-post IG/TikTok/YT/X', 'Priority queue + API'], cta: 'Get Premium', tier: 'premium', popular: false },
+  { name: 'Free', monthly: 0, annualMo: 0, annualTotal: 0, annualSave: 0, features: ['Demo gallery access', '7s watermarked preview', 'Explore all styles & moods', 'No card required'], cta: 'Start Free', tier: 'free', popular: false },
+  { name: 'Starter', monthly: 19.99, annualMo: 15.99, annualTotal: 191.88, annualSave: 48, features: ['200 coins / month', 'Standard + Pro tiers', 'HD exports, no watermark', '160 AI voices', 'Manual export only'], cta: 'Get Starter', tier: 'starter', popular: false },
+  { name: 'Pro', monthly: 39.99, annualMo: 31.99, annualTotal: 383.88, annualSave: 96, features: ['500 coins / month', 'All 3 quality tiers', 'Auto-post IG + TikTok', '1080p exports', '3 Craft presets'], cta: 'Get Pro', tier: 'pro', popular: true },
+  { name: 'Premium', monthly: 89.99, annualMo: 71.99, annualTotal: 863.88, annualSave: 216, features: ['1,200 coins / month', 'All tiers + 4K exports', 'Brand Kit', 'Auto-post IG/TikTok/YT/X', 'Priority queue + API'], cta: 'Get Premium', tier: 'premium', popular: false },
+  { name: 'Agency', monthly: 199, annualMo: 159, annualTotal: 1908, annualSave: 480, features: ['3,000 coins / month', 'Everything in Premium', '5 team seats', 'White-label exports', 'Bulk generation'], cta: 'Get Agency', tier: 'agency', popular: false },
 ];
 
 const TESTIMONIALS = [
@@ -240,6 +241,18 @@ export function LandingPage() {
   const router = useRouter();
   const [mobileMenu, setMobileMenu] = useState(false);
   const [billing, setBilling] = useState<'monthly' | 'annual'>('annual');
+  const [foundersDays, setFoundersDays] = useState<number | null>(null);
+
+  useEffect(() => {
+    // Compute founders countdown client-side only to avoid hydration mismatch
+    const LAUNCH = new Date('2026-06-07T00:00:00Z');
+    const DURATION = 90;
+    const end = new Date(LAUNCH.getTime() + DURATION * 86400000);
+    const remaining = Math.ceil((end.getTime() - Date.now()) / 86400000);
+    setFoundersDays(remaining > 0 ? remaining : 0);
+  }, []);
+
+  const isFounders = (foundersDays ?? 0) > 0;
 
   const handlePricing = async (tier: string) => {
     if (!session) {
@@ -410,97 +423,159 @@ export function LandingPage() {
 
       {/* Pricing */}
       <section id="pricing" className="py-20 md:py-32 bg-white/[0.01]">
-        <div className="max-w-[1200px] mx-auto px-4">
+        <div className="max-w-[1400px] mx-auto px-4">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} className="text-center mb-10">
             <h2 className="font-display text-3xl md:text-4xl font-bold tracking-tight mb-4">Simple, Transparent Pricing</h2>
             <p className="text-white/50 max-w-xl mx-auto">Start free. Upgrade when you're ready to scale your manifestation content.</p>
           </motion.div>
 
-          {/* Billing toggle */}
+          {/* Founders' countdown banner */}
+          {isFounders && (
+            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} className="text-center mb-8">
+              <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-orange-500/20 to-red-500/20 border border-orange-500/30">
+                <span className="text-lg">🔥</span>
+                <span className="text-sm font-semibold text-orange-300">Founders&apos; Pricing — Ends in {foundersDays} days</span>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Billing toggle — Annual LEFT (default), Monthly RIGHT */}
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} className="flex justify-center mb-12">
             <div className="inline-flex items-center gap-1 p-1 rounded-full bg-white/[0.04] border border-white/10">
+              <button
+                onClick={() => setBilling('annual')}
+                className={`px-5 py-2 rounded-full text-sm font-semibold transition-all flex items-center gap-2 ${billing === 'annual' ? 'bg-white text-black' : 'text-white/60 hover:text-white'}`}
+              >
+                Annual ✓
+                <span className={`text-[11px] font-bold ${billing === 'annual' ? 'text-emerald-600' : 'text-emerald-400'}`}>(Save 20%)</span>
+              </button>
               <button
                 onClick={() => setBilling('monthly')}
                 className={`px-5 py-2 rounded-full text-sm font-semibold transition-all ${billing === 'monthly' ? 'bg-white text-black' : 'text-white/60 hover:text-white'}`}
               >
                 Monthly
               </button>
-              <button
-                onClick={() => setBilling('annual')}
-                className={`px-5 py-2 rounded-full text-sm font-semibold transition-all flex items-center gap-2 ${billing === 'annual' ? 'bg-white text-black' : 'text-white/60 hover:text-white'}`}
-              >
-                Annually
-                <span className="text-[11px] font-bold text-[#D4AF37]">50% OFF</span>
-              </button>
             </div>
           </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 max-w-5xl mx-auto">
-            {TIERS.map((t: any, i: number) => (
-              <motion.div
-                key={t?.name ?? i}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true }}
-                variants={fadeUp}
-                transition={{ delay: i * 0.1 }}
-                className={`relative p-6 rounded-xl border transition-all duration-300 ${
-                  t?.popular ? 'bg-gradient-to-b from-[#D4AF37]/10 to-transparent border-[#D4AF37]/30 gold-glow' : 'bg-white/[0.02] border-white/5 hover:border-white/10'
-                }`}
-              >
-                {t?.popular && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full gold-gradient text-black text-xs font-bold">
-                    Most Popular
-                  </div>
-                )}
-                <div className="mb-6">
-                  <div className="flex items-center gap-2 mb-2">
-                    <h3 className="font-display text-lg font-semibold">{t?.name ?? ''}</h3>
-                    {billing === 'annual' && t?.monthly > 0 && (
-                      <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 text-[10px] font-bold">50% OFF</span>
-                    )}
-                  </div>
-                  {t?.monthly === 0 ? (
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-3xl font-bold text-[#D4AF37]">$0</span>
-                      <span className="text-sm text-white/40">forever</span>
-                    </div>
-                  ) : (
-                    <div>
-                      <div className="flex items-baseline gap-1.5">
-                        {billing === 'annual' && (
-                          <span className="text-lg font-semibold text-white/30 line-through">${t.monthly}</span>
-                        )}
-                        <span className="text-3xl font-bold text-[#D4AF37]">
-                          ${billing === 'annual' ? (Math.floor(t.monthly * 50) / 100).toFixed(2) : t.monthly.toFixed(2)}
-                        </span>
-                        <span className="text-sm text-white/40">/mo</span>
-                      </div>
-                      <p className="text-xs text-white/40 mt-1">
-                        {billing === 'annual'
-                          ? `Billed $${(t.monthly * 6).toFixed(2)}/year — 50% off monthly`
-                          : 'Billed monthly'}
-                      </p>
-                    </div>
-                  )}
-                </div>
-                <ul className="space-y-3 mb-6">
-                  {(t?.features ?? []).map((f: string) => (
-                    <li key={f} className="flex items-start gap-2 text-sm text-white/70">
-                      <Check className="w-4 h-4 text-[#D4AF37] mt-0.5 shrink-0" />{f}
-                    </li>
-                  ))}
-                </ul>
-                <button
-                  onClick={() => handlePricing(t?.tier ?? 'free')}
-                  className={`w-full py-2.5 rounded-lg font-semibold text-sm transition-all ${
-                    t?.popular ? 'gold-gradient text-black hover:opacity-90' : 'bg-white/5 text-white hover:bg-white/10 border border-white/10'
+          {/* Pricing cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-5 lg:gap-4 max-w-6xl mx-auto items-start">
+            {TIERS.map((t, i) => {
+              const isPro = t.popular;
+              const isPremium = t.tier === 'premium';
+              const showFoundersMonthly = isFounders && isPremium && billing === 'monthly';
+              const showFoundersAnnual = isFounders && isPremium && billing === 'annual';
+              // Founders annual: 20% off the founders monthly $59.99 → $47.99/mo, $575.88/yr
+              const foundersAnnualMo = 47.99;
+              const foundersAnnualTotal = 575.88;
+              const foundersAnnualSave = Number(((59.99 * 12) - 575.88).toFixed(0)); // $144
+
+              return (
+                <motion.div
+                  key={t.name}
+                  initial="hidden"
+                  whileInView="visible"
+                  viewport={{ once: true }}
+                  variants={fadeUp}
+                  transition={{ delay: i * 0.08 }}
+                  className={`relative p-6 rounded-xl border transition-all duration-300 ${
+                    isPro
+                      ? 'bg-gradient-to-b from-[#D4AF37]/10 via-[#D4AF37]/5 to-transparent border-[#D4AF37]/40 shadow-[0_0_30px_rgba(212,175,55,0.15)] xl:scale-[1.07] z-10'
+                      : 'bg-white/[0.02] border-white/5 hover:border-white/10'
                   }`}
                 >
-                  {t?.cta ?? 'Get Started'}
-                </button>
-              </motion.div>
-            ))}
+                  {/* Pro badge — top right */}
+                  {isPro && (
+                    <div className="absolute -top-3 right-3 px-3 py-1 rounded-full gold-gradient text-black text-[11px] font-bold flex items-center gap-1 shadow-lg">
+                      ⭐ MOST POPULAR
+                    </div>
+                  )}
+
+                  {/* Founders locked badge — Premium only */}
+                  {isFounders && isPremium && (
+                    <div className="mb-3 px-3 py-1.5 rounded-lg bg-orange-500/10 border border-orange-500/20 text-[11px] text-orange-300 font-medium text-center">
+                      🔥 Founders&apos; pricing locked for life
+                    </div>
+                  )}
+
+                  <div className="mb-6">
+                    <h3 className="font-display text-lg font-semibold mb-3">{t.name}</h3>
+
+                    {t.monthly === 0 ? (
+                      /* ── Free tier ── */
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-3xl font-bold text-[#D4AF37]">$0</span>
+                        <span className="text-sm text-white/40">forever</span>
+                      </div>
+                    ) : billing === 'annual' ? (
+                      /* ── Annual view ── */
+                      <div>
+                        <div className="flex items-baseline gap-1.5">
+                          <span className="text-3xl font-bold text-[#D4AF37]">
+                            ${showFoundersAnnual ? foundersAnnualMo.toFixed(2) : t.annualMo % 1 === 0 ? t.annualMo.toFixed(0) : t.annualMo.toFixed(2)}
+                          </span>
+                          <span className="text-sm text-white/40">/month</span>
+                        </div>
+                        <p className="text-xs text-white/40 mt-1">
+                          billed annually (${showFoundersAnnual ? foundersAnnualTotal.toFixed(2) : t.annualTotal.toFixed(2)}/yr)
+                        </p>
+                        {/* Green savings badge */}
+                        <div className="mt-2 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/20">
+                          <span className="text-[11px] font-bold text-emerald-400">💰 Save ${showFoundersAnnual ? foundersAnnualSave : t.annualSave}/year</span>
+                        </div>
+                        {/* Premium per-day (annual only) */}
+                        {isPremium && !showFoundersAnnual && (
+                          <p className="text-xs text-white/50 mt-2 italic">= just $2.40/day — less than a coffee ☕</p>
+                        )}
+                        {isPremium && showFoundersAnnual && (
+                          <p className="text-xs text-white/50 mt-2 italic">= just $1.60/day — less than a coffee ☕</p>
+                        )}
+                      </div>
+                    ) : (
+                      /* ── Monthly view ── */
+                      <div>
+                        <div className="flex items-baseline gap-1.5 flex-wrap">
+                          {showFoundersMonthly && (
+                            <span className="text-lg font-semibold text-white/30 line-through">${t.monthly.toFixed(2)}</span>
+                          )}
+                          <span className="text-3xl font-bold text-[#D4AF37]">
+                            ${showFoundersMonthly ? '59.99' : t.monthly % 1 === 0 ? t.monthly.toFixed(0) : t.monthly.toFixed(2)}
+                          </span>
+                          <span className="text-sm text-white/40">/month</span>
+                        </div>
+                        <p className="text-xs text-white/40 mt-1">billed monthly</p>
+                        {/* Upsell to annual */}
+                        {t.monthly > 0 && (
+                          <button
+                            onClick={() => setBilling('annual')}
+                            className="mt-2 text-[11px] text-emerald-400 hover:text-emerald-300 transition-colors font-medium cursor-pointer"
+                          >
+                            Switch to annual to save ${t.annualSave}/year →
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  <ul className="space-y-3 mb-6">
+                    {t.features.map((f) => (
+                      <li key={f} className="flex items-start gap-2 text-sm text-white/70">
+                        <Check className="w-4 h-4 text-[#D4AF37] mt-0.5 shrink-0" />{f}
+                      </li>
+                    ))}
+                  </ul>
+
+                  <button
+                    onClick={() => handlePricing(t.tier)}
+                    className={`w-full py-2.5 rounded-lg font-semibold text-sm transition-all ${
+                      isPro ? 'gold-gradient text-black hover:opacity-90' : 'bg-white/5 text-white hover:bg-white/10 border border-white/10'
+                    }`}
+                  >
+                    {t.cta}
+                  </button>
+                </motion.div>
+              );
+            })}
           </div>
         </div>
       </section>

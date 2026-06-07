@@ -55,7 +55,7 @@ export async function POST(request: Request) {
         currency: 'usd',
         product_data: {
           name: `ManifestReel AI ${plan.name}`,
-          description: `${plan.coins} coins/month • billed ${isAnnual ? 'annually (50% off)' : 'monthly'}${isIntro ? ' (introductory offer)' : ''}`,
+          description: `${plan.coins} coins/month • billed ${isAnnual ? 'annually (save 20%)' : 'monthly'}${isIntro ? ' (introductory offer)' : ''}`,
         },
         unit_amount: unitAmount,
         recurring: { interval },

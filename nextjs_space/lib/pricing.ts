@@ -16,7 +16,7 @@ export const PLANS = {
   starter: {
     name: 'Starter',
     monthlyPrice: 1999,    // $19.99
-    annualPrice: 11994,    // $19.99 × 12 × 0.50 = $119.94/yr → $9.99/mo
+    annualPrice: 19188,    // $15.99/mo × 12 = $191.88/yr — save $48/yr (20% off)
     coins: 200,
     reelsCap: 200,         // legacy alias
     modelTiers: ['standard', 'pro'] as string[],
@@ -28,7 +28,7 @@ export const PLANS = {
   pro: {
     name: 'Pro',
     monthlyPrice: 3999,    // $39.99
-    annualPrice: 23994,    // $39.99 × 12 × 0.50 = $239.94/yr → $19.99/mo
+    annualPrice: 38388,    // $31.99/mo × 12 = $383.88/yr — save $96/yr (20% off)
     coins: 500,
     reelsCap: 500,
     modelTiers: ['standard', 'pro', 'cinematic'] as string[],
@@ -40,7 +40,7 @@ export const PLANS = {
   premium: {
     name: 'Premium',
     monthlyPrice: 8999,    // $89.99
-    annualPrice: 53994,    // $89.99 × 12 × 0.50 = $539.94/yr → $44.99/mo
+    annualPrice: 86388,    // $71.99/mo × 12 = $863.88/yr — save $216/yr (20% off)
     coins: 1200,
     reelsCap: 1200,
     modelTiers: ['standard', 'pro', 'cinematic'] as string[],
@@ -52,7 +52,7 @@ export const PLANS = {
   agency: {
     name: 'Agency',
     monthlyPrice: 19900,   // $199.00
-    annualPrice: 119400,   // $199 × 12 × 0.50 = $1194/yr → $99.50/mo
+    annualPrice: 190800,   // $159/mo × 12 = $1,908/yr — save $480/yr (20% off)
     coins: 3000,
     reelsCap: 3000,
     modelTiers: ['standard', 'pro', 'cinematic'] as string[],
@@ -105,11 +105,38 @@ export const TRIAL_CONFIG: Record<PlanTier, { coins: number; duration: number; m
   agency:  { coins: 170, duration: 10, modelTier: 'cinematic' },
 };
 
-// Annual billing is 50% off the monthly rate.
+// Annual billing is 20% off the monthly rate.
 export function annualPerMonth(tier: PlanTier) {
   return Math.round(PLANS[tier].annualPrice / 12);
 }
-export const ANNUAL_DISCOUNT_PCT = 50;
+export const ANNUAL_DISCOUNT_PCT = 20;
+
+/** Annual savings in cents for a given tier. */
+export function annualSavingsCents(tier: PlanTier): number {
+  return PLANS[tier].monthlyPrice * 12 - PLANS[tier].annualPrice;
+}
+
+// ── Founders’ pricing (first 90 days) ────────────────────────────
+export const LAUNCH_DATE = new Date('2026-06-07T00:00:00Z');
+export const FOUNDERS_DURATION_DAYS = 90;
+
+/** Founders’ monthly price (cents) for Premium only. */
+export const FOUNDERS_PREMIUM_MONTHLY = 5999; // $59.99/mo
+
+/** True if we’re within the founders’ pricing window. */
+export function isFoundersPeriod(): boolean {
+  const now = new Date();
+  const elapsed = (now.getTime() - LAUNCH_DATE.getTime()) / (1000 * 60 * 60 * 24);
+  return elapsed < FOUNDERS_DURATION_DAYS;
+}
+
+/** Days remaining in the founders’ window (0 if expired). */
+export function foundersCountdownDays(): number {
+  const now = new Date();
+  const endDate = new Date(LAUNCH_DATE.getTime() + FOUNDERS_DURATION_DAYS * 24 * 60 * 60 * 1000);
+  const remaining = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  return Math.max(0, remaining);
+}
 
 // ── Coin bundles (one-time purchases, stack on subscription) ─────
 export const COIN_BUNDLES = [

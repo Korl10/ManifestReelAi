@@ -195,14 +195,14 @@ export function PaywallModal({ open, onClose, tier, reelsUsed, reelsCap }: Paywa
                       className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all flex items-center gap-1.5 ${billing === 'annual' ? 'bg-white text-black' : 'text-white/60 hover:text-white'}`}
                     >
                       Annually
-                      <span className="text-[10px] font-bold text-[#D4AF37]">50% OFF</span>
+                      <span className="text-[10px] font-bold text-emerald-400">(Save 20%)</span>
                     </button>
                   </div>
                 </div>
                 {upgradeTiers.slice(0, 2).map(t => {
                   const plan = PLANS[t];
                   const monthly = (plan.monthlyPrice / 100).toFixed(2);
-                  const annualMo = (Math.floor(plan.monthlyPrice * 50) / 10000).toFixed(2);
+                  const annualMo = (Math.round(plan.annualPrice / 12) / 100).toFixed(2);
                   const isGold = t === 'starter' || t === 'pro';
                   const accent = isGold ? '#D4AF37' : '#A855F7';
                   const Icon = isGold ? Sparkles : Crown;
