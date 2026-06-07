@@ -416,7 +416,7 @@ export default function DashboardPage() {
     }
     setGenerating(true);
     try {
-      // Free tier = one real-AI demo reel: 5s / Standard / default voice /
+      // Free tier = one real-AI demo reel: 7s / Standard / default voice /
       // auto-matched music / allowed subtitle style. Send the clamped body so
       // the UI never trips the server's free-tier validator.
       const reqBody = isFreeTier
@@ -426,7 +426,7 @@ export default function DashboardPage() {
             style: style.toLowerCase(),
             voice: 'female-aria',
             mood: mood.toLowerCase(),
-            targetLength: 5,
+            targetLength: 7,
             motion: false,
             subtitleStyle: {
               ...subtitleStyle,
@@ -842,7 +842,7 @@ export default function DashboardPage() {
           {isFreeTier ? (
             <div className="inline-flex items-center gap-2">
               <div className="inline-flex rounded-xl bg-white/5 border border-white/10 p-1">
-                <span className="px-4 py-1.5 rounded-lg text-xs font-semibold gold-gradient text-black">5s</span>
+                <span className="px-4 py-1.5 rounded-lg text-xs font-semibold gold-gradient text-black">7s</span>
               </div>
               <button type="button" onClick={() => setShowPaywall(true)} className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-[#D4AF37]/30 bg-[#D4AF37]/10 text-[11px] font-medium text-[#D4AF37] hover:bg-[#D4AF37]/20 transition">
                 <Lock className="w-3 h-3" /> 15–30s with Pro
@@ -864,7 +864,7 @@ export default function DashboardPage() {
               ))}
             </div>
           )}
-          <span className="text-[11px] text-white/40">{isFreeTier ? 'Free reels are a 5-second demo. Upgrade for full-length reels.' : 'Your reel is guaranteed to be this length (±1s) or your credits are refunded.'}</span>
+          <span className="text-[11px] text-white/40">{isFreeTier ? 'Free reels are a 7-second demo. Upgrade for full-length reels.' : 'Your reel is guaranteed to be this length (±1s) or your credits are refunded.'}</span>
         </div>
 
         {/* Hidden audio elements (rendered once so playback survives tab switches) */}
@@ -1202,17 +1202,29 @@ export default function DashboardPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {reels.slice(0, 6).map((reel: any) => (
               <Link key={reel?.id ?? ''} href={`/dashboard/reel/${reel?.id ?? ''}`}>
-                <motion.div whileHover={{ scale: 1.02 }} className="rounded-xl bg-white/[0.02] border border-white/5 p-4 hover:border-white/10 transition-all cursor-pointer">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{reel?.title ?? reel?.prompt?.slice(0, 40) ?? 'Untitled'}</p>
-                      <p className="text-xs text-white/30 mt-0.5">{reel?.style ?? ''} • {reel?.platform ?? ''}</p>
-                    </div>
-                    <span className={`px-2 py-0.5 rounded text-[10px] font-medium ${STATUS_COLORS[reel?.status ?? ''] ?? STATUS_COLORS['draft']}`}>
+                <motion.div whileHover={{ scale: 1.02 }} className="rounded-xl bg-white/[0.02] border border-white/5 overflow-hidden hover:border-white/10 transition-all cursor-pointer">
+                  <div className="relative aspect-[9/16] bg-gradient-to-br from-[#7B2FBE]/10 to-[#4A1A8A]/10">
+                    {reel?.thumbnailUrl ? (
+                      <img
+                        src={reel.thumbnailUrl}
+                        alt={reel?.title ?? 'Reel thumbnail'}
+                        loading="lazy"
+                        className="absolute inset-0 w-full h-full object-cover"
+                        onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                      />
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center"><Film className="w-8 h-8 text-white/10" /></div>
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+                    <span className={`absolute top-2 right-2 px-2 py-0.5 rounded text-[10px] font-medium ${STATUS_COLORS[reel?.status ?? ''] ?? STATUS_COLORS['draft']}`}>
                       {(reel?.status ?? 'draft').charAt(0).toUpperCase() + (reel?.status ?? '').slice(1)}
                     </span>
+                    <div className="absolute bottom-0 left-0 right-0 p-3">
+                      <p className="text-sm font-medium truncate text-white drop-shadow">{reel?.title ?? reel?.prompt?.slice(0, 40) ?? 'Untitled'}</p>
+                      <p className="text-[11px] text-white/60 mt-0.5 truncate">{reel?.style ?? ''} • {reel?.platform ?? ''}</p>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 text-xs text-white/30">
+                  <div className="flex items-center gap-2 text-xs text-white/30 p-3">
                     <Clock className="w-3 h-3" />
                     <HydrationDate date={reel?.createdAt} fallback="—" />
                   </div>

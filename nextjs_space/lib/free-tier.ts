@@ -8,7 +8,7 @@
 import { SUBTITLE_FONTS } from '@/lib/captions/subtitle-types';
 
 // Hard generation limits ----------------------------------------------------
-export const FREE_DURATION_SEC = 5;          // 5-second reels only
+export const FREE_DURATION_SEC = 7;          // 7-second reels only
 export const FREE_WIDTH = 720;               // 720p output (portrait)
 export const FREE_HEIGHT = 1280;
 export const FREE_MODEL_TIER = 'standard';   // Standard engine only
@@ -20,7 +20,7 @@ export const FREE_FONTS = ['DM Sans', 'Bebas Neue', 'Anton'] as const;
 export const FREE_COLORS = ['#FFFFFF', '#D4AF37', '#7B2FBE'] as const; // white / gold / purple
 
 // Account & rate limits ------------------------------------------------------
-// LIFETIME model: each account gets exactly ONE real-AI free reel, ever. A 5s
+// LIFETIME model: each account gets exactly ONE real-AI free reel, ever. A 7s
 // watermarked reel is the “wow” demo, not a usable product — so there is no
 // daily renewal. The lifetime gate (User.freeReelUsed) lives in the generate
 // route; the per-IP limit below still guards against signup-spam abuse.
@@ -30,9 +30,9 @@ export const FREE_REELS_PER_IP_PER_HOUR = 1; // anti-abuse, rolling 60m
 // Cost protection ------------------------------------------------------------
 export const FREE_DAILY_BUDGET_CENTS = 2000; // $20.00/day ceiling for ALL free reels
 // Real AI generation (Standard engine: LLM script + AI images + auto music +
-// subtitle compositing) at 5s/720p ≈ $0.25/reel → ~80 new free reels/day before
+// subtitle compositing) at 7s/720p ≈ $0.26/reel → ~75 new free reels/day before
 // the $20 pool protects against signup waves.
-export const FREE_REEL_EST_COST_CENTS = 25;  // ~$0.25 per 5s real-AI free reel
+export const FREE_REEL_EST_COST_CENTS = 26;  // ~$0.26 per 7s real-AI free reel
 
 export type FreeViolation =
   | 'duration'
@@ -64,7 +64,7 @@ const hex = (s: any) => (typeof s === 'string' ? s.trim().toUpperCase() : s);
 export function validateFreeTierRequest(body: any): FreeValidation {
   const v: FreeViolation[] = [];
 
-  // Duration: only 5s.
+  // Duration: only 7s.
   const reqLen = Number(body?.targetLength ?? body?.targetDuration);
   if (Number.isFinite(reqLen) && reqLen !== FREE_DURATION_SEC) v.push('duration');
 

@@ -95,7 +95,7 @@ export async function checkGeneration(userId: string, motion: boolean, modelTier
     return { allowed: false, reason: 'inactive', message: 'Your subscription is not active. Please renew to continue.', cost: COIN_COST.static, motion, balance };
   }
 
-  // FREE TIER: watermarked 5s reels built from cached/sample assets ($0 cost).
+  // FREE TIER: watermarked 7s reels built from cached/sample assets ($0 cost).
   // VOLUME is now governed by the rate limiter + daily budget in the generate
   // route (3/day/account, 1/IP/hour, $20/day pool) rather than a 1-ever cap.
   // Motion stays a paid-only capability.

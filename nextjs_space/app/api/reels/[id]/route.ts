@@ -21,7 +21,9 @@ export async function GET(request: Request, { params }: { params: { id: string }
     musicUrl: isPlaceholderUrl(reel.musicUrl) ? assets.musicUrl : reel.musicUrl,
     thumbnailUrl: isPlaceholderUrl(reel.thumbnailUrl) ? assets.posterUrl : reel.thumbnailUrl,
     audioUrl: isPlaceholderUrl(reel.audioUrl) ? assets.voiceSampleUrl : reel.audioUrl,
-    posterUrl: assets.posterUrl,
+    // Prefer the REAL poster frame extracted from the rendered MP4; only fall
+    // back to the generic style template when the reel has no real thumbnail.
+    posterUrl: isPlaceholderUrl(reel.thumbnailUrl) ? assets.posterUrl : reel.thumbnailUrl,
     voiceSampleUrl: getVoiceSample(reel.voice),
   };
   return NextResponse.json(resolved);

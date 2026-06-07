@@ -386,3 +386,65 @@ export async function compositeReel(input: CompositeInput): Promise<CompositeRes
   }
   throw new Error('Compositing timed out.');
 }
+
+/**
+ * Extract a real poster frame from the FINAL rendered MP4 so dashboard/library
+ * cards and the player poster show the actual reel content (with subtitles +
+ * watermark baked in) instead of a generic style template image.
+ *
+ * Grabs a frame ~0.5s in (avoids any black fade-in lead frame), scaled to a
+ * lightweight 540px-wide JPEG. Returns the permanent CDN URL, or null on any
+ * failure (callers must treat the thumbnail as best-effort, never fatal).
+ */
+export async function extractPosterFrame(videoUrl: string): Promise<string | null> {
+  const apiKey = process.env.ABACUSAI_API_KEY;
+  if (!apiKey || !videoUrl) return null;
+  try {
+    const createRes = await fetch(CREATE_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        deployment_token: apiKey,
+        input_files: { in_1: videoUrl },
+        output_files: { out_1: 'poster.jpg' },
+        // `thumbnail=100` analyses the first ~100 frames and picks the most
+        // representative one (avoids black lead/transition frames) — input/output
+        // `-ss` seeking is unreliable on this FFmpeg API. scale=540:-2 keeps a
+        // lightweight 540px-wide JPEG (height auto, divisible by 2); q:v 3 ~ high
+        // quality. The filter MUST be double-quoted for the API's tokenizer.
+        ffmpeg_command: '-i {{in_1}} -vf "thumbnail=100,scale=540:-2" -frames:v 1 -q:v 3 {{out_1}}',
+        max_command_run_seconds: 120,
+        vcpu_count: 8,
+      }),
+    });
+    if (!createRes.ok) {
+      console.error('[poster] extract failed to start:', createRes.status);
+      return null;
+    }
+    const { request_id } = await createRes.json();
+    if (!request_id) return null;
+    for (let attempt = 0; attempt < 60; attempt++) {
+      await new Promise((r) => setTimeout(r, 1500));
+      const sres = await fetch(STATUS_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ request_id, deployment_token: apiKey }),
+      });
+      const sjson = await sres.json().catch(() => ({} as any));
+      const status = sjson?.status || 'FAILED';
+      if (status === 'SUCCESS') {
+        const url = sjson?.result?.result?.out_1;
+        return url || null;
+      }
+      if (status === 'FAILED') {
+        console.error('[poster] extract failed:', sjson?.result?.error);
+        return null;
+      }
+    }
+    console.error('[poster] extract timed out');
+    return null;
+  } catch (e) {
+    console.error('[poster] extract error:', (e as any)?.message);
+    return null;
+  }
+}

@@ -317,7 +317,7 @@ export default function ReelPlayer({ videoUrl, posterUrl, musicUrl, hook, script
             <div className="rounded-xl border border-white/10 bg-white/[0.03] p-2.5">
               <p className="text-[11px] font-semibold text-white/50 uppercase tracking-wide">Free</p>
               <ul className="mt-2 space-y-1.5">
-                {['5-second reel', 'Watermarked', 'Standard AI visuals', '1 reel total'].map((f) => (
+                {['7-second reel', 'Watermarked', 'Standard AI visuals', '1 reel total'].map((f) => (
                   <li key={f} className="flex items-start gap-1.5 text-[11px] text-white/55">
                     <span className="mt-[3px] w-1 h-1 rounded-full bg-white/30 shrink-0" />{f}
                   </li>

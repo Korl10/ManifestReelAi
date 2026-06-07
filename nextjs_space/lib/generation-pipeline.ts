@@ -9,7 +9,7 @@ import { buildTemplateScript, fallbackSceneImages } from '@/lib/providers/fallba
 import { estimateTimestamps } from '@/lib/providers/elevenlabs-voice';
 import type { ExtendedVoiceInput } from '@/lib/providers/elevenlabs-voice';
 import { transcribeWithWhisper } from '@/lib/providers/whisper';
-import { compositeReel, type WatermarkConfig, WM_SIZE_MAP } from '@/lib/compositor';
+import { compositeReel, extractPosterFrame, type WatermarkConfig, WM_SIZE_MAP } from '@/lib/compositor';
 import { ensurePublicLocalAsset } from '@/lib/media-storage';
 import { resolveReelAssets } from '@/lib/reel-assets';
 import type { ScriptOutput, WordTimestamp } from '@/lib/providers/types';
@@ -130,7 +130,7 @@ export interface PipelineOptions {
 export function resolveTargetDuration(v?: number): number {
   const n = Math.round(v ?? 25);
   if (!Number.isFinite(n)) return 25;
-  // Floor of 5s supports the free tier's 5-second reels; paid tiers never
+  // Floor of 5s still supported; the free tier uses 7s reels; paid tiers never
   // request below 15s (enforced by ALLOWED_LENGTHS in the generate route).
   return Math.min(60, Math.max(5, n));
 }
@@ -623,11 +623,12 @@ export async function runGenerationPipeline(
     // than charging full price for a short-delivered reel.
     // ----------------------------------------------------------------
     const durationDelta = +(finalDuration - targetDur).toFixed(2);
-    // Free-tier reels (coinCost=0) skip the duration guarantee — users aren't
-    // paying, and a slightly longer free reel is a bonus, not a defect.
-    const skipDurCheck = tier === 'free';
-    const durationMet = skipDurCheck || Math.abs(durationDelta) <= 1;
-    console.log(`[pipeline] duration check: target=${targetDur}s actual=${finalDuration.toFixed(2)}s delta=${durationDelta}s met=${durationMet} skipFree=${skipDurCheck}`);
+    // Standard duration guarantee for ALL tiers: the delivered MP4 must land
+    // within ±1s of target. Free reels now use a tight 3-scene/short-word script
+    // so narration lands under 7s and the pipeline extends the final scene to the
+    // exact target — they pass this gate just like paid reels.
+    const durationMet = Math.abs(durationDelta) <= 1;
+    console.log(`[pipeline] duration check: target=${targetDur}s actual=${finalDuration.toFixed(2)}s delta=${durationDelta}s met=${durationMet} tier=${tier}`);
     if (!isPreview && !durationMet) {
       const refundAmt = reel.coinCost ?? 0;
       let refundedDur = 0;
@@ -690,11 +691,25 @@ export async function runGenerationPipeline(
     console.log(`[pipeline] COST BREAKDOWN reel=${reelId}:`, JSON.stringify(costBreakdown), `TOTAL=$${totalCost.toFixed(4)}`);
     console.log(`[pipeline] PROVIDERS: script=${scriptProviderName} image=${imageProviderName} voice=${voiceProviderName} motion=${motionProviderName}(${motionClipCount}clips)`);
 
+    // Real poster frame: grab the actual first frame of the FINAL rendered MP4
+    // (subtitles + watermark baked in) so cards/player show real reel content,
+    // not a generic style template. Best-effort: fall back to the scene image.
+    let posterThumbUrl = thumbnailUrl;
+    if (composited && finalVideoUrl) {
+      const frame = await extractPosterFrame(finalVideoUrl);
+      if (frame) {
+        posterThumbUrl = frame;
+        console.log(`[pipeline] poster frame extracted for reel=${reelId}`);
+      } else {
+        console.warn(`[pipeline] poster frame extraction failed reel=${reelId} — keeping scene image`);
+      }
+    }
+
     await prisma.reel.update({
       where: { id: reelId },
       data: {
         videoUrl: finalVideoUrl,
-        thumbnailUrl,
+        thumbnailUrl: posterThumbUrl,
         audioUrl: voiceUrl,
         musicUrl: musicUrlLocal,
         musicTrackId: musicTrackId ?? undefined,

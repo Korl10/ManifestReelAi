@@ -19,7 +19,16 @@ function wordCount(s: string): number {
 // so we budget words for (target - 2.5s) of speech to leave padding headroom.
 const SEC_PER_SPOKEN_WORD = 0.55;
 function scriptPlanForDuration(targetDuration?: number): { affirmationLines: number; totalScenes: number; wordBudget: number } {
-  const target = Math.min(60, Math.max(10, Math.round(targetDuration ?? 25)));
+  const target = Math.min(60, Math.max(7, Math.round(targetDuration ?? 25)));
+  // SHORT reels (free tier ~7s): a tight 3-scene plan (hook + 2 affirmations)
+  // with a small word budget so the spoken narration lands WELL UNDER target.
+  // The pipeline then extends the final scene to hit the exact target, so the
+  // delivered MP4 reliably passes the ±1s duration gate. A 4-scene/16-word
+  // script (the normal floor) spoke for ~8s and overran a 7s target.
+  if (target <= 9) {
+    const wordBudget = Math.max(9, Math.round((target - 2.0) / SEC_PER_SPOKEN_WORD));
+    return { affirmationLines: 2, totalScenes: 3, wordBudget };
+  }
   const wordBudget = Math.max(16, Math.round((target - 2.5) / SEC_PER_SPOKEN_WORD));
   const totalScenes = Math.max(4, Math.round(wordBudget / 7)); // ~7 words per scene incl. hook
   const affirmationLines = Math.max(3, totalScenes - 1);
@@ -29,7 +38,7 @@ function scriptPlanForDuration(targetDuration?: number): { affirmationLines: num
 function buildPrompt(input: ScriptInput): string {
   const { prompt, platform, style, mood } = input;
   const { affirmationLines, totalScenes, wordBudget } = scriptPlanForDuration(input.targetDuration);
-  const target = Math.min(60, Math.max(10, Math.round(input.targetDuration ?? 25)));
+  const target = Math.min(60, Math.max(7, Math.round(input.targetDuration ?? 25)));
   return `You are an elite short-form scriptwriter who has written hundreds of VIRAL manifestation, Law of Attraction, abundance and spiritual reels for Instagram Reels, TikTok and YouTube Shorts. You understand hooks, retention, emotional pacing and the hypnotic affirmation cadence that makes these videos go viral and get saved/shared.
 
 Write a complete script for ONE vertical reel.
@@ -117,9 +126,10 @@ export class LLMScriptProvider implements Provider<ScriptInput, ScriptOutput> {
     // min 4 scenes) until total spoken words fit within ~1.15x the budget. This
     // guarantees the narration never overruns the requested duration; the pipeline
     // then pads/holds the final scene to land exactly on target.
-    const { wordBudget } = scriptPlanForDuration(input.targetDuration);
+    const { wordBudget, totalScenes: planScenes } = scriptPlanForDuration(input.targetDuration);
+    const minScenes = Math.max(3, planScenes); // short reels floor at 3 scenes, normal at 4+
     const totalWords = () => sceneSeeds.reduce((sum, s) => sum + wordCount(s.text), 0);
-    while (sceneSeeds.length > 4 && totalWords() > Math.round(wordBudget * 1.15)) {
+    while (sceneSeeds.length > minScenes && totalWords() > Math.round(wordBudget * 1.15)) {
       sceneSeeds.pop();
     }
 

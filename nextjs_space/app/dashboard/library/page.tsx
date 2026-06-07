@@ -108,12 +108,23 @@ export default function LibraryPage() {
               className="rounded-xl bg-white/[0.02] border border-white/5 overflow-hidden hover:border-white/10 transition-all group"
             >
               {/* Thumbnail */}
-              <div className="aspect-video bg-gradient-to-br from-[#7B2FBE]/10 to-[#4A1A8A]/10 flex items-center justify-center relative">
-                <Film className="w-8 h-8 text-white/10" />
+              <Link href={`/dashboard/reel/${reel?.id ?? ''}`} className="block aspect-[9/16] bg-gradient-to-br from-[#7B2FBE]/10 to-[#4A1A8A]/10 relative">
+                {reel?.thumbnailUrl ? (
+                  <img
+                    src={reel.thumbnailUrl}
+                    alt={reel?.title ?? 'Reel thumbnail'}
+                    loading="lazy"
+                    className="absolute inset-0 w-full h-full object-cover"
+                    onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                  />
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center"><Film className="w-8 h-8 text-white/10" /></div>
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
                 <span className={`absolute top-2 right-2 px-2 py-0.5 rounded text-[10px] font-medium ${STATUS_COLORS[reel?.status ?? ''] ?? STATUS_COLORS['draft']}`}>
                   {(reel?.status ?? 'draft').charAt(0).toUpperCase() + (reel?.status ?? '').slice(1)}
                 </span>
-              </div>
+              </Link>
               <div className="p-4">
                 <p className="text-sm font-medium truncate mb-1 text-white">{reel?.title ?? reel?.prompt?.slice(0, 40) ?? 'Untitled'}</p>
                 <p className="text-xs mb-3" style={{ color: 'rgba(255,255,255,0.6)' }}>{reel?.style ?? ''} • {reel?.platform ?? ''}</p>
