@@ -98,11 +98,11 @@ export function reelCoinCost(modelTierId: string, durationSec: number): number {
 
 // ── Trial configuration ──────────────────────────────────────────
 // Each trial: card upfront, 3-day auto-convert, 1× watermarked reel.
-export const TRIAL_CONFIG: Record<PlanTier, { coins: number; duration: number; modelTier: string }> = {
+// Agency has NO trial — uses 30-day money-back guarantee instead.
+export const TRIAL_CONFIG: Partial<Record<PlanTier, { coins: number; duration: number; modelTier: string }>> = {
   starter: { coins: 8,   duration: 10, modelTier: 'standard' },
   pro:     { coins: 40,  duration: 10, modelTier: 'pro' },
   premium: { coins: 170, duration: 10, modelTier: 'cinematic' },
-  agency:  { coins: 170, duration: 10, modelTier: 'cinematic' },
 };
 
 // Annual billing is 20% off the monthly rate.

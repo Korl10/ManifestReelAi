@@ -219,9 +219,9 @@ const FEATURES = [
 const TIERS = [
   { name: 'Free', monthly: 0, annualMo: 0, annualTotal: 0, annualSave: 0, foundersMo: 0, foundersTotal: 0, foundersSave: 0, features: ['Demo gallery access', '7s watermarked preview', 'Explore all styles & moods', 'No card required'], cta: 'Start Free', tier: 'free', popular: false },
   { name: 'Starter', monthly: 19.99, annualMo: 15.99, annualTotal: 191.88, annualSave: 48, foundersMo: 12.99, foundersTotal: 155.88, foundersSave: 84, features: ['200 coins / month', 'Standard + Pro tiers', 'HD exports, no watermark', '160 AI voices', 'Manual export only'], cta: 'Get Starter', tier: 'starter', popular: false },
-  { name: 'Pro', monthly: 39.99, annualMo: 31.99, annualTotal: 383.88, annualSave: 96, foundersMo: 24.99, foundersTotal: 299.88, foundersSave: 180, features: ['500 coins / month', 'All 3 quality tiers', 'Auto-post IG + TikTok', '1080p exports', '3 Craft presets'], cta: 'Get Pro', tier: 'pro', popular: true },
-  { name: 'Premium', monthly: 89.99, annualMo: 71.99, annualTotal: 863.88, annualSave: 216, foundersMo: 59.99, foundersTotal: 719.88, foundersSave: 360, features: ['1,200 coins / month', 'All tiers + 4K exports', 'Brand Kit', 'Auto-post IG/TikTok/YT/X', 'Priority queue + API'], cta: 'Get Premium', tier: 'premium', popular: false },
-  { name: 'Agency', monthly: 199, annualMo: 159, annualTotal: 1908, annualSave: 480, foundersMo: 129, foundersTotal: 1548, foundersSave: 840, features: ['3,000 coins / month', 'Everything in Premium', '5 team seats', 'White-label exports', 'Bulk generation'], cta: 'Get Agency', tier: 'agency', popular: false },
+  { name: 'Pro', monthly: 39.99, annualMo: 31.99, annualTotal: 383.88, annualSave: 96, foundersMo: 24.99, foundersTotal: 299.88, foundersSave: 180, features: ['500 coins / month', 'All 3 quality tiers', 'Auto-post IG + TikTok (coming soon)', '1080p exports', '3 Craft presets'], cta: 'Get Pro', tier: 'pro', popular: true },
+  { name: 'Premium', monthly: 89.99, annualMo: 71.99, annualTotal: 863.88, annualSave: 216, foundersMo: 59.99, foundersTotal: 719.88, foundersSave: 360, features: ['1,200 coins / month', 'All tiers + 4K exports', 'Brand Kit', 'Auto-post all platforms (coming soon)', 'Priority queue + API'], cta: 'Get Premium', tier: 'premium', popular: false },
+  { name: 'Agency', monthly: 199, annualMo: 159, annualTotal: 1908, annualSave: 480, foundersMo: 129, foundersTotal: 1548, foundersSave: 840, features: ['3,000 coins / month', 'Everything in Premium', '5 team seats', 'White-label exports', 'Bulk generation'], cta: 'Start Agency', tier: 'agency', popular: false },
 ];
 
 const TESTIMONIALS = [
@@ -464,6 +464,7 @@ export function LandingPage() {
             {TIERS.map((t, i) => {
               const isPro = t.popular;
               const isPremium = t.tier === 'premium';
+              const isAgency = t.tier === 'agency';
               // Founders' promo applies to ANNUAL billing across ALL paid tiers.
               const showFoundersAnnual = isFounders && t.monthly > 0 && billing === 'annual';
 
@@ -477,7 +478,7 @@ export function LandingPage() {
                   transition={{ delay: i * 0.08 }}
                   className={`relative p-6 rounded-xl border transition-all duration-300 ${
                     isPro
-                      ? 'bg-gradient-to-b from-[#D4AF37]/10 via-[#D4AF37]/5 to-transparent border-[#D4AF37]/40 shadow-[0_0_30px_rgba(212,175,55,0.15)] xl:scale-[1.07] z-10'
+                      ? 'bg-gradient-to-b from-[#D4AF37]/10 via-[#D4AF37]/5 to-transparent border-[#D4AF37]/40 shadow-[0_0_30px_rgba(212,175,55,0.15)] xl:scale-[1.10] z-10'
                       : 'bg-white/[0.02] border-white/5 hover:border-white/10'
                   }`}
                 >
@@ -561,6 +562,13 @@ export function LandingPage() {
                     ))}
                   </ul>
 
+                  {/* Agency: money-back badge */}
+                  {isAgency && (
+                    <div className="flex items-center gap-1.5 mb-3 text-[11px] font-semibold text-emerald-400">
+                      <span>✅</span> 30-day money-back guarantee
+                    </div>
+                  )}
+
                   <button
                     onClick={() => handlePricing(t.tier)}
                     className={`w-full py-2.5 rounded-lg font-semibold text-sm transition-all ${
@@ -569,10 +577,22 @@ export function LandingPage() {
                   >
                     {t.cta}
                   </button>
+
+                  {/* Agency: Talk to Sales link */}
+                  {isAgency && (
+                    <a href="mailto:hello@manifestreel.ai?subject=Agency%20Inquiry" className="block text-center mt-2 text-xs text-white/40 hover:text-white/60 transition">
+                      or Talk to Sales →
+                    </a>
+                  )}
                 </motion.div>
               );
             })}
           </div>
+
+          {/* Coin rollover note */}
+          <p className="text-center text-xs text-white/30 mt-6">
+            🔄 Unused coins roll over for 60 days (capped at 1× monthly allotment). Auto-posting launches in 30 days — Pro+ early access.
+          </p>
         </div>
       </section>
 

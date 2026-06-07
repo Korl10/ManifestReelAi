@@ -138,15 +138,28 @@ export default function SettingsPage() {
                   <>
                     <div className="flex justify-between text-xs text-white/50 mb-1">
                       <span>Coins available</span>
-                      <span className="font-semibold text-[#D4AF37]">{quota?.coinsAvailable ?? 0}{(quota?.bundleCoins ?? 0) > 0 ? ` (incl. ${quota.bundleCoins} bundle)` : ''}</span>
+                      <span className="font-semibold text-[#D4AF37]">{quota?.coinsAvailable ?? 0}</span>
                     </div>
                     <div className="flex justify-between text-[10px] text-white/35 mb-1">
                       <span>Monthly plan coins</span>
                       <span>{quota?.subscriptionRemaining ?? 0} / {quota?.subscriptionCoins ?? 0} left</span>
                     </div>
-                    <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
+                    <div className="h-1.5 rounded-full bg-white/5 overflow-hidden mb-1">
                       <div className="h-full rounded-full gold-gradient" style={{ width: `${Math.min(100, ((quota?.subscriptionRemaining ?? 0) / Math.max(1, quota?.subscriptionCoins ?? 1)) * 100)}%` }} />
                     </div>
+                    {/* Rollover coins */}
+                    {(quota?.rolloverCoins ?? 0) > 0 && (
+                      <div className="flex justify-between text-[10px] text-emerald-400/70 mt-1">
+                        <span>🔄 {quota.rolloverCoins} rolling over</span>
+                        <span>expires {new Date(quota.rolloverInfo?.[0]?.expiresAt).toLocaleDateString()}</span>
+                      </div>
+                    )}
+                    {/* Bundle coins */}
+                    {(quota?.bundleCoins ?? 0) > 0 && (
+                      <div className="flex justify-between text-[10px] text-white/30 mt-0.5">
+                        <span>+ {quota.bundleCoins} bundle coins</span>
+                      </div>
+                    )}
                   </>
                 )}
               </div>

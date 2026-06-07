@@ -2,7 +2,14 @@ import { prisma } from '@/lib/prisma';
 import { PLANS, FREE_PREVIEW_CAP, COIN_COST, reelCoinCost, REEL_COIN_COSTS } from '@/lib/pricing';
 import { modelTierAccess, getModelTier, MODEL_TIERS, type ModelTierId } from '@/lib/model-tiers';
 
+// ── Constants ────────────────────────────────────────────────────
+const ROLLOVER_EXPIRY_DAYS = 60;
+
 // ── Coin balance ─────────────────────────────────────────────────
+export interface RolloverInfo {
+  coins: number;      // remaining rollover coins
+  expiresAt: string;  // ISO date of expiry
+}
 export interface CoinBalance {
   tier: string;
   status: string;
@@ -10,8 +17,10 @@ export interface CoinBalance {
   subscriptionCoins: number;    // monthly allotment for this tier
   subscriptionUsed: number;     // consumed this period
   subscriptionRemaining: number;
+  rolloverCoins: number;        // non-expired rollover coins remaining
+  rolloverInfo: RolloverInfo[]; // individual rollover records for display
   bundleCoins: number;          // non-expired purchased coins remaining
-  coinsAvailable: number;       // subscriptionRemaining + bundleCoins
+  coinsAvailable: number;       // subscriptionRemaining + rolloverCoins + bundleCoins
 }
 
 const TIER_COINS: Record<string, number> = {
@@ -28,7 +37,9 @@ function monthWindow(now = new Date()) {
   return { periodStart, periodEnd };
 }
 
-/** Ensure a usage counter exists for the current month for paid tiers. */
+/** Ensure a usage counter exists for the current month for paid tiers.
+ *  When creating a NEW month's counter, automatically roll over unused coins
+ *  from the previous month (capped at 1× monthly allotment, 60-day expiry). */
 async function getOrCreateCounter(userId: string, tier: string) {
   const now = new Date();
   let counter = await prisma.usageCounter.findFirst({
@@ -40,8 +51,42 @@ async function getOrCreateCounter(userId: string, tier: string) {
     counter = await prisma.usageCounter.create({
       data: { userId, tier, reelsCap: TIER_COINS[tier] ?? 0, reelsUsed: 0, periodStart, periodEnd },
     });
+
+    // ── Rollover from previous month ──────────────────────────
+    // Find the most-recent PRIOR counter for this user (any tier — handles upgrades).
+    const prevCounter = await prisma.usageCounter.findFirst({
+      where: { userId, periodEnd: { lt: periodStart } },
+      orderBy: { periodStart: 'desc' },
+    });
+    if (prevCounter) {
+      const prevCap = prevCounter.reelsCap;
+      const unused = Math.max(0, prevCap - prevCounter.reelsUsed);
+      const monthlyAllotment = TIER_COINS[tier] ?? 0;
+      const rollAmount = Math.min(unused, monthlyAllotment); // cap at 1× current allotment
+      if (rollAmount > 0) {
+        const fromMonth = prevCounter.periodStart;
+        // Prevent duplicate rollovers for the same source month
+        const existing = await prisma.coinRollover.findFirst({ where: { userId, fromMonth } });
+        if (!existing) {
+          const expiresAt = new Date(now.getTime() + ROLLOVER_EXPIRY_DAYS * 24 * 60 * 60 * 1000);
+          await prisma.coinRollover.create({
+            data: { userId, coins: rollAmount, remaining: rollAmount, fromMonth, expiresAt },
+          });
+          console.log(`[quota] ROLLOVER ${rollAmount} coins for user=${userId} from ${fromMonth.toISOString()} expires ${expiresAt.toISOString()}`);
+        }
+      }
+    }
   }
   return counter;
+}
+
+/** Get non-expired rollover records for a user. */
+async function getActiveRollovers(userId: string) {
+  const now = new Date();
+  return prisma.coinRollover.findMany({
+    where: { userId, remaining: { gt: 0 }, expiresAt: { gt: now } },
+    orderBy: { createdAt: 'asc' }, // oldest first for FIFO consumption
+  });
 }
 
 export async function getCoinBalance(userId: string): Promise<CoinBalance> {
@@ -51,8 +96,9 @@ export async function getCoinBalance(userId: string): Promise<CoinBalance> {
   const motionEnabled = tier !== 'free' && modelTierAccess(tier).length > 0;
   const subscriptionCoins = TIER_COINS[tier] ?? 0;
 
-  // Non-expired purchased coins.
   const now = new Date();
+
+  // Non-expired purchased coins.
   const bundleAgg = await prisma.coinPurchase.aggregate({
     where: {
       userId,
@@ -64,17 +110,25 @@ export async function getCoinBalance(userId: string): Promise<CoinBalance> {
   });
   const bundleCoins = bundleAgg._sum.coinsRemaining ?? 0;
 
+  // Active rollover coins
+  const rollovers = await getActiveRollovers(userId);
+  const rolloverCoins = rollovers.reduce((s, r) => s + r.remaining, 0);
+  const rolloverInfo: RolloverInfo[] = rollovers.map(r => ({
+    coins: r.remaining, expiresAt: r.expiresAt.toISOString(),
+  }));
+
   let subscriptionUsed = 0;
   if (tier !== 'free' && status === 'active') {
     const counter = await getOrCreateCounter(userId, tier);
     subscriptionUsed = counter.reelsUsed;
   }
   const subscriptionRemaining = Math.max(0, subscriptionCoins - subscriptionUsed);
-  const coinsAvailable = subscriptionRemaining + bundleCoins;
+  const coinsAvailable = subscriptionRemaining + rolloverCoins + bundleCoins;
 
   return {
     tier, status, motionEnabled,
     subscriptionCoins, subscriptionUsed, subscriptionRemaining,
+    rolloverCoins, rolloverInfo,
     bundleCoins, coinsAvailable,
   };
 }
@@ -159,7 +213,18 @@ export async function consumeCoins(userId: string, amount: number): Promise<numb
     remaining -= fromSub;
   }
 
-  // 2) Bundle coins, oldest non-expired first (FIFO)
+  // 2) Rollover coins, oldest first (FIFO, expire soonest)
+  if (remaining > 0) {
+    const rollovers = await getActiveRollovers(userId);
+    for (const r of rollovers) {
+      if (remaining <= 0) break;
+      const take = Math.min(r.remaining, remaining);
+      await prisma.coinRollover.update({ where: { id: r.id }, data: { remaining: { decrement: take } } });
+      remaining -= take;
+    }
+  }
+
+  // 3) Bundle coins, oldest non-expired first (FIFO)
   if (remaining > 0) {
     const now = new Date();
     const purchases = await prisma.coinPurchase.findMany({
@@ -234,13 +299,15 @@ export interface QuotaCheckResult {
   allowed: boolean;
   message: string;
   reelsUsed: number;     // = subscription coins used this period
-  reelsCap: number;      // = subscriptionCoins + bundleCoins (so cap-used == coinsAvailable)
+  reelsCap: number;      // = subscriptionCoins + rolloverCoins + bundleCoins
   bonusReels: number;    // = bundle coins remaining
   tier: string;
   // richer coin fields
   coinsAvailable: number;
   subscriptionCoins: number;
   subscriptionRemaining: number;
+  rolloverCoins: number;
+  rolloverInfo: RolloverInfo[];
   bundleCoins: number;
   motionEnabled: boolean;
   status: string;
@@ -265,11 +332,13 @@ export async function checkQuota(userId: string): Promise<QuotaCheckResult> {
   return {
     allowed, message, tier: b.tier, status: b.status,
     reelsUsed: b.subscriptionUsed,
-    reelsCap: b.subscriptionCoins + b.bundleCoins,
+    reelsCap: b.subscriptionCoins + b.rolloverCoins + b.bundleCoins,
     bonusReels: b.bundleCoins,
     coinsAvailable: b.coinsAvailable,
     subscriptionCoins: b.subscriptionCoins,
     subscriptionRemaining: b.subscriptionRemaining,
+    rolloverCoins: b.rolloverCoins,
+    rolloverInfo: b.rolloverInfo,
     bundleCoins: b.bundleCoins,
     motionEnabled: b.motionEnabled,
   };

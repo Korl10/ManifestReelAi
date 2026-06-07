@@ -1025,7 +1025,7 @@ export default function DashboardPage() {
                 ? <><span className="text-white font-semibold">0</span> free reels left — upgrade to keep creating</>
                 : <><span className="text-white font-semibold">1</span> free AI reel — your one-time demo</>
             ) : (
-              <><span className="text-white font-semibold">{quota?.coinsAvailable ?? 0}</span> coins available{(quota?.bundleCoins ?? 0) > 0 ? ` (incl. ${quota.bundleCoins} bundle)` : ''}</>
+              <><span className="text-white font-semibold">{quota?.coinsAvailable ?? 0}</span> coins available{(quota?.rolloverCoins ?? 0) > 0 ? <span className="text-emerald-400/70"> • {quota.rolloverCoins} rolled over</span> : null}{(quota?.bundleCoins ?? 0) > 0 ? ` • ${quota.bundleCoins} bundle` : ''}</>
             )}
             <span className="text-white/30 ml-2">({(quota?.tier ?? 'free').charAt(0).toUpperCase() + (quota?.tier ?? 'free').slice(1)} plan)</span>
           </span>

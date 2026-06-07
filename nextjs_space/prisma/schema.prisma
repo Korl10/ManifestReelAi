@@ -27,6 +27,7 @@ model User {
   usageCounters   UsageCounter[]
   credits         Credit?
   coinPurchases   CoinPurchase[]
+  coinRollovers  CoinRollover[]
   analyticsEvents AnalyticsEvent[]
   reels           Reel[]
   generationJobs GenerationJob[]
@@ -185,6 +186,21 @@ model CoinPurchase {
 
   @@index([userId])
   @@map("coin_purchases")
+}
+
+model CoinRollover {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  coins     Int      // total rolled-over amount
+  remaining Int      // still-available portion (decremented on use)
+  fromMonth DateTime @map("from_month") // first day of the source month
+  expiresAt DateTime @map("expires_at") // 60 days from creation
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("coin_rollovers")
 }
 
 model AnalyticsEvent {
