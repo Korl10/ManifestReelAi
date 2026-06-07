@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Sparkles, Crown, Zap, Check, Loader2, Gift } from 'lucide-react';
 import { toast } from 'sonner';
-import { COIN_BUNDLES } from '@/lib/pricing';
+import { COIN_BUNDLES, PLANS, PLAN_ORDER, type PlanTier } from '@/lib/pricing';
 
 interface PaywallModalProps {
   open: boolean;
@@ -93,8 +93,13 @@ export function PaywallModal({ open, onClose, tier, reelsUsed, reelsCap }: Paywa
 
   if (!open) return null;
 
-  const isPaid = tier === 'pro' || tier === 'premium';
-  const isProOnly = tier === 'pro';
+  const isPaid = PLAN_ORDER.includes(tier as PlanTier);
+  const isTopTier = tier === 'agency';
+  // Tiers available to upgrade to (higher than current)
+  const upgradeTiers = PLAN_ORDER.filter(t => {
+    const currentIdx = PLAN_ORDER.indexOf(tier as PlanTier);
+    return PLAN_ORDER.indexOf(t) > currentIdx;
+  });
 
   return (
     <AnimatePresence>
@@ -146,22 +151,27 @@ export function PaywallModal({ open, onClose, tier, reelsUsed, reelsCap }: Paywa
                     </div>
                     <p className="text-xs text-white/60 mb-3">We don't want you to miss out. Here's an exclusive deal:</p>
                     <div className="space-y-2">
-                      <button
-                        onClick={() => handleUpgrade('pro', true)}
-                        disabled={!!loading}
-                        className="w-full py-2.5 rounded-xl bg-[#D4AF37]/15 border border-[#D4AF37]/40 text-sm font-semibold text-[#D4AF37] hover:bg-[#D4AF37]/25 transition flex items-center justify-center gap-2"
-                      >
-                        {loading === 'upgrade-pro-intro' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                        Pro — $9.99/mo for 3 months <span className="text-[10px] text-white/40">(then $19.99)</span>
-                      </button>
-                      <button
-                        onClick={() => handleUpgrade('premium', true)}
-                        disabled={!!loading}
-                        className="w-full py-2.5 rounded-xl bg-[#7B2FBE]/15 border border-[#7B2FBE]/40 text-sm font-semibold text-[#A855F7] hover:bg-[#7B2FBE]/25 transition flex items-center justify-center gap-2"
-                      >
-                        {loading === 'upgrade-premium-intro' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Crown className="w-4 h-4" />}
-                        Premium — $25/mo for 3 months <span className="text-[10px] text-white/40">(then $49.99)</span>
-                      </button>
+                      {upgradeTiers.slice(0, 2).map(t => {
+                        const plan = PLANS[t];
+                        const introMo = (plan.introMonthlyPrice / 100).toFixed(0);
+                        const fullMo = (plan.monthlyPrice / 100).toFixed(2);
+                        const isGold = t === 'starter' || t === 'pro';
+                        return (
+                          <button
+                            key={t}
+                            onClick={() => handleUpgrade(t, true)}
+                            disabled={!!loading}
+                            className={`w-full py-2.5 rounded-xl border text-sm font-semibold transition flex items-center justify-center gap-2 ${
+                              isGold
+                                ? 'bg-[#D4AF37]/15 border-[#D4AF37]/40 text-[#D4AF37] hover:bg-[#D4AF37]/25'
+                                : 'bg-[#7B2FBE]/15 border-[#7B2FBE]/40 text-[#A855F7] hover:bg-[#7B2FBE]/25'
+                            }`}
+                          >
+                            {loading === `upgrade-${t}-intro` ? <Loader2 className="w-4 h-4 animate-spin" /> : (isGold ? <Sparkles className="w-4 h-4" /> : <Crown className="w-4 h-4" />)}
+                            {plan.name} — ${introMo}/mo for {plan.introDurationMonths}mo <span className="text-[10px] text-white/40">(then ${fullMo})</span>
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 </motion.div>
@@ -169,7 +179,7 @@ export function PaywallModal({ open, onClose, tier, reelsUsed, reelsCap }: Paywa
             </AnimatePresence>
 
             {/* ── UPGRADE OPTIONS ── */}
-            {(!isPaid || isProOnly) && !showDiscount && (
+            {upgradeTiers.length > 0 && !showDiscount && (
               <div className="space-y-3">
                 {/* Billing toggle */}
                 <div className="flex justify-center">
@@ -189,60 +199,44 @@ export function PaywallModal({ open, onClose, tier, reelsUsed, reelsCap }: Paywa
                     </button>
                   </div>
                 </div>
-                {/* Pro card */}
-                {!isPaid && (
-                  <button
-                    onClick={() => handleUpgrade('pro')}
-                    disabled={!!loading}
-                    className="w-full text-left p-4 rounded-xl border border-[#D4AF37]/30 bg-[#D4AF37]/5 hover:bg-[#D4AF37]/10 transition"
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <Sparkles className="w-4 h-4 text-[#D4AF37]" />
-                        <span className="font-bold text-[#D4AF37]">Pro</span>
-                      </div>
-                      <span className="text-sm font-bold text-white flex items-baseline gap-1">
-                        {billing === 'annual' && <span className="text-xs font-normal text-white/30 line-through">$19.99</span>}
-                        ${billing === 'annual' ? '9.99' : '19.99'}<span className="text-white/40 font-normal">/mo</span>
-                      </span>
-                    </div>
-                    <div className="space-y-1">
-                      {['30 coins / month', 'Static reels (1 coin each)', 'All 57 premium voices', 'HD export, no watermark'].map(f => (
-                        <div key={f} className="flex items-center gap-2 text-xs text-white/50">
-                          <Check className="w-3 h-3 text-[#D4AF37]" />{f}
+                {upgradeTiers.slice(0, 2).map(t => {
+                  const plan = PLANS[t];
+                  const monthly = (plan.monthlyPrice / 100).toFixed(2);
+                  const annualMo = (Math.floor(plan.monthlyPrice * 50) / 10000).toFixed(2);
+                  const isGold = t === 'starter' || t === 'pro';
+                  const accent = isGold ? '#D4AF37' : '#A855F7';
+                  const Icon = isGold ? Sparkles : Crown;
+                  return (
+                    <button
+                      key={t}
+                      onClick={() => handleUpgrade(t)}
+                      disabled={!!loading}
+                      className={`w-full text-left p-4 rounded-xl border transition ${
+                        isGold ? 'border-[#D4AF37]/30 bg-[#D4AF37]/5 hover:bg-[#D4AF37]/10' : 'border-[#7B2FBE]/30 bg-[#7B2FBE]/5 hover:bg-[#7B2FBE]/10'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <Icon className="w-4 h-4" style={{ color: accent }} />
+                          <span className="font-bold" style={{ color: accent }}>{plan.name}</span>
+                          {isPaid && <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-white/40">UPGRADE</span>}
                         </div>
-                      ))}
-                    </div>
-                    {loading === 'upgrade-pro' && <Loader2 className="w-4 h-4 text-[#D4AF37] animate-spin mt-2" />}
-                  </button>
-                )}
-
-                {/* Premium card */}
-                <button
-                  onClick={() => handleUpgrade('premium')}
-                  disabled={!!loading}
-                  className="w-full text-left p-4 rounded-xl border border-[#7B2FBE]/30 bg-[#7B2FBE]/5 hover:bg-[#7B2FBE]/10 transition"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <Crown className="w-4 h-4 text-[#A855F7]" />
-                      <span className="font-bold text-[#A855F7]">Premium</span>
-                      {isPaid && <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#7B2FBE]/20 text-[#A855F7]">UPGRADE</span>}
-                    </div>
-                    <span className="text-sm font-bold text-white flex items-baseline gap-1">
-                      {billing === 'annual' && <span className="text-xs font-normal text-white/30 line-through">$49.99</span>}
-                      ${billing === 'annual' ? '24.99' : '49.99'}<span className="text-white/40 font-normal">/mo</span>
-                    </span>
-                  </div>
-                  <div className="space-y-1">
-                    {['60 coins / month', 'Cinematic motion reels (5 coins)', '4K export + no watermark', 'Priority rendering'].map(f => (
-                      <div key={f} className="flex items-center gap-2 text-xs text-white/50">
-                        <Check className="w-3 h-3 text-[#A855F7]" />{f}
+                        <span className="text-sm font-bold text-white flex items-baseline gap-1">
+                          {billing === 'annual' && <span className="text-xs font-normal text-white/30 line-through">${monthly}</span>}
+                          ${billing === 'annual' ? annualMo : monthly}<span className="text-white/40 font-normal">/mo</span>
+                        </span>
                       </div>
-                    ))}
-                  </div>
-                  {loading === 'upgrade-premium' && <Loader2 className="w-4 h-4 text-[#A855F7] animate-spin mt-2" />}
-                </button>
+                      <div className="space-y-1">
+                        {[`${plan.coins} coins / month`, ...plan.features.slice(0, 3)].map(f => (
+                          <div key={f} className="flex items-center gap-2 text-xs text-white/50">
+                            <Check className="w-3 h-3" style={{ color: accent }} />{f}
+                          </div>
+                        ))}
+                      </div>
+                      {loading === `upgrade-${t}` && <Loader2 className="w-4 h-4 animate-spin mt-2" style={{ color: accent }} />}
+                    </button>
+                  );
+                })}
               </div>
             )}
 

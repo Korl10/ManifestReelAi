@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import { PLANS, FREE_PREVIEW_CAP, COIN_COST } from '@/lib/pricing';
+import { PLANS, FREE_PREVIEW_CAP, COIN_COST, reelCoinCost, REEL_COIN_COSTS } from '@/lib/pricing';
 import { modelTierAccess, getModelTier, MODEL_TIERS, type ModelTierId } from '@/lib/model-tiers';
 
 // ── Coin balance ─────────────────────────────────────────────────
@@ -16,8 +16,10 @@ export interface CoinBalance {
 
 const TIER_COINS: Record<string, number> = {
   free: 0,
+  starter: PLANS.starter.coins,
   pro: PLANS.pro.coins,
   premium: PLANS.premium.coins,
+  agency: PLANS.agency.coins,
 };
 
 function monthWindow(now = new Date()) {
@@ -46,7 +48,7 @@ export async function getCoinBalance(userId: string): Promise<CoinBalance> {
   const sub = await prisma.subscription.findUnique({ where: { userId } });
   const tier = sub?.tier ?? 'free';
   const status = sub?.status ?? 'active';
-  const motionEnabled = (PLANS as any)[tier]?.motion === true;
+  const motionEnabled = tier !== 'free' && modelTierAccess(tier).length > 0;
   const subscriptionCoins = TIER_COINS[tier] ?? 0;
 
   // Non-expired purchased coins.
@@ -85,54 +87,49 @@ export interface GenerationCheck {
   cost: number;            // coins this generation will consume
   motion: boolean;
   balance: CoinBalance;
-  isFreePreview?: boolean; // free users get a single watermarked preview
+  isFreePreview?: boolean;
 }
 
-export async function checkGeneration(userId: string, motion: boolean, modelTierId?: string): Promise<GenerationCheck> {
+/**
+ * Check whether a user may generate a reel. The cost is now driven by
+ * model-tier × reel-duration (see REEL_COIN_COSTS in pricing.ts).
+ * `targetDuration` is the requested reel length in seconds (15/20/25/30).
+ */
+export async function checkGeneration(userId: string, motion: boolean, modelTierId?: string, targetDuration?: number): Promise<GenerationCheck> {
   const balance = await getCoinBalance(userId);
 
   if (balance.status !== 'active') {
-    return { allowed: false, reason: 'inactive', message: 'Your subscription is not active. Please renew to continue.', cost: COIN_COST.static, motion, balance };
+    return { allowed: false, reason: 'inactive', message: 'Your subscription is not active. Please renew to continue.', cost: 0, motion, balance };
   }
 
   // FREE TIER: watermarked 7s reels built from cached/sample assets ($0 cost).
-  // VOLUME is now governed by the rate limiter + daily budget in the generate
-  // route (3/day/account, 1/IP/hour, $20/day pool) rather than a 1-ever cap.
-  // Motion stays a paid-only capability.
   if (balance.tier === 'free') {
     if (motion) {
-      return { allowed: false, reason: 'motion_locked', message: 'Cinematic motion is a paid feature. Upgrade to Pro or Premium to unlock it.', cost: MODEL_TIERS.standard.coinCost, motion, balance };
+      return { allowed: false, reason: 'motion_locked', message: 'Motion reels are a paid feature. Upgrade to start creating.', cost: 0, motion, balance };
     }
     return { allowed: true, message: 'OK', cost: 0, motion: false, balance, isFreePreview: true };
   }
 
-  // Static reels keep the flat 1-coin cost.
-  if (!motion) {
-    if (balance.coinsAvailable < COIN_COST.static) {
-      return { allowed: false, reason: 'insufficient_coins', message: 'You\u2019re out of coins. Buy a coin bundle or wait for your monthly reset.', cost: COIN_COST.static, motion, balance };
-    }
-    return { allowed: true, message: 'OK', cost: COIN_COST.static, motion, balance };
-  }
-
-  // MOTION: gate + cost are driven by the selected MODEL TIER.
+  // Resolve model tier access for this subscription.
   const access = modelTierAccess(balance.tier);
-  if (access.length === 0) {
-    return { allowed: false, reason: 'motion_locked', message: 'Cinematic motion is available on Pro and Premium plans. Upgrade to unlock motion reels.', cost: MODEL_TIERS.standard.coinCost, motion, balance };
-  }
-  const requested = ((modelTierId || '').toLowerCase()) as ModelTierId;
+  const requested = ((modelTierId || 'standard').toLowerCase()) as ModelTierId;
+
+  // If the user explicitly requested a tier they can't access, block.
   if (requested && !access.includes(requested)) {
     const mt = getModelTier(requested);
-    return { allowed: false, reason: 'motion_locked', message: `The ${mt.name} model tier is available on Premium. Upgrade to unlock it.`, cost: mt.coinCost, motion, balance };
+    return { allowed: false, reason: 'motion_locked', message: `The ${mt.name} tier requires an upgrade. Upgrade your plan to unlock it.`, cost: 0, motion, balance };
   }
-  const effId: ModelTierId = (requested && access.includes(requested)) ? requested : access[access.length - 1];
-  const tierCost = getModelTier(effId).coinCost;
+
+  const effId: ModelTierId = (requested && access.includes(requested)) ? requested : (access[0] ?? 'standard');
+  const dur = targetDuration ?? 15;
+  const tierCost = reelCoinCost(effId, dur);
 
   // VOLUME GATE: enough coins?
   if (balance.coinsAvailable < tierCost) {
     return {
       allowed: false,
       reason: 'insufficient_coins',
-      message: `${getModelTier(effId).name} motion reels cost ${tierCost} coins. You have ${balance.coinsAvailable}. Top up with a coin bundle to continue.`,
+      message: `This reel costs ${tierCost} coins. You have ${balance.coinsAvailable}. Top up with a coin bundle to continue.`,
       cost: tierCost, motion, balance,
     };
   }

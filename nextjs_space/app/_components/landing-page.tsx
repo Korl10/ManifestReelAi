@@ -217,9 +217,10 @@ const FEATURES = [
 ];
 
 const TIERS = [
-  { name: 'Free', monthly: 0, features: ['Demo gallery access', '1 watermarked preview', 'Explore all styles & moods', 'No card required'], cta: 'Start Free', tier: 'free', popular: false },
-  { name: 'Pro', monthly: 19.99, features: ['30 coins / month', 'Static reels (1 coin each)', 'HD exports, no watermark', 'All 57 premium voices', 'Buy extra coin bundles'], cta: 'Get Pro', tier: 'pro', popular: true },
-  { name: 'Premium', monthly: 49.99, features: ['60 coins / month', 'Cinematic motion reels (5 coins)', 'Static reels too (1 coin)', '4K exports, no watermark', 'Priority generation', 'Schedule & auto-post'], cta: 'Get Premium', tier: 'premium', popular: false },
+  { name: 'Free', monthly: 0, features: ['Demo gallery access', '7s watermarked preview', 'Explore all styles & moods', 'No card required'], cta: 'Start Free', tier: 'free', popular: false },
+  { name: 'Starter', monthly: 19.99, features: ['200 coins / month', 'Standard + Pro tiers', 'HD exports, no watermark', '160 AI voices', 'Manual export only'], cta: 'Get Starter', tier: 'starter', popular: false },
+  { name: 'Pro', monthly: 39.99, features: ['500 coins / month', 'All 3 quality tiers', 'Auto-post IG + TikTok', '1080p exports', '3 Craft presets'], cta: 'Get Pro', tier: 'pro', popular: true },
+  { name: 'Premium', monthly: 89.99, features: ['1,200 coins / month', 'All tiers + 4K exports', 'Brand Kit', 'Auto-post IG/TikTok/YT/X', 'Priority queue + API'], cta: 'Get Premium', tier: 'premium', popular: false },
 ];
 
 const TESTIMONIALS = [
@@ -434,7 +435,7 @@ export function LandingPage() {
             </div>
           </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 max-w-5xl mx-auto">
             {TIERS.map((t: any, i: number) => (
               <motion.div
                 key={t?.name ?? i}

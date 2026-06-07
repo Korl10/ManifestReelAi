@@ -6,9 +6,9 @@ import Stripe from 'stripe';
 // success_url verification fallback. Idempotent: safe to run multiple times
 // for the same subscription (upsert + usage-counter reconcile).
 export async function applySubscriptionUpdate(userId: string, subscription: Stripe.Subscription) {
-  const tier = subscription.metadata?.tier || 'pro';
+  const tier = subscription.metadata?.tier || 'starter';
   const isIntro = subscription.metadata?.isIntro === 'true';
-  const plan = PLANS[tier as keyof typeof PLANS] ?? PLANS.pro;
+  const plan = PLANS[tier as keyof typeof PLANS] ?? PLANS.starter;
 
   // Map Stripe status -> our status
   let status = 'active';

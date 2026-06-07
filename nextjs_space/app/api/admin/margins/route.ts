@@ -3,20 +3,18 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
-import { PLANS, COIN_COST } from '@/lib/pricing';
+import { PLANS, COIN_COST, PLAN_ORDER } from '@/lib/pricing';
 import { moodCoverage } from '@/lib/music-library';
 import { getFreeBudgetToday } from '@/lib/free-tier-limits';
 
 // Retail price per coin (retail value the user pays)
 const CREDIT_RETAIL_VALUE = 0.10; // Part D target: 1 credit = $0.10
 
-// Current coin-based retail prices per reel type
-const RETAIL_PER_REEL: Record<string, number> = {
-  static: COIN_COST.static * CREDIT_RETAIL_VALUE,   // 1 coin * $0.10 = $0.10 (current model)
-  motion: COIN_COST.motion * CREDIT_RETAIL_VALUE,   // 5 coins * $0.10 = $0.50 (current model)
-};
-
-const TIER_PRICES: Record<string, number> = { free: 0, pro: 19.99, premium: 49.99 };
+// Derive tier prices from PLANS so they stay in sync with pricing.ts.
+const TIER_PRICES: Record<string, number> = { free: 0 };
+for (const t of PLAN_ORDER) {
+  TIER_PRICES[t] = PLANS[t].monthlyPrice / 100;
+}
 
 function dayKey(d: Date): string {
   return d.toISOString().slice(0, 10); // YYYY-MM-DD

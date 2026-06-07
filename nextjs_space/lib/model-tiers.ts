@@ -7,11 +7,12 @@
 //   Pro       → Kling 2.5 Turbo Pro        + Flux 1.1 Pro Ultra
 //   Cinematic → Veo 3 Fast + Flux 1.1 Pro Ultra + Luma Ray 2 (b-roll)
 //
-// COIN cost is what the user actually pays today (kept margin-safe; no
-// regression vs the existing flat motion=5). `creditCost` is the Phase-5
-// target credit pricing (1 credit = $0.10) shown for transparency.
+// Coin costs are now duration-based: see REEL_COIN_COSTS in lib/pricing.ts.
+// The `coinCost` field here is the *base display cost* (15s default) shown
+// in the tier picker UI. Actual cost is computed at generation time.
 
 import type { PlanTier } from '@/lib/pricing';
+import { REEL_COIN_COSTS } from '@/lib/pricing';
 
 export type ModelTierId = 'standard' | 'pro' | 'cinematic';
 
@@ -35,10 +36,8 @@ export interface ModelTier {
   imagePricePerImage: number;
   /** Optional b-roll model (cinematic only). */
   brollModel?: string;
-  /** Coins charged for a motion reel at this tier (what users pay today). */
+  /** Base display coin cost (15s reel) shown in tier picker. */
   coinCost: number;
-  /** Phase-5 credit cost (informational; 1 credit = $0.10). */
-  creditCost: number;
   /** Minimum subscription tier that can select this model tier. */
   minSubscription: PlanTier | 'free';
   /** Sample reel preview (representative placeholder until per-tier samples exist). */
@@ -56,9 +55,8 @@ export const MODEL_TIERS: Record<ModelTierId, ModelTier> = {
     videoPricePerSec: 0.05,
     imageModel: 'fal-ai/flux-pro/v1.1',
     imagePricePerImage: 0.04,
-    coinCost: 5,
-    creditCost: 50,
-    minSubscription: 'pro',
+    coinCost: REEL_COIN_COSTS['standard']?.[15] ?? 10,
+    minSubscription: 'starter',
     sampleVideoUrl: '/showcase/dream.mp4',
     samplePoster: '/showcase/dream-poster.jpg',
     features: ['Kling 2.5 Turbo', 'Flux 1.1 Pro stills', '5s hero clips', 'Great for daily posting'],
@@ -71,9 +69,8 @@ export const MODEL_TIERS: Record<ModelTierId, ModelTier> = {
     videoPricePerSec: 0.07,
     imageModel: 'fal-ai/flux-pro/v1.1-ultra',
     imagePricePerImage: 0.06,
-    coinCost: 12,
-    creditCost: 120,
-    minSubscription: 'pro',
+    coinCost: REEL_COIN_COSTS['pro']?.[15] ?? 70,
+    minSubscription: 'starter',
     sampleVideoUrl: '/showcase/wealth.mp4',
     samplePoster: '/showcase/wealth-poster.jpg',
     features: ['Kling 2.5 Turbo Pro', 'Flux 1.1 Pro Ultra stills', 'Higher fidelity & detail', 'Best for hero content'],
@@ -87,9 +84,8 @@ export const MODEL_TIERS: Record<ModelTierId, ModelTier> = {
     imageModel: 'fal-ai/flux-pro/v1.1-ultra',
     imagePricePerImage: 0.06,
     brollModel: 'fal-ai/luma-dream-machine/ray-2',
-    coinCost: 25,
-    creditCost: 250,
-    minSubscription: 'premium',
+    coinCost: REEL_COIN_COSTS['cinematic']?.[15] ?? 250,
+    minSubscription: 'pro',
     sampleVideoUrl: '/showcase/selflove.mp4',
     samplePoster: '/showcase/selflove-poster.jpg',
     features: ['Google Veo 3 Fast', 'Flux 1.1 Pro Ultra stills', 'Luma Ray 2 b-roll', 'Premium flagship quality'],
@@ -103,8 +99,10 @@ export const DEFAULT_MODEL_TIER: ModelTierId = 'standard';
 /** Which model tiers a subscription tier can access. */
 export function modelTierAccess(subTier?: string | null): ModelTierId[] {
   switch (subTier) {
+    case 'agency':  return ['standard', 'pro', 'cinematic'];
     case 'premium': return ['standard', 'pro', 'cinematic'];
-    case 'pro': return ['standard', 'pro'];
+    case 'pro':     return ['standard', 'pro', 'cinematic'];
+    case 'starter': return ['standard', 'pro'];
     default: return []; // free → preview only, no live motion
   }
 }
@@ -132,11 +130,13 @@ export function getModelTier(id?: string | null): ModelTier {
   return MODEL_TIERS[key] ?? MODEL_TIERS[DEFAULT_MODEL_TIER];
 }
 
-/** Custom music upload slots per subscription tier. Pro = 1, Premium(Studio) = 5. */
+/** Custom music upload slots per subscription tier. */
 export function customMusicSlots(subTier?: string | null): number {
   switch (subTier) {
+    case 'agency':  return 10;
     case 'premium': return 5;
-    case 'pro': return 1;
+    case 'pro':     return 3;
+    case 'starter': return 1;
     default: return 0;
   }
 }

@@ -14,7 +14,7 @@ export async function POST(request: Request) {
   const { tier, useIntro } = body ?? {};
   const billing = body?.billing === 'annual' ? 'annual' : 'monthly';
 
-  if (!tier || !['pro', 'premium'].includes(tier)) {
+  if (!tier || !['starter', 'pro', 'premium', 'agency'].includes(tier)) {
     return NextResponse.json({ error: 'Invalid tier' }, { status: 400 });
   }
 
@@ -55,7 +55,7 @@ export async function POST(request: Request) {
         currency: 'usd',
         product_data: {
           name: `ManifestReel AI ${plan.name}`,
-          description: `${plan.reelsCap} reels/month • billed ${isAnnual ? 'annually (50% off)' : 'monthly'}${isIntro ? ' (introductory offer)' : ''}`,
+          description: `${plan.coins} coins/month • billed ${isAnnual ? 'annually (50% off)' : 'monthly'}${isIntro ? ' (introductory offer)' : ''}`,
         },
         unit_amount: unitAmount,
         recurring: { interval },

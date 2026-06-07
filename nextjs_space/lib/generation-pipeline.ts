@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { getScriptProvider, getImageProvider, getFluxImageProvider, getVoiceProvider, getMusicProvider, getVideoProvider } from '@/lib/providers';
 import { resolveModelTier, getModelTier } from '@/lib/model-tiers';
+import { reelCoinCost } from '@/lib/pricing';
 import { refundCoins } from '@/lib/quota';
 import { matchTrack, matchTrackAsync, getTrackById, getStingerById, defaultStinger, isCloudTrack } from '@/lib/music-library';
 import { getFileUrl } from '@/lib/s3';
@@ -681,7 +682,7 @@ export async function runGenerationPipeline(
     // price delta so we never charge cinematic price for pro-tier motion.
     let refundedCoins = 0;
     if (motionDowngraded && modelTier.id === 'cinematic') {
-      const delta = (getModelTier('cinematic').coinCost ?? 0) - (getModelTier('pro').coinCost ?? 0);
+      const delta = reelCoinCost('cinematic', targetDur) - reelCoinCost('pro', targetDur);
       if (delta > 0) {
         try {
           refundedCoins = await refundCoins(userId, delta, 'motion_downgraded');

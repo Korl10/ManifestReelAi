@@ -4,7 +4,7 @@ import { useSession } from 'next-auth/react';
 import { Settings, User, CreditCard, Link2, Key, Crown, Loader2, AlertCircle, Zap, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
-import { COIN_BUNDLES } from '@/lib/pricing';
+import { COIN_BUNDLES, PLANS, PLAN_ORDER, type PlanTier } from '@/lib/pricing';
 
 export default function SettingsPage() {
   const { data: session } = useSession() || {};
@@ -69,7 +69,7 @@ export default function SettingsPage() {
   const sub = subData?.subscription;
   const quota = subData?.quota;
   const currentTier = sub?.tier ?? 'free';
-  const isPaid = currentTier === 'pro' || currentTier === 'premium';
+  const isPaid = PLAN_ORDER.includes(currentTier as PlanTier);
 
   return (
     <div className="space-y-6 max-w-2xl pb-24 lg:pb-6">
@@ -149,7 +149,7 @@ export default function SettingsPage() {
             )}
 
             {/* Upgrade buttons */}
-            {currentTier !== 'premium' && (
+            {currentTier !== 'agency' && (
               <div className="space-y-3">
                 {/* Billing toggle */}
                 <div className="flex justify-center">
@@ -160,15 +160,30 @@ export default function SettingsPage() {
                     </button>
                   </div>
                 </div>
-                <div className="flex gap-2">
-                  {currentTier === 'free' && (
-                    <button onClick={() => handleUpgrade('pro')} disabled={!!upgrading} className="flex-1 py-2.5 rounded-lg gold-gradient text-black font-semibold text-sm flex items-center justify-center gap-2 hover:opacity-90 disabled:opacity-50">
-                      {upgrading === 'pro' ? <Loader2 className="w-4 h-4 animate-spin" /> : `Pro — $${billing === 'annual' ? '9.99' : '19.99'}/mo`}
-                    </button>
-                  )}
-                  <button onClick={() => handleUpgrade('premium')} disabled={!!upgrading} className="flex-1 py-2.5 rounded-lg bg-[#7B2FBE]/20 border border-[#7B2FBE]/30 text-[#A855F7] font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#7B2FBE]/30 disabled:opacity-50">
-                    {upgrading === 'premium' ? <Loader2 className="w-4 h-4 animate-spin" /> : `Premium — $${billing === 'annual' ? '24.99' : '49.99'}/mo`}
-                  </button>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {PLAN_ORDER.filter(tier => {
+                    const currentIdx = PLAN_ORDER.indexOf(currentTier as PlanTier);
+                    const tierIdx = PLAN_ORDER.indexOf(tier);
+                    return tierIdx > currentIdx;
+                  }).map(tier => {
+                    const plan = PLANS[tier];
+                    const monthlyDisplay = billing === 'annual'
+                      ? (Math.floor(plan.monthlyPrice * 50) / 10000).toFixed(2)
+                      : (plan.monthlyPrice / 100).toFixed(2);
+                    const isGold = tier === 'starter' || tier === 'pro';
+                    return (
+                      <button
+                        key={tier}
+                        onClick={() => handleUpgrade(tier)}
+                        disabled={!!upgrading}
+                        className={`py-2.5 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-50 transition ${
+                          isGold ? 'gold-gradient text-black hover:opacity-90' : 'bg-[#7B2FBE]/20 border border-[#7B2FBE]/30 text-[#A855F7] hover:bg-[#7B2FBE]/30'
+                        }`}
+                      >
+                        {upgrading === tier ? <Loader2 className="w-4 h-4 animate-spin" /> : `${plan.name} — $${monthlyDisplay}/mo`}
+                      </button>
+                    );
+                  })}
                 </div>
                 {billing === 'annual' && (
                   <p className="text-[11px] text-center text-white/40">Billed annually — save 50% vs monthly</p>
@@ -191,7 +206,7 @@ export default function SettingsPage() {
       {isPaid && (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }} className="rounded-xl bg-white/[0.02] border border-white/5 p-5">
           <h2 className="text-sm font-semibold flex items-center gap-2 mb-3"><Zap className="w-4 h-4 text-[#D4AF37]" /> Buy Extra Coins</h2>
-          <p className="text-xs text-white/40 mb-4">Top up with a one-time coin bundle. Bundle coins stack on your plan and stay valid for 12 months. Static reel = 1 coin, motion reel = 5 coins.</p>
+          <p className="text-xs text-white/40 mb-4">Top up with a one-time coin bundle. Bundle coins stack on your plan and stay valid for 12 months. Coin cost varies by model tier &amp; duration.</p>
           <div className="space-y-2">
             {COIN_BUNDLES.map(bundle => (
               <button

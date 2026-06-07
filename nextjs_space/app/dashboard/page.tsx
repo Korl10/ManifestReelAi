@@ -92,7 +92,7 @@ export default function DashboardPage() {
   const [voice, setVoice] = useState('female-f-01');
   const [voiceCategory, setVoiceCategory] = useState('Female');
   const [speed, setSpeed] = useState('normal');
-  const [targetLength, setTargetLength] = useState(25);
+  const [targetLength, setTargetLength] = useState(15);
   const [customVoices, setCustomVoices] = useState<any[]>([]);
   const [showVoiceModal, setShowVoiceModal] = useState(false);
   const [mood, setMood] = useState('Manifestation');
@@ -777,7 +777,7 @@ export default function DashboardPage() {
             </div>
           ) : (
             <div className="inline-flex rounded-xl bg-white/5 border border-white/10 p-1">
-              {[15, 20, 25, 30].map((len) => (
+              {[5, 10, 15, 25, 30].map((len) => (
                 <button
                   key={len}
                   type="button"
@@ -1009,7 +1009,7 @@ export default function DashboardPage() {
             </div>
 
             {enableMotion && motionUnlocked && (
-              <ModelTierPicker value={modelTier} onChange={setModelTier} allowed={allowedTiers} />
+              <ModelTierPicker value={modelTier} onChange={setModelTier} allowed={allowedTiers} durationSec={targetLength} />
             )}
           </div>
         );

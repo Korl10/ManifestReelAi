@@ -42,7 +42,7 @@ export async function POST(request: Request) {
 
     // Requested reel length (seconds). Must be one of the offered options; the
     // pipeline guarantees the delivered MP4 lands within ±1s of this.
-    const ALLOWED_LENGTHS = [15, 20, 25, 30];
+    const ALLOWED_LENGTHS = [5, 10, 15, 25, 30];
     const reqLen = Number(body?.targetLength ?? body?.targetDuration);
     const targetDuration = ALLOWED_LENGTHS.includes(reqLen) ? reqLen : 25;
 
@@ -50,8 +50,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'All fields are required: prompt, platform, style, voice, mood' }, { status: 400 });
     }
 
-    // SERVER-SIDE GATE: feature (motion=Premium) + volume (coins) before any paid API call.
-    const gate = await checkGeneration(userId, motion, modelTier);
+    // SERVER-SIDE GATE: feature + volume (coins) before any paid API call.
+    // Coin cost is now duration-based: model-tier × reel-length.
+    const gate = await checkGeneration(userId, motion, modelTier, targetDuration);
     if (!gate.allowed) {
       return NextResponse.json({ error: gate.message, reason: gate.reason, balance: gate.balance }, { status: 403 });
     }

@@ -4,15 +4,18 @@ import React, { useState } from 'react';
 import { Lock, Check, Play, Sparkles, Coins } from 'lucide-react';
 import Link from 'next/link';
 import { MODEL_TIER_LIST, type ModelTierId } from '@/lib/model-tiers';
+import { reelCoinCost, REEL_COIN_COSTS } from '@/lib/pricing';
 
 interface Props {
   value: ModelTierId;
   onChange: (id: ModelTierId) => void;
   /** Model tier ids this subscription can select. */
   allowed: ModelTierId[];
+  /** Selected reel duration — shows exact cost when provided, else a range. */
+  durationSec?: number;
 }
 
-export default function ModelTierPicker({ value, onChange, allowed }: Props) {
+export default function ModelTierPicker({ value, onChange, allowed, durationSec }: Props) {
   const [preview, setPreview] = useState<string | null>(null);
 
   return (
@@ -81,16 +84,23 @@ export default function ModelTierPicker({ value, onChange, allowed }: Props) {
             <div className="mt-auto">
               <div className="flex items-center justify-between text-[11px] mb-2">
                 <span className="flex items-center gap-1 text-[#D4AF37] font-semibold">
-                  <Coins className="w-3.5 h-3.5" /> {tier.coinCost} coins
+                  <Coins className="w-3.5 h-3.5" />{' '}
+                  {durationSec
+                    ? `${reelCoinCost(tier.id, durationSec)} coins`
+                    : (() => {
+                        const costs = REEL_COIN_COSTS[tier.id];
+                        const vals = costs ? Object.values(costs) : [tier.coinCost];
+                        return `${Math.min(...vals)}–${Math.max(...vals)} coins`;
+                      })()}
                 </span>
-                <span className="text-white/30">≈ {tier.creditCost} credits</span>
+                {durationSec && <span className="text-white/30">{durationSec}s reel</span>}
               </div>
               {locked ? (
                 <Link
                   href="/dashboard/settings"
                   className="block text-center w-full py-2 rounded-lg bg-white/5 text-[#A855F7] text-xs font-semibold hover:bg-white/10 transition"
                 >
-                  {tier.minSubscription === 'premium' ? 'Premium only →' : 'Upgrade →'}
+                  {tier.minSubscription === 'pro' ? 'Pro+ plan →' : 'Upgrade →'}
                 </Link>
               ) : (
                 <button
