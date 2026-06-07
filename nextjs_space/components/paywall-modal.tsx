@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Sparkles, Crown, Zap, Check, Loader2, Gift } from 'lucide-react';
 import { toast } from 'sonner';
-import { COIN_BUNDLES, PLANS, PLAN_ORDER, type PlanTier } from '@/lib/pricing';
+import { COIN_BUNDLES, PLANS, PLAN_ORDER, isFoundersPeriod, FOUNDERS_ANNUAL_PRICE, type PlanTier } from '@/lib/pricing';
 
 interface PaywallModalProps {
   open: boolean;
@@ -26,6 +26,8 @@ export function PaywallModal({ open, onClose, tier, reelsUsed, reelsCap }: Paywa
   const [showDiscount, setShowDiscount] = useState(false);
   const [dismissed, setDismissed] = useState(false);
   const [billing, setBilling] = useState<'monthly' | 'annual'>('annual');
+  const [founders, setFounders] = useState(false);
+  useEffect(() => { setFounders(isFoundersPeriod()); }, []);
 
   useEffect(() => {
     if (open) {
@@ -195,14 +197,15 @@ export function PaywallModal({ open, onClose, tier, reelsUsed, reelsCap }: Paywa
                       className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all flex items-center gap-1.5 ${billing === 'annual' ? 'bg-white text-black' : 'text-white/60 hover:text-white'}`}
                     >
                       Annually
-                      <span className="text-[10px] font-bold text-emerald-400">(Save 20%)</span>
+                      <span className="text-[10px] font-bold text-emerald-400">{founders ? '🔥 Founders' : '(Save 20%)'}</span>
                     </button>
                   </div>
                 </div>
                 {upgradeTiers.slice(0, 2).map(t => {
                   const plan = PLANS[t];
                   const monthly = (plan.monthlyPrice / 100).toFixed(2);
-                  const annualMo = (Math.round(plan.annualPrice / 12) / 100).toFixed(2);
+                  const annualCents = founders ? FOUNDERS_ANNUAL_PRICE[t] : plan.annualPrice;
+                  const annualMo = (Math.round(annualCents / 12) / 100).toFixed(2);
                   const isGold = t === 'starter' || t === 'pro';
                   const accent = isGold ? '#D4AF37' : '#A855F7';
                   const Icon = isGold ? Sparkles : Crown;

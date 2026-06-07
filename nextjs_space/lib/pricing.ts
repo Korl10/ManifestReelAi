@@ -116,12 +116,31 @@ export function annualSavingsCents(tier: PlanTier): number {
   return PLANS[tier].monthlyPrice * 12 - PLANS[tier].annualPrice;
 }
 
-// ── Founders’ pricing (first 90 days) ────────────────────────────
+// ── Founders’ Launch Promo (first 90 days) ───────────────────────
+// Applies to ANNUAL billing for ALL tiers. Deeper than the standard
+// 20% annual discount (33–38% off). Locked for life: a founder keeps
+// their discounted annual rate on every renewal. After Day 90 the
+// pricing auto-reverts to the standard 20% annual discount.
 export const LAUNCH_DATE = new Date('2026-06-07T00:00:00Z');
 export const FOUNDERS_DURATION_DAYS = 90;
 
-/** Founders’ monthly price (cents) for Premium only. */
-export const FOUNDERS_PREMIUM_MONTHLY = 5999; // $59.99/mo
+/** Founders’ ANNUAL price (cents/year) per tier. */
+export const FOUNDERS_ANNUAL_PRICE: Record<PlanTier, number> = {
+  starter: 15588,   // $155.88/yr → $12.99/mo (35% off $19.99)
+  pro:     29988,   // $299.88/yr → $24.99/mo (38% off $39.99)
+  premium: 71988,   // $719.88/yr → $59.99/mo (33% off $89.99)
+  agency:  154800,  // $1,548/yr  → $129/mo   (35% off $199)
+};
+
+/** Founders’ annual price as a monthly-equivalent (cents). */
+export function foundersAnnualPerMonth(tier: PlanTier): number {
+  return Math.round(FOUNDERS_ANNUAL_PRICE[tier] / 12);
+}
+
+/** Founders’ annual savings vs standard monthly × 12 (cents). */
+export function foundersAnnualSavingsCents(tier: PlanTier): number {
+  return PLANS[tier].monthlyPrice * 12 - FOUNDERS_ANNUAL_PRICE[tier];
+}
 
 /** True if we’re within the founders’ pricing window. */
 export function isFoundersPeriod(): boolean {

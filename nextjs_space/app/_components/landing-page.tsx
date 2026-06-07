@@ -217,11 +217,11 @@ const FEATURES = [
 ];
 
 const TIERS = [
-  { name: 'Free', monthly: 0, annualMo: 0, annualTotal: 0, annualSave: 0, features: ['Demo gallery access', '7s watermarked preview', 'Explore all styles & moods', 'No card required'], cta: 'Start Free', tier: 'free', popular: false },
-  { name: 'Starter', monthly: 19.99, annualMo: 15.99, annualTotal: 191.88, annualSave: 48, features: ['200 coins / month', 'Standard + Pro tiers', 'HD exports, no watermark', '160 AI voices', 'Manual export only'], cta: 'Get Starter', tier: 'starter', popular: false },
-  { name: 'Pro', monthly: 39.99, annualMo: 31.99, annualTotal: 383.88, annualSave: 96, features: ['500 coins / month', 'All 3 quality tiers', 'Auto-post IG + TikTok', '1080p exports', '3 Craft presets'], cta: 'Get Pro', tier: 'pro', popular: true },
-  { name: 'Premium', monthly: 89.99, annualMo: 71.99, annualTotal: 863.88, annualSave: 216, features: ['1,200 coins / month', 'All tiers + 4K exports', 'Brand Kit', 'Auto-post IG/TikTok/YT/X', 'Priority queue + API'], cta: 'Get Premium', tier: 'premium', popular: false },
-  { name: 'Agency', monthly: 199, annualMo: 159, annualTotal: 1908, annualSave: 480, features: ['3,000 coins / month', 'Everything in Premium', '5 team seats', 'White-label exports', 'Bulk generation'], cta: 'Get Agency', tier: 'agency', popular: false },
+  { name: 'Free', monthly: 0, annualMo: 0, annualTotal: 0, annualSave: 0, foundersMo: 0, foundersTotal: 0, foundersSave: 0, features: ['Demo gallery access', '7s watermarked preview', 'Explore all styles & moods', 'No card required'], cta: 'Start Free', tier: 'free', popular: false },
+  { name: 'Starter', monthly: 19.99, annualMo: 15.99, annualTotal: 191.88, annualSave: 48, foundersMo: 12.99, foundersTotal: 155.88, foundersSave: 84, features: ['200 coins / month', 'Standard + Pro tiers', 'HD exports, no watermark', '160 AI voices', 'Manual export only'], cta: 'Get Starter', tier: 'starter', popular: false },
+  { name: 'Pro', monthly: 39.99, annualMo: 31.99, annualTotal: 383.88, annualSave: 96, foundersMo: 24.99, foundersTotal: 299.88, foundersSave: 180, features: ['500 coins / month', 'All 3 quality tiers', 'Auto-post IG + TikTok', '1080p exports', '3 Craft presets'], cta: 'Get Pro', tier: 'pro', popular: true },
+  { name: 'Premium', monthly: 89.99, annualMo: 71.99, annualTotal: 863.88, annualSave: 216, foundersMo: 59.99, foundersTotal: 719.88, foundersSave: 360, features: ['1,200 coins / month', 'All tiers + 4K exports', 'Brand Kit', 'Auto-post IG/TikTok/YT/X', 'Priority queue + API'], cta: 'Get Premium', tier: 'premium', popular: false },
+  { name: 'Agency', monthly: 199, annualMo: 159, annualTotal: 1908, annualSave: 480, foundersMo: 129, foundersTotal: 1548, foundersSave: 840, features: ['3,000 coins / month', 'Everything in Premium', '5 team seats', 'White-label exports', 'Bulk generation'], cta: 'Get Agency', tier: 'agency', popular: false },
 ];
 
 const TESTIMONIALS = [
@@ -434,8 +434,9 @@ export function LandingPage() {
             <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} className="text-center mb-8">
               <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-orange-500/20 to-red-500/20 border border-orange-500/30">
                 <span className="text-lg">🔥</span>
-                <span className="text-sm font-semibold text-orange-300">Founders&apos; Pricing — Ends in {foundersDays} days</span>
+                <span className="text-sm font-semibold text-orange-300">Founders&apos; Pricing — Ends in {foundersDays} {foundersDays === 1 ? 'day' : 'days'}</span>
               </div>
+              <p className="text-xs text-white/45 mt-2 max-w-md mx-auto">Lock in your annual rate for life — renews at your discounted price every year. Available on annual plans during launch only.</p>
             </motion.div>
           )}
 
@@ -463,12 +464,8 @@ export function LandingPage() {
             {TIERS.map((t, i) => {
               const isPro = t.popular;
               const isPremium = t.tier === 'premium';
-              const showFoundersMonthly = isFounders && isPremium && billing === 'monthly';
-              const showFoundersAnnual = isFounders && isPremium && billing === 'annual';
-              // Founders annual: 20% off the founders monthly $59.99 → $47.99/mo, $575.88/yr
-              const foundersAnnualMo = 47.99;
-              const foundersAnnualTotal = 575.88;
-              const foundersAnnualSave = Number(((59.99 * 12) - 575.88).toFixed(0)); // $144
+              // Founders' promo applies to ANNUAL billing across ALL paid tiers.
+              const showFoundersAnnual = isFounders && t.monthly > 0 && billing === 'annual';
 
               return (
                 <motion.div
@@ -491,8 +488,8 @@ export function LandingPage() {
                     </div>
                   )}
 
-                  {/* Founders locked badge — Premium only */}
-                  {isFounders && isPremium && (
+                  {/* Founders locked badge — all paid tiers, annual */}
+                  {showFoundersAnnual && (
                     <div className="mb-3 px-3 py-1.5 rounded-lg bg-orange-500/10 border border-orange-500/20 text-[11px] text-orange-300 font-medium text-center">
                       🔥 Founders&apos; pricing locked for life
                     </div>
@@ -510,36 +507,33 @@ export function LandingPage() {
                     ) : billing === 'annual' ? (
                       /* ── Annual view ── */
                       <div>
-                        <div className="flex items-baseline gap-1.5">
+                        <div className="flex items-baseline gap-1.5 flex-wrap">
+                          {showFoundersAnnual && (
+                            <span className="text-lg font-semibold text-white/30 line-through">${t.monthly % 1 === 0 ? t.monthly.toFixed(0) : t.monthly.toFixed(2)}</span>
+                          )}
                           <span className="text-3xl font-bold text-[#D4AF37]">
-                            ${showFoundersAnnual ? foundersAnnualMo.toFixed(2) : t.annualMo % 1 === 0 ? t.annualMo.toFixed(0) : t.annualMo.toFixed(2)}
+                            ${showFoundersAnnual ? (t.foundersMo % 1 === 0 ? t.foundersMo.toFixed(0) : t.foundersMo.toFixed(2)) : (t.annualMo % 1 === 0 ? t.annualMo.toFixed(0) : t.annualMo.toFixed(2))}
                           </span>
                           <span className="text-sm text-white/40">/month</span>
                         </div>
                         <p className="text-xs text-white/40 mt-1">
-                          billed annually (${showFoundersAnnual ? foundersAnnualTotal.toFixed(2) : t.annualTotal.toFixed(2)}/yr)
+                          billed annually (${showFoundersAnnual ? t.foundersTotal.toFixed(2) : t.annualTotal.toFixed(2)}/yr)
                         </p>
                         {/* Green savings badge */}
                         <div className="mt-2 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/20">
-                          <span className="text-[11px] font-bold text-emerald-400">💰 Save ${showFoundersAnnual ? foundersAnnualSave : t.annualSave}/year</span>
+                          <span className="text-[11px] font-bold text-emerald-400">💰 Save ${showFoundersAnnual ? t.foundersSave : t.annualSave}/year</span>
                         </div>
                         {/* Premium per-day (annual only) */}
-                        {isPremium && !showFoundersAnnual && (
-                          <p className="text-xs text-white/50 mt-2 italic">= just $2.40/day — less than a coffee ☕</p>
-                        )}
-                        {isPremium && showFoundersAnnual && (
-                          <p className="text-xs text-white/50 mt-2 italic">= just $1.60/day — less than a coffee ☕</p>
+                        {isPremium && (
+                          <p className="text-xs text-white/50 mt-2 italic">= just ${showFoundersAnnual ? '2.00' : '2.40'}/day — less than a coffee ☕</p>
                         )}
                       </div>
                     ) : (
                       /* ── Monthly view ── */
                       <div>
-                        <div className="flex items-baseline gap-1.5 flex-wrap">
-                          {showFoundersMonthly && (
-                            <span className="text-lg font-semibold text-white/30 line-through">${t.monthly.toFixed(2)}</span>
-                          )}
+                        <div className="flex items-baseline gap-1.5">
                           <span className="text-3xl font-bold text-[#D4AF37]">
-                            ${showFoundersMonthly ? '59.99' : t.monthly % 1 === 0 ? t.monthly.toFixed(0) : t.monthly.toFixed(2)}
+                            ${t.monthly % 1 === 0 ? t.monthly.toFixed(0) : t.monthly.toFixed(2)}
                           </span>
                           <span className="text-sm text-white/40">/month</span>
                         </div>
@@ -550,7 +544,9 @@ export function LandingPage() {
                             onClick={() => setBilling('annual')}
                             className="mt-2 text-[11px] text-emerald-400 hover:text-emerald-300 transition-colors font-medium cursor-pointer"
                           >
-                            Switch to annual to save ${t.annualSave}/year →
+                            {isFounders
+                              ? `Switch to annual to save $${t.foundersSave}/year →`
+                              : `Switch to annual to save $${t.annualSave}/year →`}
                           </button>
                         )}
                       </div>

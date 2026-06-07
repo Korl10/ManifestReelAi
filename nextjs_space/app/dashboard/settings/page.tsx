@@ -4,7 +4,7 @@ import { useSession } from 'next-auth/react';
 import { Settings, User, CreditCard, Link2, Key, Crown, Loader2, AlertCircle, Zap, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
-import { COIN_BUNDLES, PLANS, PLAN_ORDER, type PlanTier } from '@/lib/pricing';
+import { COIN_BUNDLES, PLANS, PLAN_ORDER, isFoundersPeriod, FOUNDERS_ANNUAL_PRICE, foundersCountdownDays, type PlanTier } from '@/lib/pricing';
 
 export default function SettingsPage() {
   const { data: session } = useSession() || {};
@@ -15,6 +15,10 @@ export default function SettingsPage() {
   const [portalLoading, setPortalLoading] = useState(false);
   const [buyingCoins, setBuyingCoins] = useState('');
   const [billing, setBilling] = useState<'monthly' | 'annual'>('annual');
+  // Founders flag computed client-side to avoid SSR/CSR hydration mismatch
+  const [founders, setFounders] = useState(false);
+  const [foundersDays, setFoundersDays] = useState(0);
+  useEffect(() => { setFounders(isFoundersPeriod()); setFoundersDays(foundersCountdownDays()); }, []);
 
   useEffect(() => {
     if (!session) return;
@@ -156,7 +160,7 @@ export default function SettingsPage() {
                   <div className="inline-flex items-center gap-1 p-1 rounded-full bg-white/[0.04] border border-white/10">
                     <button onClick={() => setBilling('monthly')} className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${billing === 'monthly' ? 'bg-white text-black' : 'text-white/60 hover:text-white'}`}>Monthly</button>
                     <button onClick={() => setBilling('annual')} className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all flex items-center gap-1.5 ${billing === 'annual' ? 'bg-white text-black' : 'text-white/60 hover:text-white'}`}>
-                      Annual ✓ <span className="text-[10px] font-bold text-emerald-400">(Save 20%)</span>
+                      Annual ✓ <span className="text-[10px] font-bold text-emerald-400">{founders ? '(Founders)' : '(Save 20%)'}</span>
                     </button>
                   </div>
                 </div>
@@ -167,8 +171,9 @@ export default function SettingsPage() {
                     return tierIdx > currentIdx;
                   }).map(tier => {
                     const plan = PLANS[tier];
+                    const annualCents = (billing === 'annual' && founders) ? FOUNDERS_ANNUAL_PRICE[tier] : plan.annualPrice;
                     const monthlyDisplay = billing === 'annual'
-                      ? (Math.round(plan.annualPrice / 12) / 100).toFixed(2)
+                      ? (Math.round(annualCents / 12) / 100).toFixed(2)
                       : (plan.monthlyPrice / 100).toFixed(2);
                     const isGold = tier === 'starter' || tier === 'pro';
                     return (
@@ -186,7 +191,11 @@ export default function SettingsPage() {
                   })}
                 </div>
                 {billing === 'annual' && (
-                  <p className="text-[11px] text-center text-white/40">Billed annually — save 20% vs monthly</p>
+                  <p className="text-[11px] text-center text-white/40">
+                    {founders
+                      ? `🔥 Founders' pricing — locked for life, renews at this rate. ${foundersDays} ${foundersDays === 1 ? 'day' : 'days'} left.`
+                      : 'Billed annually — save 20% vs monthly'}
+                  </p>
                 )}
               </div>
             )}
