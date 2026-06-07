@@ -426,6 +426,12 @@ export async function runGenerationPipeline(
           errorMessage: 'Cinematic engines were busy — your reel was not charged. Please try again in a few minutes, or switch to Standard for instant generation.',
         },
       }).catch(() => {});
+
+      // Reset free-tier entitlement so a technical failure doesn't burn their one shot.
+      if (tier === 'free' && userId) {
+        await prisma.user.update({ where: { id: userId }, data: { freeReelUsed: false } }).catch(() => {});
+        console.log(`[pipeline] cinematic-timeout: restored freeReelUsed=false for user=${userId}`);
+      }
       return;
     }
 
@@ -617,8 +623,11 @@ export async function runGenerationPipeline(
     // than charging full price for a short-delivered reel.
     // ----------------------------------------------------------------
     const durationDelta = +(finalDuration - targetDur).toFixed(2);
-    const durationMet = Math.abs(durationDelta) <= 1;
-    console.log(`[pipeline] duration check: target=${targetDur}s actual=${finalDuration.toFixed(2)}s delta=${durationDelta}s met=${durationMet}`);
+    // Free-tier reels (coinCost=0) skip the duration guarantee — users aren't
+    // paying, and a slightly longer free reel is a bonus, not a defect.
+    const skipDurCheck = tier === 'free';
+    const durationMet = skipDurCheck || Math.abs(durationDelta) <= 1;
+    console.log(`[pipeline] duration check: target=${targetDur}s actual=${finalDuration.toFixed(2)}s delta=${durationDelta}s met=${durationMet} skipFree=${skipDurCheck}`);
     if (!isPreview && !durationMet) {
       const refundAmt = reel.coinCost ?? 0;
       let refundedDur = 0;
@@ -652,6 +661,12 @@ export async function runGenerationPipeline(
           errorMessage: 'Render failed duration check — credits refunded, please retry.',
         },
       }).catch(() => {});
+
+      // Reset free-tier entitlement so a technical failure doesn't burn their one shot.
+      if (tier === 'free' && userId) {
+        await prisma.user.update({ where: { id: userId }, data: { freeReelUsed: false } }).catch(() => {});
+        console.log(`[pipeline] duration-fail: restored freeReelUsed=false for user=${userId}`);
+      }
       return;
     }
 
