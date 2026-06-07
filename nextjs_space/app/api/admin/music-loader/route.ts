@@ -74,7 +74,9 @@ export async function POST(request: Request) {
       const bpm = bpmOverride ?? Math.round((meta.bpmRange[0] + meta.bpmRange[1]) / 2);
 
       const rawDur = durationSec ?? 0;
-      const outputDurPreview = rawDur > 0 ? Math.min(rawDur, 60) : 60;
+      // Every track is normalized to EXACTLY 60s on processing.
+      const outputDurPreview = 60;
+      const fillMode = rawDur <= 0 ? 'normalize' : rawDur > 60 ? 'trim' : rawDur < 60 ? 'loop' : 'exact';
 
       const preview = {
         filename,
@@ -89,6 +91,7 @@ export async function POST(request: Request) {
         durationSec: rawDur,
         outputDurationSec: outputDurPreview,
         willTrim: rawDur > 60,
+        fillMode,
         duplicate: !!existing,
         duplicateId: existing?.id ?? null,
       };
@@ -101,12 +104,12 @@ export async function POST(request: Request) {
       // Get public URL of the uploaded raw file
       const originalUrl = getPublicUrl(cloudStoragePath);
 
-      // Process via FFmpeg API: trim to 60s + 0.5s fade-in + 0.8s fade-out + LUFS -14
-      const inputDur = durationSec ?? 0;
-      const outputDur = inputDur > 0 ? Math.min(inputDur, 60) : 60;
+      // Process via FFmpeg API: normalize to EXACTLY 60s (loop-fill short / trim long)
+      // + 0.5s fade-in + 0.8s fade-out at 59.2s + LUFS -14
+      const outputDur = 60;
       let processedUrl = originalUrl;
       try {
-        processedUrl = await processTrackAudio(originalUrl, inputDur);
+        processedUrl = await processTrackAudio(originalUrl);
       } catch (err) {
         console.error(`[music-loader] FFmpeg processing failed for ${filename}, using original:`, err);
         // Fall back to original URL if processing fails
@@ -168,26 +171,29 @@ export async function POST(request: Request) {
 // Generates a presigned upload URL for the admin to upload a track to S3.
 // Called per-file from the client before the main POST.
 
-// ── FFmpeg processing: trim 60s + fade-in + fade-out + LUFS ─────────
-// Pipeline: input → trim to first 60s → 0.5s fade-in → 0.8s fade-out
-// ending at trim point → LUFS -14 normalization → 192k MP3.
-// Tracks shorter than 60s are left untrimmed but still get fades + LUFS.
-async function processTrackAudio(inputUrl: string, inputDurationSec: number): Promise<string> {
+// ── FFmpeg processing: normalize every track to EXACTLY 60s ─────────
+// Pipeline: input → -stream_loop -1 (repeat the source indefinitely) →
+//   -t 60 (hard-cut at exactly 60s) → 0.5s fade-in at 0:00 →
+//   0.8s fade-out at 0:59.2 → LUFS -14 normalization → 192k MP3.
+//
+// Why stream_loop instead of silence-padding: short Suno tracks (e.g. 44.8s)
+// are looped to fill the full 60s with continuous music — never silence.
+// Long tracks (>60s) are simply cut at 60s on the first pass. The result
+// is a uniform 60s master for every track, so the matcher can never pick a
+// track shorter than the reel (max reel = 30s) and the compositor never
+// has to loop or run dry.
+async function processTrackAudio(inputUrl: string): Promise<string> {
   const apiKey = process.env.ABACUSAI_API_KEY;
   if (!apiKey) throw new Error('ABACUSAI_API_KEY not configured');
 
   const MAX_DUR = 60;
   const FADE_IN = 0.5;
   const FADE_OUT = 0.8;
+  const fadeOutStart = MAX_DUR - FADE_OUT; // 59.2 — always, since output is always 60s
 
-  // Determine output length and where fade-out starts
-  const outputDur = inputDurationSec > 0 ? Math.min(inputDurationSec, MAX_DUR) : MAX_DUR;
-  const fadeOutStart = Math.max(0, outputDur - FADE_OUT); // e.g. 59.2 for a 60s track
-
-  // Build trim flag (only if input is longer than 60s)
-  const trimFlag = (inputDurationSec <= 0 || inputDurationSec > MAX_DUR) ? `-t ${MAX_DUR} ` : '';
-
-  const command = `-i {{in_1}} ${trimFlag}-af "afade=t=in:st=0:d=${FADE_IN},afade=t=out:st=${fadeOutStart}:d=${FADE_OUT},loudnorm=I=-14:TP=-1:LRA=11" -c:a libmp3lame -b:a 192k {{out_1}}`;
+  // -stream_loop -1 repeats the input forever; -t 60 cuts the output at 60s.
+  // This both loop-fills short tracks AND trims long tracks in one pass.
+  const command = `-stream_loop -1 -i {{in_1}} -t ${MAX_DUR} -af "afade=t=in:st=0:d=${FADE_IN},afade=t=out:st=${fadeOutStart}:d=${FADE_OUT},loudnorm=I=-14:TP=-1:LRA=11" -c:a libmp3lame -b:a 192k {{out_1}}`;
 
   const createRes = await fetch(CREATE_URL, {
     method: 'POST',

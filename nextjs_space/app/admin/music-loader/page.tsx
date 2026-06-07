@@ -352,7 +352,9 @@ export default function MusicLoaderPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="text-white/80 font-medium truncate">{f.filename}</span>
-                      {f.durationSec && <span className="text-white/30">{f.durationSec}s</span>}
+                      {f.durationSec ? (
+                        <span className="text-white/30 whitespace-nowrap">{f.durationSec}s <span className="text-emerald-400/70">→ 60s</span></span>
+                      ) : null}
                     </div>
                     {dr && (
                       <div className="flex items-center gap-2 mt-0.5">
@@ -363,7 +365,9 @@ export default function MusicLoaderPage() {
                         <span className="text-white/40">“{dr.title}”</span>
                         <span className="text-white/30">{dr.energy}</span>
                         <span className="text-white/30">~{dr.bpm}bpm</span>
-                        {dr.willTrim && <span className="text-blue-400">✂ trim → {dr.outputDurationSec}s</span>}
+                        {dr.fillMode === 'trim' && <span className="text-blue-400">✂ trim → 60s</span>}
+                        {dr.fillMode === 'loop' && <span className="text-purple-400">↻ loop-fill → 60s</span>}
+                        {dr.fillMode === 'exact' && <span className="text-emerald-400">✓ 60s</span>}
                         {dr.duplicate && <span className="text-amber-400">⚠ exists</span>}
                       </div>
                     )}
@@ -406,7 +410,7 @@ export default function MusicLoaderPage() {
                   }`}>{t.category}</span>
                   <span className="text-white/30">#{t.sequence}</span>
                   <span className="text-white/80 font-medium flex-1 truncate">{t.title}</span>
-                  <span className="text-white/30">{t.durationSec}s</span>
+                  <span className={`${t.durationSec === 60 ? 'text-emerald-400/70' : 'text-amber-400'}`}>{t.durationSec}s</span>
                   {t.bpm && <span className="text-white/30">{t.bpm}bpm</span>}
                   <span className="text-white/20">{t.energy}</span>
                   <span className={`px-1 py-0.5 rounded text-[9px] ${t.isActive ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
