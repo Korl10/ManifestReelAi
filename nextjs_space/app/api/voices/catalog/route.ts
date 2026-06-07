@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import {
   VOICE_CATALOG, VOICE_CATEGORIES, VOICE_ACCENTS, VOICE_USE_CASES,
+  CATEGORY_DESCRIPTIONS, CATEGORY_TEST_PHRASES,
   filterVoices,
 } from '@/lib/voice-catalog';
 
@@ -38,6 +39,8 @@ export async function GET(request: Request) {
       description: v.description,
       defaultTier: v.defaultTier,
       supportedTiers: v.supportedTiers,
+      multilingual: v.multilingual,
+      previewUrl: v.previewUrl,
       samplePath: v.samplePath,
     })),
     filters: {
@@ -47,6 +50,8 @@ export async function GET(request: Request) {
       genders: ['female', 'male'],
       ageRanges: ['young', 'middle', 'senior'],
     },
+    categoryDescriptions: CATEGORY_DESCRIPTIONS,
+    testPhrases: CATEGORY_TEST_PHRASES,
     total: voices.length,
   });
 }

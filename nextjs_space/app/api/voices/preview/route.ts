@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
-import { getVoiceById, modelIdForTier, resolveTier } from '@/lib/voice-catalog';
+import { getVoiceById, modelIdForTier, resolveTier, speedValue } from '@/lib/voice-catalog';
 import type { VoiceTier } from '@/lib/voice-catalog';
 import { uploadPublicBuffer } from '@/lib/media-storage';
 import crypto from 'crypto';
@@ -13,8 +13,8 @@ const EL_BASE = 'https://api.elevenlabs.io/v1';
 const previewCache = new Map<string, { url: string; ts: number }>();
 const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
 
-function cacheKey(voiceId: string, text: string, tier: string): string {
-  return crypto.createHash('md5').update(`${voiceId}:${tier}:${text}`).digest('hex');
+function cacheKey(voiceId: string, text: string, tier: string, speed: number): string {
+  return crypto.createHash('md5').update(`${voiceId}:${tier}:${speed}:${text}`).digest('hex');
 }
 
 /**
@@ -33,10 +33,12 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { voiceId, text, tier, stability, similarity } = body ?? {};
+    const { voiceId, text, tier, stability, similarity, speed: speedRaw } = body ?? {};
     if (!voiceId || !text) {
       return NextResponse.json({ error: 'voiceId and text required' }, { status: 400 });
     }
+    // Speed preset: 0.85 (slow) / 1.0 (normal) / 1.15 (fast) — native ElevenLabs param.
+    const speed = speedValue(speedRaw);
 
     // Truncate to ~5 seconds worth of text (~80 chars)
     const previewText = String(text).slice(0, 120).trim();
@@ -50,7 +52,7 @@ export async function POST(request: Request) {
 
     // Check cache (only for default stability/similarity)
     const isDefaultSettings = (stability === undefined || stability === null) && (similarity === undefined || similarity === null);
-    const ck = cacheKey(voiceId, previewText, resolvedTier);
+    const ck = cacheKey(voiceId, previewText, resolvedTier, speed);
     if (isDefaultSettings) {
       const cached = previewCache.get(ck);
       if (cached && Date.now() - cached.ts < CACHE_TTL) {
@@ -72,6 +74,7 @@ export async function POST(request: Request) {
           similarity_boost: typeof similarity === 'number' ? similarity : 0.75,
           style: 0.35,
           use_speaker_boost: true,
+          speed,
         },
       }),
     });
@@ -97,8 +100,8 @@ export async function POST(request: Request) {
       }
     }
 
-    console.log(`[voice-preview] Generated: ${audioUrl}`);
-    return NextResponse.json({ audioUrl, cached: false, tier: resolvedTier });
+    console.log(`[voice-preview] Generated: ${audioUrl} (speed=${speed})`);
+    return NextResponse.json({ audioUrl, cached: false, tier: resolvedTier, speed });
   } catch (err: any) {
     console.error('[voice-preview] Error:', err?.message);
     return NextResponse.json({ error: 'Preview generation failed' }, { status: 500 });

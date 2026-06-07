@@ -229,7 +229,7 @@ export async function runGenerationPipeline(
       costBreakdown['script_cost'] = 0;
     } else try {
       const sp = getScriptProvider();
-      script = await sp.generate({ prompt: reel.prompt, platform: reel.platform, style: reel.style, mood: reel.mood, targetDuration: targetDur });
+      script = await sp.generate({ prompt: reel.prompt, platform: reel.platform, style: reel.style, mood: reel.mood, targetDuration: targetDur, voicePreset: reel.voice });
       scriptProviderName = sp.getName();
       costBreakdown['script_cost'] = sp.estimateCost({ prompt: reel.prompt, platform: reel.platform, style: reel.style });
     } catch (e) {

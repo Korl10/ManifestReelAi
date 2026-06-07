@@ -1,6 +1,6 @@
 import { Provider, VoiceInput, VoiceOutput, WordTimestamp, ScriptLine } from './types';
 import { uploadPublicBuffer } from '@/lib/media-storage';
-import { getVoiceById, modelIdForTier, resolveTier } from '@/lib/voice-catalog';
+import { getVoiceById, modelIdForTier, resolveTier, speedValue } from '@/lib/voice-catalog';
 import type { VoiceTier } from '@/lib/voice-catalog';
 
 const EL_BASE = 'https://api.elevenlabs.io/v1';
@@ -17,11 +17,10 @@ function legacyElevenVoiceId(internalVoice: string): string {
   return female;
 }
 
+// Speed presets exposed to users (ElevenLabs NATIVE speed param — never FFmpeg):
+//   Slow = 0.85, Normal = 1.0, Fast = 1.15. Preserves natural prosody.
 function speedFromPreset(voicePreset: string): number {
-  const v = (voicePreset || '').toLowerCase();
-  if (v.includes('@slower') || v.includes('@slow')) return 0.8;
-  if (v.includes('@faster') || v.includes('@fast')) return 1.12;
-  return 0.92; // slightly slower = more cinematic / meditative by default
+  return speedValue(voicePreset);
 }
 
 function wordsFromCharAlignment(text: string, alignment: any): WordTimestamp[] {

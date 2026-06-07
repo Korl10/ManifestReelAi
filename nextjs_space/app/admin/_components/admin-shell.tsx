@@ -3,13 +3,14 @@ import React from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { usePathname, useRouter } from 'next/navigation';
-import { Shield, BarChart3, Film, Users, TrendingUp, ArrowLeft, Loader2 } from 'lucide-react';
+import { Shield, BarChart3, Film, Users, TrendingUp, ArrowLeft, Loader2, Mic2 } from 'lucide-react';
 
 const TABS = [
   { href: '/admin', label: 'Overview', icon: BarChart3 },
   { href: '/admin/reels', label: 'Reels', icon: Film },
   { href: '/admin/users', label: 'Users', icon: Users },
   { href: '/admin/margins', label: 'Margins', icon: TrendingUp },
+  { href: '/admin/voice-lab', label: 'Voice Lab', icon: Mic2 },
 ];
 
 export function AdminShell({ children }: { children: React.ReactNode }) {

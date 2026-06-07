@@ -12,6 +12,9 @@ export interface ScriptInput {
   /** Requested final reel length in seconds (15/20/25/30). Drives line count so
    *  narration lands close to (and slightly under) the target for pad-to-target. */
   targetDuration?: number;
+  /** Voice selection string, possibly with a speed suffix (e.g. "mys-m-01@slow").
+   *  Used to scale the script word budget by narration speed (0.85/1.0/1.15). */
+  voicePreset?: string;
 }
 
 export interface ScriptLine {

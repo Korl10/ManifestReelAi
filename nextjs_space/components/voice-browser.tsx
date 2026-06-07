@@ -18,6 +18,8 @@ interface VoiceData {
   description: string;
   defaultTier: VoiceTier;
   supportedTiers: VoiceTier[];
+  multilingual?: boolean;
+  previewUrl?: string;
   samplePath: string;
 }
 
@@ -98,7 +100,9 @@ export default function VoiceBrowser({
       return;
     }
     stopAudio();
-    const audio = new Audio(voice.samplePath);
+    const src = voice.previewUrl || voice.samplePath;
+    if (!src) return;
+    const audio = new Audio(src);
     audioRef.current = audio;
     audio.onended = () => setPlayingId(null);
     audio.play().catch(() => {});
@@ -311,6 +315,10 @@ export default function VoiceBrowser({
                           selectedVoiceId === v.id ? 'text-[#D4AF37]' : 'text-white/80'
                         }`}>{v.name}</span>
                         <span className="text-[9px] text-white/25">{v.accent}</span>
+                        <span className="text-[9px] text-white/20">· {v.gender === 'male' ? '♂' : '♀'}</span>
+                        {v.multilingual && (
+                          <span title="Multilingual" className="text-[8px] px-1 rounded bg-emerald-500/15 text-emerald-400/80 leading-tight">ML</span>
+                        )}
                       </div>
                       <p className="text-[10px] text-white/35 truncate">{v.description}</p>
                     </div>
