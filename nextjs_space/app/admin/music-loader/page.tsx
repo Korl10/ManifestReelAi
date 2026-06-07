@@ -363,6 +363,7 @@ export default function MusicLoaderPage() {
                         <span className="text-white/40">“{dr.title}”</span>
                         <span className="text-white/30">{dr.energy}</span>
                         <span className="text-white/30">~{dr.bpm}bpm</span>
+                        {dr.willTrim && <span className="text-blue-400">✂ trim → {dr.outputDurationSec}s</span>}
                         {dr.duplicate && <span className="text-amber-400">⚠ exists</span>}
                       </div>
                     )}
