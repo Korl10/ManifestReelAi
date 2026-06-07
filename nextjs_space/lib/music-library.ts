@@ -247,6 +247,69 @@ export function getAlternates(q: MatchQuery, count = 3): MusicTrack[] {
   return rankTracks(q).slice(0, count).map((s) => s.track);
 }
 
+// ── Vol. 2 (DB) integration ──────────────────────────────────────────
+// Fetches uploaded library tracks from the database and includes them
+// in the ranking alongside the static manifest (Vol. 1) tracks.
+// The async variants should be used in the generation pipeline.
+
+import { prisma } from '@/lib/prisma';
+
+/** Convert a DB LibraryTrack row into a MusicTrack. */
+function dbTrackToMusicTrack(row: any): MusicTrack {
+  return {
+    id: `v2_${row.id}`,
+    title: row.title,
+    file: row.cloudUrl, // cloud URL, not local path
+    mood: Array.isArray(row.mood) ? row.mood : [],
+    style: Array.isArray(row.style) ? row.style : [],
+    duration: Number(row.durationSec) || 30,
+    platforms: ['all'],
+    energy: (row.energy as Energy) || 'mid',
+    has_vocals: row.hasVocals === true,
+    is_stinger: false,
+    bpm: row.bpm ?? null,
+    source: 'curated_v1', // scored the same as v1 curated
+  };
+}
+
+/** Fetch active V2 tracks from the database (cached per request). */
+async function getDbTracks(): Promise<MusicTrack[]> {
+  try {
+    const rows = await prisma.libraryTrack.findMany({
+      where: { isActive: true },
+    });
+    return rows.map(dbTrackToMusicTrack);
+  } catch (e) {
+    console.error('[music-library] Failed to fetch DB tracks:', e);
+    return [];
+  }
+}
+
+/** Rank all tracks (manifest + DB) for a query. Async. */
+export async function rankTracksAsync(q: MatchQuery): Promise<ScoredTrack[]> {
+  const dbTracks = await getDbTracks();
+  const allBackground = [
+    ...BACKGROUND_TRACKS,
+    ...dbTracks.filter(t => !t.has_vocals),
+  ];
+  const exclude = new Set((q.exclude ?? []).filter(Boolean));
+  return allBackground
+    .filter(t => !exclude.has(t.id))
+    .map(track => ({ track, score: scoreTrack(track, q) }))
+    .sort((a, b) => b.score - a.score || b.track.duration - a.track.duration);
+}
+
+/** Best single match including V2 DB tracks. Async. */
+export async function matchTrackAsync(q: MatchQuery): Promise<MusicTrack | null> {
+  const ranked = await rankTracksAsync(q);
+  return ranked.length ? ranked[0].track : null;
+}
+
+/** Check if a MusicTrack has a cloud URL (V2) vs local file (V1). */
+export function isCloudTrack(track: MusicTrack): boolean {
+  return track.file.startsWith('http://') || track.file.startsWith('https://');
+}
+
 // ── Stingers (optional intro/outro accents) ─────────────────────────
 
 export function getStingers(): MusicTrack[] {

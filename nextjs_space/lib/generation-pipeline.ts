@@ -2,7 +2,7 @@ import { prisma } from '@/lib/prisma';
 import { getScriptProvider, getImageProvider, getFluxImageProvider, getVoiceProvider, getMusicProvider, getVideoProvider } from '@/lib/providers';
 import { resolveModelTier, getModelTier } from '@/lib/model-tiers';
 import { refundCoins } from '@/lib/quota';
-import { matchTrack, getTrackById, getStingerById, defaultStinger } from '@/lib/music-library';
+import { matchTrack, matchTrackAsync, getTrackById, getStingerById, defaultStinger, isCloudTrack } from '@/lib/music-library';
 import { getFileUrl } from '@/lib/s3';
 import { selectHeroScenes } from '@/lib/providers/motion-prompts';
 import { buildTemplateScript, fallbackSceneImages } from '@/lib/providers/fallback';
@@ -531,14 +531,19 @@ export async function runGenerationPipeline(
       }
     }
 
-    // 2) Curated library: explicit pick or the smart matcher.
+    // 2) Curated library: explicit pick or the async smart matcher (includes Vol. 2 DB tracks).
     if (!musicPublicUrl) {
-      const matched = libExplicit || matchTrack({ mood: reel.mood, style: reel.style, platform: reel.platform });
+      const matched = libExplicit || await matchTrackAsync({ mood: reel.mood, style: reel.style, platform: reel.platform });
       if (matched) {
         musicTrackId = matched.id;
         musicSource = (matched as any).source ?? 'curated_v1';
         try {
-          musicPublicUrl = await ensurePublicLocalAsset(matched.file, 'audio/mpeg');
+          // V2 tracks already have cloud URLs; V1 tracks need ensurePublicLocalAsset
+          if (isCloudTrack(matched)) {
+            musicPublicUrl = matched.file;
+          } else {
+            musicPublicUrl = await ensurePublicLocalAsset(matched.file, 'audio/mpeg');
+          }
           musicUrlLocal = matched.file;
           console.log(`[pipeline] music: matched "${matched.title}" (${matched.id}) source=${musicSource} mood=${reel.mood} bpm=${matched.bpm} energy=${matched.energy}`);
         } catch (e) {

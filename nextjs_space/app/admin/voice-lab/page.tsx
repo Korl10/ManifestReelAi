@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { Mic2, Loader2, Play, Pause, Check, X, Copy, CheckCircle2, AlertCircle, RotateCcw } from 'lucide-react';
+import { Mic2, Loader2, Play, Pause, Check, X, Copy, CheckCircle2, AlertCircle, RotateCcw, Download, Shield } from 'lucide-react';
 
 interface VoiceData {
   id: string;
@@ -43,6 +43,8 @@ export default function VoiceLabPage() {
   const [decisions, setDecisions] = useState<Record<string, 'keep' | 'swap'>>({});
   const [copied, setCopied] = useState(false);
   const [activeCat, setActiveCat] = useState<string>('Mysterious');
+  const [autoBackupToast, setAutoBackupToast] = useState(false);
+  const lastBackupCountRef = useRef(0);
 
   useEffect(() => {
     fetch('/api/voices/catalog')
@@ -63,6 +65,22 @@ export default function VoiceLabPage() {
 
   useEffect(() => {
     try { localStorage.setItem('voiceLabDecisions', JSON.stringify(decisions)); } catch {}
+    // Auto-backup: every 20 new decisions, auto-copy to clipboard + show toast
+    const count = Object.keys(decisions).length;
+    if (count > 0 && count % 20 === 0 && count !== lastBackupCountRef.current) {
+      lastBackupCountRef.current = count;
+      // Wait a tick so decisionsJson is updated
+      setTimeout(() => {
+        try {
+          const json = localStorage.getItem('voiceLabDecisions');
+          if (json) {
+            navigator.clipboard.writeText(json).catch(() => {});
+            setAutoBackupToast(true);
+            setTimeout(() => setAutoBackupToast(false), 4000);
+          }
+        } catch {}
+      }, 100);
+    }
   }, [decisions]);
 
   const stopAudio = useCallback(() => {
@@ -137,6 +155,18 @@ export default function VoiceLabPage() {
     }).catch(() => {});
   }, [decisionsJson]);
 
+  const downloadBackup = useCallback(() => {
+    const blob = new Blob([decisionsJson], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `voice-lab-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, [decisionsJson]);
+
   const setDecision = (id: string, d: 'keep' | 'swap') => {
     setDecisions(prev => {
       const next = { ...prev };
@@ -170,11 +200,25 @@ export default function VoiceLabPage() {
           <button onClick={copyDecisions} className="px-3 py-2 rounded-lg bg-[#D4AF37]/15 text-[#D4AF37] text-xs font-medium hover:bg-[#D4AF37]/25 transition flex items-center gap-1.5">
             {copied ? <><CheckCircle2 className="w-3.5 h-3.5" /> Copied!</> : <><Copy className="w-3.5 h-3.5" /> Save my decisions</>}
           </button>
+          <button onClick={downloadBackup} className="px-3 py-2 rounded-lg bg-white/5 text-white/60 text-xs hover:bg-white/10 transition flex items-center gap-1.5" title="Download backup JSON file">
+            <Download className="w-3.5 h-3.5" /> Backup
+          </button>
           <button onClick={() => { if (confirm('Clear all Keep/Swap decisions?')) setDecisions({}); }} className="px-2.5 py-2 rounded-lg bg-white/5 text-white/40 text-xs hover:bg-white/10 transition flex items-center gap-1" title="Reset decisions">
             <RotateCcw className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
+
+      {/* Auto-backup toast */}
+      {autoBackupToast && (
+        <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
+          <Shield className="w-4 h-4 text-emerald-400 shrink-0" />
+          <p className="text-sm text-emerald-300 flex-1">
+            Auto-backup: {decidedCount} decisions copied to clipboard. Use the <strong>Backup</strong> button to download a file.
+          </p>
+          <button onClick={() => setAutoBackupToast(false)} className="text-xs text-emerald-400 hover:text-emerald-300">OK</button>
+        </div>
+      )}
 
       {error && (
         <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center gap-3">

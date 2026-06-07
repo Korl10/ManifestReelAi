@@ -321,3 +321,28 @@ model Asset {
   @@index([reelId])
   @@map("assets")
 }
+
+// ── Vol. 2 music tracks (uploaded via admin Music Loader) ────────────
+model LibraryTrack {
+  id            String   @id @default(cuid())
+  title         String
+  slug          String
+  category      String                          // spiritual, luxury, motivational, mysterious, historical, biblical, educated, meditation
+  sequence      Int                             // from filename nn
+  cloudUrl      String   @map("cloud_url")      // S3 URL of processed (normalized) audio
+  originalUrl   String   @map("original_url")   // S3 URL of raw upload
+  durationSec   Float    @map("duration_sec")
+  bpm           Int?
+  mood          String[]                        // derived from category mapping
+  style         String[]                        // derived from category mapping
+  energy        String   @default("mid")        // low / mid / mid-high / high / very-high
+  hasVocals     Boolean  @default(false) @map("has_vocals")
+  source        String   @default("curated_v2")
+  isActive      Boolean  @default(true) @map("is_active")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@unique([category, sequence])
+  @@index([category])
+  @@index([isActive])
+  @@map("library_tracks")
+}
