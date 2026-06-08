@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma';
 import { checkGeneration, consumeCoins } from '@/lib/quota';
 import { runGenerationPipeline } from '@/lib/generation-pipeline';
 import type { PipelineOptions } from '@/lib/generation-pipeline';
+import { consumeRateLimit } from '@/lib/rate-limit';
 
 
 /** Best-effort client IP from proxy headers (used for free-tier anti-abuse). */
@@ -59,6 +60,19 @@ export async function POST(request: Request) {
     let coinCost = gate.cost;
     const clientIp = getClientIp(request);
     const isTrialing = gate.balance.isTrialing;
+
+    // TRIAL COOLDOWN: trial users may start at most one reel per 60 seconds.
+    // This throttles burst abuse of the 3 trial reels (paid subscribers are
+    // unaffected). Applied after the feature/coin gate, before any DB writes.
+    if (isTrialing) {
+      const cooldown = await consumeRateLimit('generate-cooldown', userId, 1, 60_000);
+      if (!cooldown.allowed) {
+        return NextResponse.json(
+          { error: `Please wait ${cooldown.retryAfterSec}s before starting another trial reel.`, reason: 'cooldown', retryAfterSec: cooldown.retryAfterSec },
+          { status: 429, headers: { 'Retry-After': String(cooldown.retryAfterSec) } },
+        );
+      }
+    }
 
     // Create reel + job
     // Validate the brand preset belongs to this user (defensive) before linking.

@@ -3,7 +3,10 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { stripe } from '@/lib/stripe';
 import { applySubscriptionUpdate } from '@/lib/stripe-sync';
+import { sendTrialEndingEmail } from '@/lib/email-trial';
 import Stripe from 'stripe';
+
+const GRACE_DAYS = 3;
 
 export async function POST(request: Request) {
   const body = await request.text();
@@ -45,6 +48,21 @@ export async function POST(request: Request) {
         break;
       }
 
+      // ======= TRIAL ENDING SOON (24h notice) =======
+      case 'customer.subscription.trial_will_end': {
+        const subscription = event.data.object as Stripe.Subscription;
+        const customerId = typeof subscription.customer === 'string' ? subscription.customer : subscription.customer.id;
+        const localSub = await prisma.subscription.findFirst({ where: { stripeCustomerId: customerId } });
+        if (localSub) {
+          const user = await prisma.user.findUnique({ where: { id: localSub.userId }, select: { email: true, name: true } });
+          if (user?.email) {
+            const sent = await sendTrialEndingEmail(user.email, user.name, localSub.tier);
+            console.log(`[Webhook] trial_will_end → reminder email ${sent ? 'sent' : 'skipped'} for user ${localSub.userId}`);
+          }
+        }
+        break;
+      }
+
       // ======= SUBSCRIPTION CANCELLED =======
       case 'customer.subscription.deleted': {
         const subscription = event.data.object as Stripe.Subscription;
@@ -67,11 +85,17 @@ export async function POST(request: Request) {
         if (customerId) {
           const sub = await prisma.subscription.findFirst({ where: { stripeCustomerId: customerId } });
           if (sub) {
+            // Start (or keep) a 3-day grace window: the user keeps their tier and
+            // can still generate while we retry the charge. checkGeneration()
+            // lazily downgrades to free once graceEndsAt passes.
+            const graceEndsAt = sub.graceEndsAt && sub.graceEndsAt.getTime() > Date.now()
+              ? sub.graceEndsAt
+              : new Date(Date.now() + GRACE_DAYS * 24 * 60 * 60 * 1000);
             await prisma.subscription.update({
               where: { id: sub.id },
-              data: { status: 'past_due' },
+              data: { status: 'past_due', graceEndsAt },
             });
-            console.log(`[Webhook] Payment failed for user ${sub.userId}`);
+            console.log(`[Webhook] Payment failed for user ${sub.userId} — grace until ${graceEndsAt.toISOString()}`);
           }
         }
         break;

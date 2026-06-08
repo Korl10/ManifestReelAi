@@ -15,6 +15,8 @@ export default function SettingsPage() {
   const [portalLoading, setPortalLoading] = useState(false);
   const [buyingCoins, setBuyingCoins] = useState('');
   const [billing, setBilling] = useState<'monthly' | 'annual'>('annual');
+  const [resending, setResending] = useState(false);
+  const [showCancelTrial, setShowCancelTrial] = useState(false);
   // Founders flag computed client-side to avoid SSR/CSR hydration mismatch
   const [founders, setFounders] = useState(false);
   const [foundersDays, setFoundersDays] = useState(0);
@@ -42,6 +44,33 @@ export default function SettingsPage() {
       if (data?.url) window.location.href = data.url;
     } catch { toast.error('Upgrade failed. Please try again.'); }
     finally { setUpgrading(''); }
+  };
+
+  const handleStartTrial = async (targetTier: string) => {
+    setUpgrading(targetTier);
+    try {
+      const res = await fetch('/api/payments/create-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tier: targetTier, trial: true, billing: 'monthly' }),
+      });
+      const data = await res.json();
+      if (!res.ok) { toast.error(data?.error ?? 'Could not start trial'); return; }
+      if (data?.url) window.location.href = data.url;
+    } catch { toast.error('Something went wrong. Please try again.'); }
+    finally { setUpgrading(''); }
+  };
+
+  const handleResendVerification = async () => {
+    setResending(true);
+    try {
+      const res = await fetch('/api/auth/resend-verification', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) { toast.error(data?.error ?? 'Failed to resend'); return; }
+      if (data?.alreadyVerified) { toast.success('Your email is already verified.'); }
+      else { toast.success('Verification email sent — check your inbox.'); }
+    } catch { toast.error('Something went wrong. Please try again.'); }
+    finally { setResending(false); }
   };
 
   const handlePortal = async () => {
@@ -109,6 +138,32 @@ export default function SettingsPage() {
             <span className="text-sm capitalize">{(session?.user as any)?.role ?? 'user'}</span>
           </div>
         </div>
+
+        {/* Email verification status */}
+        {!loading && quota && quota.emailVerified === false && (
+          <div className="mt-4 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-xs font-semibold text-amber-300">Verify your email to start your free trial</p>
+                <p className="text-[11px] text-amber-300/70 mt-0.5">You can explore everything now, but you'll need a verified email before generating reels.</p>
+                <button
+                  onClick={handleResendVerification}
+                  disabled={resending}
+                  className="mt-2 text-xs text-[#D4AF37] hover:underline disabled:opacity-50 inline-flex items-center gap-1"
+                >
+                  {resending ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
+                  {resending ? 'Sending...' : 'Resend verification email'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        {!loading && quota && quota.emailVerified === true && (
+          <div className="mt-4 flex items-center gap-2 text-[11px] text-emerald-400/80">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> Email verified
+          </div>
+        )}
       </motion.div>
 
       {/* Subscription */}
@@ -152,7 +207,7 @@ export default function SettingsPage() {
                     <div className="h-full rounded-full bg-emerald-500" style={{ width: `${Math.min(100, ((quota?.trialReelsUsed ?? 0) / (quota?.trialReelLimit ?? 3)) * 100)}%` }} />
                   </div>
                   <button
-                    onClick={handlePortal}
+                    onClick={() => setShowCancelTrial(true)}
                     disabled={portalLoading}
                     className="text-xs text-red-400 hover:text-red-300 transition disabled:opacity-50"
                   >
@@ -167,7 +222,7 @@ export default function SettingsPage() {
                 {currentTier === 'free' ? (
                   <div className="text-xs text-white/50">
                     <p>Free plan — explore all configurator features.</p>
-                    <button onClick={() => handleUpgrade('starter')} className="mt-2 text-[#D4AF37] hover:underline">Start 3-day free trial →</button>
+                    <button onClick={() => handleStartTrial('pro')} className="mt-2 text-[#D4AF37] hover:underline">Start 3-day free trial →</button>
                   </div>
                 ) : (
                   <>
@@ -326,6 +381,37 @@ export default function SettingsPage() {
           ))}
         </div>
       </motion.div>
+
+      {/* Cancel-trial confirmation modal */}
+      {showCancelTrial && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={() => setShowCancelTrial(false)}>
+          <div className="w-full max-w-sm rounded-2xl bg-[#15131c] border border-white/10 p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-2 mb-3">
+              <AlertCircle className="w-5 h-5 text-red-400" />
+              <h3 className="text-base font-semibold">Cancel your trial?</h3>
+            </div>
+            <p className="text-sm text-white/60 leading-relaxed">
+              You'll lose access to Pro features when your trial ends, but any reels you've already generated stay yours
+              and remain viewable forever. Continue?
+            </p>
+            <div className="mt-5 flex gap-3">
+              <button
+                onClick={() => setShowCancelTrial(false)}
+                className="flex-1 py-2.5 rounded-lg text-sm font-medium bg-white/5 hover:bg-white/10 transition"
+              >
+                Keep my trial
+              </button>
+              <button
+                onClick={() => { setShowCancelTrial(false); handlePortal(); }}
+                disabled={portalLoading}
+                className="flex-1 py-2.5 rounded-lg text-sm font-medium bg-red-500/90 hover:bg-red-500 text-white transition disabled:opacity-50"
+              >
+                {portalLoading ? 'Opening...' : 'Continue'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

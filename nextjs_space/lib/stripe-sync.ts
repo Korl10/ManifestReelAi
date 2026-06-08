@@ -84,6 +84,8 @@ export async function applySubscriptionUpdate(userId: string, subscription: Stri
       cancelAtPeriodEnd: subscription.cancel_at_period_end ?? false,
       currentPeriodStart: periodStart,
       currentPeriodEnd: periodEnd,
+      // A healthy active/trialing sync clears any lingering payment grace window.
+      ...(status === 'active' ? { graceEndsAt: null } : {}),
     },
   });
 

@@ -51,6 +51,7 @@ model Subscription {
   trialReelsUsed       Int      @default(0)     @map("trial_reels_used")
   trialEndsAt          DateTime? @map("trial_ends_at")
   cardFingerprint      String?   @map("card_fingerprint")
+  graceEndsAt          DateTime? @map("grace_ends_at")
   introUsed            Boolean  @default(false) @map("intro_used")
   currentPeriodStart   DateTime @default(now()) @map("current_period_start")
   currentPeriodEnd     DateTime @default(dbgenerated("NOW() + interval '30 days'")) @map("current_period_end")
@@ -364,4 +365,20 @@ model LibraryTrack {
   @@index([category])
   @@index([isActive])
   @@map("library_tracks")
+}
+
+// ── Rate limiting (durable, DB-backed across serverless instances) ──
+// One row per (bucket, identifier). A fixed window starting at windowStart;
+// when the window lapses the counter resets on the next hit.
+model RateLimit {
+  id          String   @id @default(cuid())
+  bucket      String   // e.g. "signup", "trial-checkout", "generate-cooldown"
+  identifier  String   // IP address or userId
+  windowStart DateTime @default(now()) @map("window_start")
+  count       Int      @default(0)
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@unique([bucket, identifier])
+  @@index([bucket, identifier])
+  @@map("rate_limits")
 }

@@ -3,9 +3,24 @@ import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 import { issueVerificationToken, sendVerificationEmail } from '@/lib/email-verify';
+import { consumeRateLimit, getClientIp } from '@/lib/rate-limit';
+
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 export async function POST(request: Request) {
   try {
+    // Anti-abuse: cap new signups per IP (3 per 24h) before touching the DB user table.
+    const ip = getClientIp(request);
+    if (ip) {
+      const rl = await consumeRateLimit('signup', ip, 3, DAY_MS);
+      if (!rl.allowed) {
+        return NextResponse.json(
+          { error: 'Too many accounts created from this network today. Please try again later.', code: 'rate_limited', retryAfterSec: rl.retryAfterSec },
+          { status: 429, headers: { 'Retry-After': String(rl.retryAfterSec) } },
+        );
+      }
+    }
+
     const body = await request.json();
     const { email, password, name } = body ?? {};
     if (!email || !password) {

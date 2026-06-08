@@ -160,8 +160,20 @@ export interface GenerationCheck {
  */
 export async function checkGeneration(userId: string, motion: boolean, modelTierId?: string, targetDuration?: number): Promise<GenerationCheck> {
   const balance = await getCoinBalance(userId);
+  const sub = await prisma.subscription.findUnique({ where: { userId } });
+  const now = Date.now();
 
-  if (balance.status !== 'active') {
+  // PAYMENT GRACE PERIOD: a 'past_due' subscription (failed renewal/charge)
+  // keeps generating during a short grace window so a transient card decline
+  // doesn't instantly cut off a paying customer. Once grace lapses we lazily
+  // downgrade to free here (the webhook also downgrades on cancellation).
+  const inGrace = sub?.status === 'past_due' && !!sub.graceEndsAt && new Date(sub.graceEndsAt).getTime() > now;
+  if (sub?.status === 'past_due' && sub.graceEndsAt && new Date(sub.graceEndsAt).getTime() <= now && sub.tier !== 'free') {
+    await prisma.subscription.update({ where: { userId }, data: { tier: 'free', graceEndsAt: null } });
+    return { allowed: false, reason: 'free_locked', message: 'Your subscription lapsed after a failed payment. Subscribe to keep creating.', cost: 0, motion, balance };
+  }
+
+  if (balance.status !== 'active' && !inGrace) {
     return { allowed: false, reason: 'inactive', message: 'Your subscription is not active. Please renew to continue.', cost: 0, motion, balance };
   }
 
@@ -170,9 +182,24 @@ export async function checkGeneration(userId: string, motion: boolean, modelTier
     return { allowed: false, reason: 'free_locked', message: 'Start a free trial to create your first reel.', cost: 0, motion, balance };
   }
 
+  // DEFENSIVE TRIAL/PERIOD EXPIRY: during an active trial Stripe sets
+  // currentPeriodEnd == trial_end. If the trial end has passed but the billing
+  // period has NOT advanced beyond it, the conversion webhook hasn't been
+  // observed yet — we can't confirm payment, so treat the user as free until a
+  // webhook extends the period. (A converted/renewed sub has periodEnd well
+  // past trial_end, so paying customers are unaffected.)
+  if (sub?.trialEndsAt) {
+    const trialEnd = new Date(sub.trialEndsAt).getTime();
+    const periodEnd = sub.currentPeriodEnd ? new Date(sub.currentPeriodEnd).getTime() : 0;
+    const trialEnded = trialEnd < now;
+    const periodAdvancedBeyondTrial = periodEnd > trialEnd + 60_000;
+    if (trialEnded && !periodAdvancedBeyondTrial && !inGrace) {
+      return { allowed: false, reason: 'free_locked', message: 'Your free trial has ended. Subscribe to keep creating.', cost: 0, motion, balance };
+    }
+  }
+
   // TRIAL REEL LIMIT: max 3 reels during trial
   if (balance.isTrialing) {
-    const sub = await prisma.subscription.findUnique({ where: { userId } });
     if (sub && sub.trialReelsUsed >= 3) {
       return { allowed: false, reason: 'trial_limit_reached', message: 'You\'ve used all 3 trial reels. Subscribe to keep creating.', cost: 0, motion, balance };
     }

@@ -5,6 +5,9 @@ import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
 import { stripe } from '@/lib/stripe';
 import { PLANS, type PlanTier, isFoundersPeriod, FOUNDERS_ANNUAL_PRICE } from '@/lib/pricing';
+import { consumeRateLimit, getClientIp } from '@/lib/rate-limit';
+
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
@@ -13,9 +16,34 @@ export async function POST(request: Request) {
   const body = await request.json();
   const { tier, useIntro } = body ?? {};
   const billing = body?.billing === 'annual' ? 'annual' : 'monthly';
+  const wantsTrial = body?.trial === true;
 
   if (!tier || !['starter', 'pro', 'premium', 'agency'].includes(tier)) {
     return NextResponse.json({ error: 'Invalid tier' }, { status: 400 });
+  }
+
+  // Trial-start guards (only when a free trial is being requested):
+  if (wantsTrial) {
+    // 1) Email-verification gate — a trial may not begin until the email is verified.
+    //    (Users CAN still explore the configurator unverified; only checkout is gated.)
+    const me = await prisma.user.findUnique({ where: { id: userId }, select: { emailVerified: true } });
+    if (!me?.emailVerified) {
+      return NextResponse.json(
+        { error: 'Please verify your email before starting your free trial. Check your inbox or resend the link from Settings.', code: 'email_unverified' },
+        { status: 403 },
+      );
+    }
+    // 2) Anti-abuse: cap trial-start attempts per IP (2 per 24h).
+    const ip = getClientIp(request);
+    if (ip) {
+      const rl = await consumeRateLimit('trial-checkout', ip, 2, DAY_MS);
+      if (!rl.allowed) {
+        return NextResponse.json(
+          { error: 'Too many trial attempts from this network today. Please try again later.', code: 'rate_limited', retryAfterSec: rl.retryAfterSec },
+          { status: 429, headers: { 'Retry-After': String(rl.retryAfterSec) } },
+        );
+      }
+    }
   }
 
   const plan = PLANS[tier as PlanTier];
@@ -39,7 +67,6 @@ export async function POST(request: Request) {
   }
 
   // One-trial-per-user: reject if trial already used.
-  const wantsTrial = body?.trial === true;
   if (wantsTrial && sub?.trialUsed) {
     return NextResponse.json({ error: 'You have already used your free trial. Choose a plan to subscribe.', code: 'trial_already_used' }, { status: 400 });
   }
