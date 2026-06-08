@@ -13,7 +13,7 @@ import { AddVoiceModal } from '@/components/add-voice-modal';
 import dynamic from 'next/dynamic';
 import { DEFAULT_SUBTITLE_STYLE } from '@/lib/captions/subtitle-types';
 import type { SubtitleStyle } from '@/lib/captions/subtitle-types';
-import { ACTIVE_VOICE_CATALOG, VOICE_CATEGORIES as CATALOG_CATEGORIES, CATEGORY_DESCRIPTIONS, isVoiceActive, findFallbackVoice } from '@/lib/voice-catalog';
+import { ACTIVE_VOICE_CATALOG, VOICE_CATEGORIES as CATALOG_CATEGORIES, CATEGORY_DESCRIPTIONS, CATEGORY_TEST_PHRASES, isVoiceActive, findFallbackVoice, speedValue } from '@/lib/voice-catalog';
 import type { VoiceTier } from '@/lib/voice-catalog';
 
 import { modelTierAccess, getModelTier, type ModelTierId } from '@/lib/model-tiers';
@@ -109,6 +109,7 @@ export default function DashboardPage() {
   const [limitModal, setLimitModal] = useState<{ title: string; message: string } | null>(null);
   const [enableMotion, setEnableMotion] = useState(false);
   const [playingVoice, setPlayingVoice] = useState<string | null>(null);
+  const [previewLoadingId, setPreviewLoadingId] = useState<string | null>(null);
   const [playingReel, setPlayingReel] = useState<string | null>(null);
   const audioRefs = useRef<Record<string, HTMLAudioElement | null>>({});
   const videoRefs = useRef<Record<string, HTMLVideoElement | null>>({});
@@ -196,31 +197,75 @@ export default function DashboardPage() {
     }
   };
 
-  const toggleVoicePreview = (e: React.MouseEvent, id: string) => {
+  const toggleVoicePreview = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     // Stop any currently playing audio
-    Object.entries(audioRefs.current).forEach(([key, el]) => {
+    Object.entries(audioRefs.current).forEach(([, el]) => {
       if (el) { el.pause(); el.currentTime = 0; }
     });
     if (playingVoice === id) {
       setPlayingVoice(null);
       return;
     }
-    // Find audio src
-    const preset = ALL_PRESET_VOICES.find((v) => v.id === id);
-    const custom = customVoices.find((v: any) => v.id === id);
-    const src = preset?.audio || custom?.audio;
-    if (!src) return;
-    // Create/reuse audio element lazily
-    if (!audioRefs.current[id]) {
-      const el = new Audio(src);
-      el.onended = () => setPlayingVoice((p) => (p === id ? null : p));
-      audioRefs.current[id] = el;
+
+    // Custom/uploaded voices: play their uploaded audio directly (no ElevenLabs TTS)
+    const customV = customVoices.find((v: any) => v.id === id);
+    if (customV) {
+      const src = customV.audio;
+      if (!src) return;
+      if (!audioRefs.current[id]) {
+        const el = new Audio(src);
+        el.onended = () => setPlayingVoice((p) => (p === id ? null : p));
+        audioRefs.current[id] = el;
+      }
+      const audio = audioRefs.current[id]!;
+      audio.currentTime = 0;
+      audio.play().catch(() => {});
+      setPlayingVoice(id);
+      return;
     }
-    const audio = audioRefs.current[id]!;
-    audio.currentTime = 0;
-    audio.play().catch(() => {});
-    setPlayingVoice(id);
+
+    // Catalog voices: generate an English preview via API (never play canned foreign samples).
+    // Cache key includes speed so changing the slider produces different audio.
+    const cacheKey = `${id}__${speed}`;
+
+    // If we already have a generated URL cached for this id+speed, play it
+    if (audioRefs.current[cacheKey]) {
+      const audio = audioRefs.current[cacheKey]!;
+      audio.currentTime = 0;
+      audio.play().catch(() => {});
+      setPlayingVoice(id);
+      return;
+    }
+
+    // Build English preview text
+    const catVoice = ACTIVE_VOICE_CATALOG.find((v) => v.id === id);
+    const previewText = prompt?.trim()
+      || (catVoice ? CATEGORY_TEST_PHRASES[catVoice.category] : null)
+      || 'Today, I am stepping into my power and creating the life I truly desire.';
+
+    setPreviewLoadingId(id);
+    try {
+      const res = await fetch('/api/voices/preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ voiceId: id, text: previewText.slice(0, 120), speed }),
+      });
+      const data = await res.json();
+      if (data.audioUrl) {
+        const el = new Audio(data.audioUrl);
+        el.onended = () => setPlayingVoice((p) => (p === id ? null : p));
+        audioRefs.current[cacheKey] = el;
+        el.play().catch(() => {});
+        setPlayingVoice(id);
+      } else {
+        toast.error('Could not preview voice');
+      }
+    } catch {
+      toast.error('Could not preview voice');
+    } finally {
+      setPreviewLoadingId(null);
+    }
   };
 
   const deleteCustomVoice = async (e: React.MouseEvent, id: string) => {
@@ -659,7 +704,7 @@ export default function DashboardPage() {
                           isPlaying ? 'gold-gradient text-black' : 'bg-black/55 text-[#D4AF37] hover:bg-black/75 border border-[#D4AF37]/40'
                         }`}
                       >
-                        {isPlaying ? <Pause className="w-4 h-4" strokeWidth={2.5} /> : <Play className="w-4 h-4 ml-0.5" strokeWidth={2.5} />}
+                        {previewLoadingId === item.id ? <Loader2 className="w-4 h-4 animate-spin" /> : isPlaying ? <Pause className="w-4 h-4" strokeWidth={2.5} /> : <Play className="w-4 h-4 ml-0.5" strokeWidth={2.5} />}
                       </button>
                       {isPlaying && (
                         <div className="absolute bottom-12 left-2 flex items-end gap-0.5 h-4">
@@ -727,7 +772,7 @@ export default function DashboardPage() {
                         isPlaying ? 'gold-gradient text-black' : 'bg-black/55 text-[#D4AF37] hover:bg-black/75 border border-[#D4AF37]/40'
                       }`}
                     >
-                      {isPlaying ? <Pause className="w-4 h-4" strokeWidth={2.5} /> : <Play className="w-4 h-4 ml-0.5" strokeWidth={2.5} />}
+                      {previewLoadingId === item.id ? <Loader2 className="w-4 h-4 animate-spin" /> : isPlaying ? <Pause className="w-4 h-4" strokeWidth={2.5} /> : <Play className="w-4 h-4 ml-0.5" strokeWidth={2.5} />}
                     </button>
                     <button
                       type="button"
