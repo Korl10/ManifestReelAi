@@ -168,22 +168,23 @@ export async function compositeReel(input: CompositeInput): Promise<CompositeRes
   const total = durs.reduce((a, b) => a + b, 0) - XFADE * (n - 1);
   const T = +Math.max(3, total).toFixed(2);
 
-  // ---- Build & upload the karaoke subtitle file ----
-  const ass = buildAss(input.lineTexts, input.words, {
-    watermark: input.watermark,
-    totalDuration: T,
-    style: input.subtitleStyle,
-  });
-  const assUrl = await uploadPublicText(ass, 'captions.ass', 'text/plain');
+  // ---- Build & upload the karaoke subtitle file (skip when user disabled subtitles) ----
+  const subtitlesOff = input.subtitleStyle?.subtitlesEnabled === false;
+  let assUrl: string | null = null;
+  let subsMkvUrl: string | null = null;
+  if (!subtitlesOff) {
+    const ass = buildAss(input.lineTexts, input.words, {
+      watermark: input.watermark,
+      totalDuration: T,
+      style: input.subtitleStyle,
+    });
+    assUrl = await uploadPublicText(ass, 'captions.ass', 'text/plain');
 
-  // ---- Embed the chosen subtitle font ----
-  // The FFmpeg workers don't ship our Google fonts and the `fontsdir` filter
-  // option is blocked by the API, so libass would otherwise fall back to a
-  // default font. We mux the .ass + chosen .ttf into a tiny .mkv (stream copy)
-  // and burn from that; libass reads the embedded font automatically. On any
-  // failure we fall back to the raw .ass (default font, never breaks).
-  const subtitleFont = input.subtitleStyle?.fontFamily;
-  const subsMkvUrl = await buildSubtitleMkv(assUrl, subtitleFont, apiKey);
+    // Embed the chosen subtitle font into a tiny .mkv so libass uses our
+    // Google font, not its fallback.
+    const subtitleFont = input.subtitleStyle?.fontFamily;
+    subsMkvUrl = await buildSubtitleMkv(assUrl, subtitleFont, apiKey);
+  }
 
   // Per-scene motion clips (optional). A scene is "animated" only when it has
   // a clip URL; otherwise it stays a Ken Burns still.
@@ -199,8 +200,10 @@ export async function compositeReel(input: CompositeInput): Promise<CompositeRes
   if (input.stingerUrl) input_files['in_stinger'] = input.stingerUrl;
   // Watermark logo overlay (Phase 4c)
   if (input.watermarkConfig?.logoUrl) input_files['in_wm'] = input.watermarkConfig.logoUrl;
-  if (subsMkvUrl) input_files['in_subs'] = subsMkvUrl;
-  else input_files['in_ass'] = assUrl;
+  if (!subtitlesOff) {
+    if (subsMkvUrl) input_files['in_subs'] = subsMkvUrl;
+    else if (assUrl) input_files['in_ass'] = assUrl;
+  }
 
   // ---- Build the ffmpeg argument string ----
   const args: string[] = [];
@@ -271,20 +274,22 @@ export async function compositeReel(input: CompositeInput): Promise<CompositeRes
     lastLabel = 'vbg';
   }
 
-  // Burn captions.
-  // Burn captions from the embedded-font .mkv when available (renders the exact
-  // chosen font); otherwise from the raw .ass (default font fallback).
-  const subSource = subsMkvUrl ? '{{in_subs}}' : '{{in_ass}}';
-  fc.push(`[${lastLabel}]subtitles=${subSource}[vsub]`);
+  // Burn captions (skipped when subtitles are off).
+  let afterSubLabel = lastLabel;
+  if (!subtitlesOff) {
+    const subSource = subsMkvUrl ? '{{in_subs}}' : '{{in_ass}}';
+    fc.push(`[${lastLabel}]subtitles=${subSource}[vsub]`);
+    afterSubLabel = 'vsub';
+  }
 
   // Watermark logo overlay (Phase 4c). The logo is scaled, positioned with
   // platform-safe margins, and overlaid with configurable opacity, fade-in,
   // and optional subtle pulse animation.
-  let finalVideoLabel = 'vsub';
+  let finalVideoLabel = afterSubLabel;
   if (wmIdx >= 0 && input.watermarkConfig) {
     const wmLabel = buildWatermarkFilter(wmIdx, input.watermarkConfig, W, H, T);
     fc.push(...wmLabel.filters);
-    fc.push(`[vsub][${wmLabel.label}]overlay=${wmLabel.x}:${wmLabel.y}:format=auto:shortest=1[vwm]`);
+    fc.push(`[${afterSubLabel}][${wmLabel.label}]overlay=${wmLabel.x}:${wmLabel.y}:format=auto:shortest=1[vwm]`);
     finalVideoLabel = 'vwm';
   }
 

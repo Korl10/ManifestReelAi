@@ -969,17 +969,38 @@ export default function DashboardPage() {
       {/* Subtitle Editor (Phase 2) — WYSIWYG subtitle customization */}
       <section>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="font-display text-base font-semibold">Subtitle Style</h2>
-          <button
-            onClick={() => setShowSubtitleEditor(!showSubtitleEditor)}
-            className={`text-xs px-3 py-1.5 rounded-lg transition ${
-              showSubtitleEditor ? 'bg-[#D4AF37]/20 text-[#D4AF37]' : 'bg-white/5 text-white/40 hover:bg-white/10'
-            }`}
-          >
-            {showSubtitleEditor ? 'Hide Editor' : 'Customize Subtitles'}
-          </button>
+          <div className="flex items-center gap-3">
+            <h2 className="font-display text-base font-semibold">Subtitle Style</h2>
+            {/* On/Off toggle */}
+            <button
+              type="button"
+              onClick={() => setSubtitleStyle(prev => ({ ...prev, subtitlesEnabled: !prev.subtitlesEnabled }))}
+              className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
+                subtitleStyle.subtitlesEnabled ? 'bg-[#D4AF37]' : 'bg-white/15'
+              }`}
+              aria-label="Toggle subtitles"
+            >
+              <span className={`inline-block h-4 w-4 rounded-full bg-white shadow-sm transform transition-transform ${
+                subtitleStyle.subtitlesEnabled ? 'translate-x-6' : 'translate-x-1'
+              }`} />
+            </button>
+            <span className="text-[11px] text-white/40">{subtitleStyle.subtitlesEnabled ? 'On' : 'Off'}</span>
+          </div>
+          {subtitleStyle.subtitlesEnabled && (
+            <button
+              onClick={() => setShowSubtitleEditor(!showSubtitleEditor)}
+              className={`text-xs px-3 py-1.5 rounded-lg transition ${
+                showSubtitleEditor ? 'bg-[#D4AF37]/20 text-[#D4AF37]' : 'bg-white/5 text-white/40 hover:bg-white/10'
+              }`}
+            >
+              {showSubtitleEditor ? 'Hide Editor' : 'Customize Subtitles'}
+            </button>
+          )}
         </div>
-        {!showSubtitleEditor && (
+        {!subtitleStyle.subtitlesEnabled && (
+          <p className="text-[11px] text-white/30">Subtitles are turned off — your reel will have no captions.</p>
+        )}
+        {subtitleStyle.subtitlesEnabled && !showSubtitleEditor && (
           <div className="flex flex-wrap gap-2 text-[11px] text-white/40">
             <span className="px-2 py-1 rounded bg-white/5">{subtitleStyle.fontFamily}</span>
             <span className="px-2 py-1 rounded bg-white/5">{subtitleStyle.animation}</span>
@@ -989,7 +1010,7 @@ export default function DashboardPage() {
             )}
           </div>
         )}
-        {showSubtitleEditor && (
+        {subtitleStyle.subtitlesEnabled && showSubtitleEditor && (
           <SubtitleEditor
             value={subtitleStyle}
             onChange={setSubtitleStyle}

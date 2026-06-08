@@ -11,6 +11,9 @@ export type SubtitlePosition = 'top' | 'center' | 'bottom';
 export type PlatformSafeZone = 'reels' | 'tiktok' | 'shorts' | 'none';
 
 export interface SubtitleStyle {
+  // Master toggle
+  subtitlesEnabled: boolean;    // default true; when false, no subtitles are burned
+
   // Font
   fontFamily: string;           // one of SUBTITLE_FONTS
   fontSize: number;             // in ASS units (default 72)
@@ -71,6 +74,7 @@ export const SUBTITLE_FONTS = [
 
 /** Default subtitle style. */
 export const DEFAULT_SUBTITLE_STYLE: SubtitleStyle = {
+  subtitlesEnabled: true,
   fontFamily: 'DM Sans',
   fontSize: 72,
   textColor: '#FFFFFF',
