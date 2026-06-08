@@ -43,7 +43,7 @@ export async function POST(request: Request) {
         currency: 'usd',
         product_data: {
           name: `${bundle.label} — ManifestReel AI`,
-          description: `${bundle.coins} coins • valid 12 months`,
+          description: `${bundle.coins} coins • never expire`,
         },
         unit_amount: bundle.price,
       },

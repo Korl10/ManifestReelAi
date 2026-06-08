@@ -36,7 +36,7 @@ const STYLES = [
   { name: 'Law of Attraction', img: '/styles/law-of-attraction.jpg', desc: 'Cosmic energy' },
 ];
 
-// Build VOICE_LIBRARY dynamically from the canonical voice catalog (160 unique professional voices).
+// Build VOICE_LIBRARY dynamically from the canonical voice catalog (~150 professional voices).
 const CATEGORY_IMGS: Record<string, string> = {
   Female: '/voices/female.jpg', Male: '/voices/male.jpg', Mysterious: '/voices/mysterious.jpg',
   Historical: '/voices/historical.jpg', Biblical: '/voices/biblical.jpg', Motivational: '/voices/motivational.jpg',

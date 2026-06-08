@@ -259,7 +259,7 @@ export function PaywallModal({ open, onClose, tier, reelsUsed, reelsCap }: Paywa
                       </div>
                       <div className="text-left">
                         <p className="text-sm font-semibold flex items-center gap-1.5">{bundle.label}{(bundle as any).popular && <span className="px-1.5 py-0.5 rounded-full bg-[#D4AF37]/15 text-[#D4AF37] text-[9px] font-bold uppercase">Popular</span>}</p>
-                        <p className="text-[10px] text-white/40">{bundle.coins} coins • valid 12 months</p>
+                        <p className="text-[10px] text-white/40">{bundle.coins} coins • never expire</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">

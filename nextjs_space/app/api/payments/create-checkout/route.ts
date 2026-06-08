@@ -43,7 +43,7 @@ export async function POST(request: Request) {
   const isIntro = !isAnnual && useIntro && !sub?.introUsed;
   const interval = isAnnual ? ('year' as const) : ('month' as const);
   // Founders' Launch Promo: deeper annual pricing during the launch window,
-  // locked for life (Stripe keeps the subscription's price on renewal).
+  // Founders' pricing: Stripe keeps the subscription's price on renewal.
   const isFounders = isAnnual && isFoundersPeriod();
   const annualAmount = isFounders
     ? FOUNDERS_ANNUAL_PRICE[tier as PlanTier]
@@ -61,7 +61,7 @@ export async function POST(request: Request) {
         currency: 'usd',
         product_data: {
           name: `ManifestReel AI ${plan.name}`,
-          description: `${plan.coins} coins/month • billed ${isAnnual ? (isFounders ? "annually (Founders' pricing — locked for life)" : 'annually (save 20%)') : 'monthly'}${isIntro ? ' (introductory offer)' : ''}`,
+          description: `${plan.coins} coins/month • billed ${isAnnual ? (isFounders ? "annually (Founders' pricing)" : 'annually') : 'monthly'}${isIntro ? ' (introductory offer)' : ''}`,
         },
         unit_amount: unitAmount,
         recurring: { interval },

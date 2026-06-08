@@ -4,7 +4,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { stripe } from '@/lib/stripe';
 import { applySubscriptionUpdate } from '@/lib/stripe-sync';
-import { BUNDLE_EXPIRY_MONTHS } from '@/lib/pricing';
+
 import { prisma } from '@/lib/prisma';
 
 // Fallback activation: called by the dashboard right after Stripe Checkout
@@ -51,11 +51,9 @@ export async function POST(request: Request) {
         where: { stripeSessionId: checkout.id, status: 'pending' },
       });
       if (purchase) {
-        const expiresAt = new Date();
-        expiresAt.setMonth(expiresAt.getMonth() + BUNDLE_EXPIRY_MONTHS);
         await prisma.coinPurchase.update({
           where: { id: purchase.id },
-          data: { status: 'completed', coinsRemaining: purchase.reelsAdded, expiresAt },
+          data: { status: 'completed', coinsRemaining: purchase.reelsAdded, expiresAt: null },
         });
       }
       return NextResponse.json({ activated: true, type: 'coin_purchase' });

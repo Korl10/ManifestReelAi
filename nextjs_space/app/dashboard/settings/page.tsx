@@ -206,8 +206,8 @@ export default function SettingsPage() {
                 {billing === 'annual' && (
                   <p className="text-[11px] text-center text-white/40">
                     {founders
-                      ? `🔥 Founders' pricing — locked for life, renews at this rate. ${foundersDays} ${foundersDays === 1 ? 'day' : 'days'} left.`
-                      : 'Billed annually — save 20% vs monthly'}
+                      ? `🔥 Founders' annual pricing — renews at this rate. ${foundersDays} ${foundersDays === 1 ? 'day' : 'days'} left.`
+                      : 'Billed annually'}
                   </p>
                 )}
               </div>
@@ -228,7 +228,7 @@ export default function SettingsPage() {
       {isPaid && (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }} className="rounded-xl bg-white/[0.02] border border-white/5 p-5">
           <h2 className="text-sm font-semibold flex items-center gap-2 mb-3"><Zap className="w-4 h-4 text-[#D4AF37]" /> Buy Extra Coins</h2>
-          <p className="text-xs text-white/40 mb-4">Top up with a one-time coin bundle. Bundle coins stack on your plan and stay valid for 12 months. Coin cost varies by model tier &amp; duration.</p>
+          <p className="text-xs text-white/40 mb-4">Top up with a one-time coin bundle. Bundle coins stack on your plan and never expire. Coin cost varies by model tier &amp; duration.</p>
           <div className="space-y-2">
             {COIN_BUNDLES.map(bundle => (
               <button
@@ -245,7 +245,7 @@ export default function SettingsPage() {
                     <p className="text-sm font-semibold flex items-center gap-2">{bundle.label}
                       {(bundle as any).popular && <span className="px-1.5 py-0.5 rounded-full bg-[#D4AF37]/15 text-[#D4AF37] text-[9px] font-bold uppercase tracking-wide">Most Popular</span>}
                     </p>
-                    <p className="text-[10px] text-white/40">{bundle.coins} coins • valid 12 months</p>
+                    <p className="text-[10px] text-white/40">{bundle.coins} coins • never expire</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">

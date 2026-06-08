@@ -218,9 +218,9 @@ const FEATURES = [
 
 const TIERS = [
   { name: 'Free', monthly: 0, annualMo: 0, annualTotal: 0, annualSave: 0, foundersMo: 0, foundersTotal: 0, foundersSave: 0, features: ['Demo gallery access', '7s watermarked preview', 'Explore all styles & moods', 'No card required'], cta: 'Start Free', tier: 'free', popular: false },
-  { name: 'Starter', monthly: 19.99, annualMo: 15.99, annualTotal: 191.88, annualSave: 48, foundersMo: 12.99, foundersTotal: 155.88, foundersSave: 84, features: ['200 coins / month', 'Standard + Pro tiers', 'HD exports, no watermark', '160 AI voices', 'Manual export only'], cta: 'Get Starter', tier: 'starter', popular: false },
-  { name: 'Pro', monthly: 39.99, annualMo: 31.99, annualTotal: 383.88, annualSave: 96, foundersMo: 24.99, foundersTotal: 299.88, foundersSave: 180, features: ['500 coins / month', 'All 3 quality tiers', 'Auto-post IG + TikTok (coming soon)', '1080p exports', '3 Craft presets'], cta: 'Get Pro', tier: 'pro', popular: true },
-  { name: 'Premium', monthly: 89.99, annualMo: 71.99, annualTotal: 863.88, annualSave: 216, foundersMo: 59.99, foundersTotal: 719.88, foundersSave: 360, features: ['1,200 coins / month', 'All tiers + 4K exports', 'Brand Kit', 'Auto-post all platforms (coming soon)', 'Priority queue + API'], cta: 'Get Premium', tier: 'premium', popular: false },
+  { name: 'Starter', monthly: 19.99, annualMo: 15.99, annualTotal: 191.88, annualSave: 48, foundersMo: 12.99, foundersTotal: 155.88, foundersSave: 84, features: ['200 coins / month', 'Standard + Pro tiers', '1080p exports, no watermark', 'Full voice catalog (~150)', 'Manual export only'], cta: 'Get Starter', tier: 'starter', popular: false },
+  { name: 'Pro', monthly: 39.99, annualMo: 31.99, annualTotal: 383.88, annualSave: 96, foundersMo: 24.99, foundersTotal: 299.88, foundersSave: 180, features: ['500 coins / month', 'All 3 quality tiers', '1080p exports', '1 Craft preset', 'Auto-post IG + TikTok (coming soon)'], cta: 'Get Pro', tier: 'pro', popular: true },
+  { name: 'Premium', monthly: 89.99, annualMo: 71.99, annualTotal: 863.88, annualSave: 216, foundersMo: 59.99, foundersTotal: 719.88, foundersSave: 360, features: ['1,200 coins / month', 'All 3 quality tiers', 'Brand Kit (unlimited presets)', '1080p exports', 'Fastest generation speeds'], cta: 'Get Premium', tier: 'premium', popular: false },
   { name: 'Agency', monthly: 199, annualMo: 159, annualTotal: 1908, annualSave: 480, foundersMo: 129, foundersTotal: 1548, foundersSave: 840, features: ['3,000 coins / month', 'Everything in Premium', '5 team seats', 'White-label exports', 'Bulk generation'], cta: 'Start Agency', tier: 'agency', popular: false },
 ];
 
@@ -436,7 +436,7 @@ export function LandingPage() {
                 <span className="text-lg">🔥</span>
                 <span className="text-sm font-semibold text-orange-300">Founders&apos; Pricing — Ends in {foundersDays} {foundersDays === 1 ? 'day' : 'days'}</span>
               </div>
-              <p className="text-xs text-white/45 mt-2 max-w-md mx-auto">Lock in your annual rate for life — renews at your discounted price every year. Available on annual plans during launch only.</p>
+              <p className="text-xs text-white/45 mt-2 max-w-md mx-auto">Annual plans at launch-exclusive rates — renews at the same discounted price. Available during launch window only.</p>
             </motion.div>
           )}
 
@@ -489,13 +489,6 @@ export function LandingPage() {
                     </div>
                   )}
 
-                  {/* Founders locked badge — all paid tiers, annual */}
-                  {showFoundersAnnual && (
-                    <div className="mb-3 px-3 py-1.5 rounded-lg bg-orange-500/10 border border-orange-500/20 text-[11px] text-orange-300 font-medium text-center">
-                      🔥 Founders&apos; pricing locked for life
-                    </div>
-                  )}
-
                   <div className="mb-6">
                     <h3 className="font-display text-lg font-semibold mb-3">{t.name}</h3>
 
@@ -514,14 +507,6 @@ export function LandingPage() {
                           </span>
                           <span className="text-sm text-white/40">/mo</span>
                         </div>
-                        {/* Green savings badge */}
-                        <div className="mt-2 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/20">
-                          <span className="text-[11px] font-bold text-emerald-400">💰 Save ${showFoundersAnnual ? t.foundersSave : t.annualSave}/year</span>
-                        </div>
-                        {/* Premium per-day (annual only) */}
-                        {isPremium && (
-                          <p className="text-xs text-white/50 mt-2 italic">= just ${showFoundersAnnual ? '2.00' : '2.40'}/day — less than a coffee ☕</p>
-                        )}
                       </div>
                     ) : (
                       /* ── Monthly view ── */
@@ -532,17 +517,6 @@ export function LandingPage() {
                           </span>
                           <span className="text-sm text-white/40">/mo</span>
                         </div>
-                        {/* Upsell to annual */}
-                        {t.monthly > 0 && (
-                          <button
-                            onClick={() => setBilling('annual')}
-                            className="mt-2 text-[11px] text-emerald-400 hover:text-emerald-300 transition-colors font-medium cursor-pointer"
-                          >
-                            {isFounders
-                              ? `Switch to annual to save $${t.foundersSave}/year →`
-                              : `Switch to annual to save $${t.annualSave}/year →`}
-                          </button>
-                        )}
                       </div>
                     )}
                   </div>

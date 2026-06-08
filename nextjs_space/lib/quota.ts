@@ -98,13 +98,12 @@ export async function getCoinBalance(userId: string): Promise<CoinBalance> {
 
   const now = new Date();
 
-  // Non-expired purchased coins.
+  // Purchased coins (never expire — all completed bundles with remaining coins count).
   const bundleAgg = await prisma.coinPurchase.aggregate({
     where: {
       userId,
       status: 'completed',
       coinsRemaining: { gt: 0 },
-      OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
     },
     _sum: { coinsRemaining: true },
   });

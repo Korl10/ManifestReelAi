@@ -7,9 +7,9 @@
 //     a fixed coin cost (see REEL_COIN_COSTS below).
 //   • Subscriptions include a monthly coin allotment that RESETS each month.
 //   • Coin bundles are one-time purchases that STACK on top of the
-//     subscription balance and stay valid for 12 months.
+//     subscription balance and never expire — they're yours forever.
 //   • Coins extend VOLUME within a tier — they never unlock features.
-//     Feature access (model tiers, auto-post, 4K, etc.) is gated by plan.
+//     Feature access (model tiers, auto-post, etc.) is gated by plan.
 
 // ── Subscription plans ───────────────────────────────────────────
 export const PLANS = {
@@ -21,7 +21,7 @@ export const PLANS = {
     reelsCap: 200,         // legacy alias
     modelTiers: ['standard', 'pro'] as string[],
     autoPostPlatforms: [] as string[],  // manual export only
-    features: ['Standard + Pro tiers', 'HD exports, no watermark', '160 AI voices', 'Manual export only'],
+    features: ['Standard + Pro tiers', '1080p exports, no watermark', 'Full voice catalog (~150)', 'Manual export only'],
     introMonthlyPrice: 999,
     introDurationMonths: 3,
   },
@@ -33,7 +33,7 @@ export const PLANS = {
     reelsCap: 500,
     modelTiers: ['standard', 'pro', 'cinematic'] as string[],
     autoPostPlatforms: ['instagram', 'tiktok'],
-    features: ['All 3 tiers', 'Auto-post IG + TikTok', '1080p export', '3 Craft presets', '500 coins/month'],
+    features: ['All 3 quality tiers', 'Auto-post IG + TikTok (coming soon)', '1080p exports', '1 Craft preset', '500 coins/month'],
     introMonthlyPrice: 1999,
     introDurationMonths: 3,
   },
@@ -45,7 +45,7 @@ export const PLANS = {
     reelsCap: 1200,
     modelTiers: ['standard', 'pro', 'cinematic'] as string[],
     autoPostPlatforms: ['instagram', 'tiktok', 'youtube', 'x'],
-    features: ['All tiers + 4K', 'Brand Kit', 'Auto-post IG/TikTok/YT/X', 'Priority queue', 'API access', '1,200 coins/month'],
+    features: ['All 3 quality tiers', 'Brand Kit (unlimited presets)', 'Auto-post all platforms (coming soon)', '1080p exports', 'Fastest generation speeds', '1,200 coins/month'],
     introMonthlyPrice: 4499,
     introDurationMonths: 3,
   },
@@ -118,9 +118,9 @@ export function annualSavingsCents(tier: PlanTier): number {
 
 // ── Founders’ Launch Promo (first 90 days) ───────────────────────
 // Applies to ANNUAL billing for ALL tiers. Deeper than the standard
-// 20% annual discount (33–38% off). Locked for life: a founder keeps
-// their discounted annual rate on every renewal. After Day 90 the
-// pricing auto-reverts to the standard 20% annual discount.
+// 20% annual discount (33–38% off). A founder keeps their discounted
+// annual rate on every renewal. After Day 90 the pricing auto-reverts
+// to the standard 20% annual discount for new subscribers.
 export const LAUNCH_DATE = new Date('2026-06-07T00:00:00Z');
 export const FOUNDERS_DURATION_DAYS = 90;
 
@@ -157,16 +157,14 @@ export function foundersCountdownDays(): number {
   return Math.max(0, remaining);
 }
 
-// ── Coin bundles (one-time purchases, stack on subscription) ─────
+// ── Coin bundles (one-time purchases, stack on subscription, never expire) ──
 export const COIN_BUNDLES = [
-  { id: 'mini',        label: 'Mini',        coins: 100,   price: 999,    popular: false },
-  { id: 'creator',     label: 'Creator',     coins: 280,   price: 2499,   popular: true },
-  { id: 'studio',      label: 'Studio',      coins: 600,   price: 4999,   popular: false },
-  { id: 'pro-pack',    label: 'Pro Pack',    coins: 1300,  price: 9999,   popular: false },
-  { id: 'agency-pack', label: 'Agency Pack', coins: 3500,  price: 24900,  popular: false },
+  { id: 'quick-boost', label: 'Quick Boost',  coins: 100,   price: 799,    popular: false },
+  { id: 'creator',     label: 'Creator Pack', coins: 300,   price: 1999,   popular: false },
+  { id: 'pro-pack',    label: 'Pro Pack',     coins: 750,   price: 3999,   popular: false },
+  { id: 'power-pack',  label: 'Power Pack',   coins: 1500,  price: 6999,   popular: true },
+  { id: 'studio',      label: 'Studio Pack',  coins: 3500,  price: 14999,  popular: false },
 ] as const;
-
-export const BUNDLE_EXPIRY_MONTHS = 12;
 
 // Free tier: registration + dashboard + 7s watermarked preview.
 export const FREE_PREVIEW_CAP = 1;
