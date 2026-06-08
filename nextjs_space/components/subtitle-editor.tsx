@@ -65,6 +65,28 @@ function hexToRgba(hex: string, opacityPct: number): string {
   return `rgba(${r}, ${g}, ${b}, ${Math.max(0, Math.min(100, opacityPct)) / 100})`;
 }
 
+/**
+ * Build a CSS text-shadow string that simulates an outline/stroke.
+ * Uses 8-directional offsets so the "stroke" renders BEHIND the text fill,
+ * avoiding the -webkit-text-stroke problem where the stroke paints on TOP
+ * and destroys narrow-glyph fonts like Bebas Neue.
+ */
+function buildStrokeShadow(color: string, widthPx: number): string {
+  if (widthPx <= 0) return '';
+  const w = widthPx;
+  // 8 cardinal + diagonal offsets
+  return [
+    `${-w}px ${-w}px 0 ${color}`,
+    `${w}px ${-w}px 0 ${color}`,
+    `${-w}px ${w}px 0 ${color}`,
+    `${w}px ${w}px 0 ${color}`,
+    `0 ${-w}px 0 ${color}`,
+    `0 ${w}px 0 ${color}`,
+    `${-w}px 0 0 ${color}`,
+    `${w}px 0 0 ${color}`,
+  ].join(', ');
+}
+
 function ColorInput({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
   return (
     <label className="flex items-center gap-2">
@@ -95,7 +117,7 @@ function RangeInput({ label, value, min, max, step, onChange, suffix }: {
       <input
         type="range" min={min} max={max} step={step ?? 1} value={value}
         onChange={e => onChange(Number(e.target.value))}
-        className="w-full h-2 bg-white/10 rounded-full appearance-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#D4AF37] [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-lg"
+        className="w-full h-3 bg-white/10 rounded-full appearance-none cursor-pointer touch-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-7 [&::-webkit-slider-thumb]:h-7 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#D4AF37] [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white/20 [&::-moz-range-thumb]:w-7 [&::-moz-range-thumb]:h-7 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-[#D4AF37] [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white/20 [&::-moz-range-thumb]:cursor-pointer"
       />
     </label>
   );
@@ -323,10 +345,14 @@ export default function SubtitleEditor({ value, onChange, previewText, lockedFre
                   fontSize: `${Math.round(value.fontSize / 4.5)}px`,
                   lineHeight: 1.3,
                   visibility: fontReady ? 'visible' : 'hidden',
-                  textShadow: value.shadowEnabled
-                    ? `${value.shadowDepth}px ${value.shadowDepth}px ${value.shadowDepth * 2}px ${hexToRgba(value.shadowColor, value.shadowOpacity ?? 60)}`
-                    : 'none',
-                  WebkitTextStroke: value.strokeWidth > 0 ? `${Math.max(0.5, value.strokeWidth / 4)}px ${value.strokeColor}` : undefined,
+                  textShadow: [
+                    // Stroke outline via text-shadow (renders BEHIND text, not on top)
+                    buildStrokeShadow(value.strokeColor, Math.max(0, value.strokeWidth / 4)),
+                    // Drop shadow (if enabled)
+                    value.shadowEnabled
+                      ? `${value.shadowDepth}px ${value.shadowDepth}px ${value.shadowDepth * 2}px ${hexToRgba(value.shadowColor, value.shadowOpacity ?? 60)}`
+                      : '',
+                  ].filter(Boolean).join(', ') || 'none',
                   backgroundColor: value.highlightEnabled
                     ? hexToRgba(value.highlightColor, value.highlightOpacity)
                     : 'transparent',
