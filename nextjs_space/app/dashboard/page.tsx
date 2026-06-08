@@ -13,7 +13,7 @@ import { AddVoiceModal } from '@/components/add-voice-modal';
 import dynamic from 'next/dynamic';
 import { DEFAULT_SUBTITLE_STYLE } from '@/lib/captions/subtitle-types';
 import type { SubtitleStyle } from '@/lib/captions/subtitle-types';
-import { VOICE_CATALOG, VOICE_CATEGORIES as CATALOG_CATEGORIES, CATEGORY_DESCRIPTIONS } from '@/lib/voice-catalog';
+import { ACTIVE_VOICE_CATALOG, VOICE_CATEGORIES as CATALOG_CATEGORIES, CATEGORY_DESCRIPTIONS, isVoiceActive, findFallbackVoice } from '@/lib/voice-catalog';
 import type { VoiceTier } from '@/lib/voice-catalog';
 
 import { modelTierAccess, getModelTier, type ModelTierId } from '@/lib/model-tiers';
@@ -45,7 +45,7 @@ const CATEGORY_IMGS: Record<string, string> = {
 const VOICE_LIBRARY = CATALOG_CATEGORIES.map((cat) => ({
   category: cat,
   img: CATEGORY_IMGS[cat] || '/voices/female.jpg',
-  variations: VOICE_CATALOG.filter((v) => v.category === cat).map((v) => ({
+  variations: ACTIVE_VOICE_CATALOG.filter((v) => v.category === cat).map((v) => ({
     id: v.id,
     name: v.name,
     desc: v.description,
@@ -125,6 +125,19 @@ export default function DashboardPage() {
   const [modelTier, setModelTier] = useState<ModelTierId>('standard');
   const [musicTrackId, setMusicTrackId] = useState<string | null>(null);
   const [enableStinger, setEnableStinger] = useState(false);
+
+  // Voice fallback: if saved voice was retired, auto-switch to closest match
+  const [voiceFallbackNote, setVoiceFallbackNote] = useState<string | null>(null);
+  useEffect(() => {
+    if (!isVoiceActive(voice)) {
+      const fb = findFallbackVoice(voice);
+      if (fb) {
+        setVoice(fb.id);
+        setVoiceCategory(fb.category);
+        setVoiceFallbackNote(`Voice updated — now using ${fb.name} (${fb.category})`);
+      }
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Phase 4: applied brand preset (Craft)
   const [appliedPresetId, setAppliedPresetId] = useState<string | null>(null);
@@ -574,6 +587,15 @@ export default function DashboardPage() {
           <span className="text-xs text-[#D4AF37] font-semibold">{selectedVoiceName}</span>
         </div>
         <p className="text-xs text-white/40 mb-3 -mt-1">{ALL_PRESET_VOICES.length} natural AI voices across styles — mysterious, historical, biblical, motivational, educated & more. Or add your own. Tap play to preview. 🔊</p>
+        {voiceFallbackNote && (
+          <div className="flex items-center gap-2 px-3 py-2 mb-3 rounded-lg bg-[#D4AF37]/10 border border-[#D4AF37]/20">
+            <span className="text-xs text-[#D4AF37]/90">✨ {voiceFallbackNote}</span>
+            <button onClick={() => setVoiceFallbackNote(null)} className="text-[#D4AF37]/50 hover:text-[#D4AF37] text-xs ml-auto">✕</button>
+          </div>
+        )}
+        <div className="px-3 py-2 mb-3 rounded-lg bg-gradient-to-r from-[#D4AF37]/5 to-transparent border border-[#D4AF37]/10">
+          <p className="text-[11px] text-[#D4AF37]/70">✨ Refreshed voice library — discover updated selections</p>
+        </div>
 
         {/* Category tabs */}
         <div className="flex gap-2 overflow-x-auto scrollbar-none -mx-4 px-4 pb-1 mb-3">

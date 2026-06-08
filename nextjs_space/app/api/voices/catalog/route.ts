@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import {
-  VOICE_CATALOG, VOICE_CATEGORIES, VOICE_ACCENTS, VOICE_USE_CASES,
+  VOICE_CATEGORIES, VOICE_ACCENTS, VOICE_USE_CASES,
   CATEGORY_DESCRIPTIONS, CATEGORY_TEST_PHRASES,
   filterVoices,
 } from '@/lib/voice-catalog';

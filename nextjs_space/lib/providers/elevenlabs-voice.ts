@@ -1,6 +1,6 @@
 import { Provider, VoiceInput, VoiceOutput, WordTimestamp, ScriptLine } from './types';
 import { uploadPublicBuffer } from '@/lib/media-storage';
-import { getVoiceById, modelIdForTier, resolveTier, speedValue } from '@/lib/voice-catalog';
+import { getVoiceById, modelIdForTier, resolveTier, speedValue, isVoiceActive, findFallbackVoice } from '@/lib/voice-catalog';
 import type { VoiceTier } from '@/lib/voice-catalog';
 
 const EL_BASE = 'https://api.elevenlabs.io/v1';
@@ -98,7 +98,15 @@ export class ElevenLabsVoiceProvider implements Provider<VoiceInput, VoiceOutput
     const baseId = (input.voicePreset || '').split('@')[0].toLowerCase();
 
     // Resolve voice from catalog (new) or legacy fallback
-    const catalogVoice = getVoiceById(baseId);
+    let catalogVoice = getVoiceById(baseId);
+    // If voice was retired, auto-fallback to closest active match
+    if (catalogVoice && !isVoiceActive(baseId)) {
+      const fallback = findFallbackVoice(baseId);
+      if (fallback) {
+        console.log(`[voice] Voice ${baseId} is retired, falling back to ${fallback.id} (${fallback.name})`);
+        catalogVoice = fallback;
+      }
+    }
     let elevenVoiceId: string;
     let modelId: string;
     let tier: VoiceTier;

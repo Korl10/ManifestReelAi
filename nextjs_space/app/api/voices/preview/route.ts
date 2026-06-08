@@ -2,9 +2,10 @@ export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
-import { getVoiceById, modelIdForTier, resolveTier, speedValue } from '@/lib/voice-catalog';
+import { getVoiceById, modelIdForTier, resolveTier, speedValue, isVoiceActive } from '@/lib/voice-catalog';
 import type { VoiceTier } from '@/lib/voice-catalog';
 import { uploadPublicBuffer } from '@/lib/media-storage';
+import { prisma } from '@/lib/prisma';
 import crypto from 'crypto';
 
 const EL_BASE = 'https://api.elevenlabs.io/v1';
@@ -44,8 +45,9 @@ export async function POST(request: Request) {
     const previewText = String(text).slice(0, 120).trim();
     if (!previewText) return NextResponse.json({ error: 'Empty text' }, { status: 400 });
 
-    const voice = getVoiceById(voiceId);
+    let voice = getVoiceById(voiceId);
     if (!voice) return NextResponse.json({ error: 'Voice not found' }, { status: 404 });
+    // If voice is retired, don't block preview — just serve it (admin may still test)
 
     const resolvedTier = resolveTier(voice, tier as VoiceTier | undefined);
     const modelId = modelIdForTier(resolvedTier);
@@ -57,6 +59,11 @@ export async function POST(request: Request) {
       const cached = previewCache.get(ck);
       if (cached && Date.now() - cached.ts < CACHE_TTL) {
         console.log(`[voice-preview] CACHE HIT for ${voiceId}`);
+        // Track cached previews too (fire-and-forget)
+        const uid = (session?.user as any)?.id ?? null;
+        prisma.analyticsEvent.create({
+          data: { userId: uid, event: 'voice_preview', metadata: { voiceId, voiceName: voice.name, category: voice.category, tier: resolvedTier, cached: true } },
+        }).catch(() => {});
         return NextResponse.json({ audioUrl: cached.url, cached: true, tier: resolvedTier });
       }
     }
@@ -99,6 +106,25 @@ export async function POST(request: Request) {
         }
       }
     }
+
+    // Track voice_preview analytics event (fire-and-forget)
+    const userId = (session?.user as any)?.id ?? null;
+    prisma.analyticsEvent.create({
+      data: {
+        userId,
+        event: 'voice_preview',
+        metadata: {
+          voiceId,
+          voiceName: voice.name,
+          category: voice.category,
+          tier: resolvedTier,
+          accent: voice.accent,
+          gender: voice.gender,
+          speed,
+          cached: false,
+        },
+      },
+    }).catch(() => {}); // non-blocking
 
     console.log(`[voice-preview] Generated: ${audioUrl} (speed=${speed})`);
     return NextResponse.json({ audioUrl, cached: false, tier: resolvedTier, speed });
