@@ -158,7 +158,7 @@ export function PaywallModal({ open, onClose, tier, reelsUsed, reelsCap, trialUs
             </div>
             <h2 className="font-display text-xl font-bold">
               {isFree
-                ? '\ud83c\udfac Ready to bring this reel to life?'
+                ? '🎬 Ready to bring this reel to life?'
                 : 'Need More Reels?'}
             </h2>
             <p className="text-sm text-white/50 mt-1">
@@ -178,14 +178,14 @@ export function PaywallModal({ open, onClose, tier, reelsUsed, reelsCap, trialUs
                     <div className="p-4 rounded-xl bg-gradient-to-r from-emerald-500/10 to-[#D4AF37]/10 border border-emerald-500/20">
                       <div className="flex items-center gap-2 mb-3">
                         <Gift className="w-4 h-4 text-emerald-400" />
-                        <span className="text-sm font-bold text-emerald-400">\ud83c\udf81 3-day free trial</span>
+                        <span className="text-sm font-bold text-emerald-400">🎁 3-day free trial</span>
                       </div>
                       <ul className="space-y-2">
                         {[
                           'Generate up to 3 reels',
                           'Full access to all features of your chosen plan',
                           'No watermark, 1080p exports',
-                          'Cancel anytime \u2014 no charge if cancelled in trial',
+                          'Cancel anytime — no charge if cancelled in trial',
                         ].map(f => (
                           <li key={f} className="flex items-start gap-2 text-sm text-white/70">
                             <Check className="w-4 h-4 text-emerald-400 mt-0.5 shrink-0" />{f}
@@ -208,7 +208,7 @@ export function PaywallModal({ open, onClose, tier, reelsUsed, reelsCap, trialUs
                       onClick={() => setShowAllPlans(true)}
                       className="w-full text-center text-xs text-white/40 hover:text-white/60 transition py-1"
                     >
-                      See all plans \u2192
+                      See all plans →
                     </button>
                   </>
                 ) : (
@@ -228,7 +228,7 @@ export function PaywallModal({ open, onClose, tier, reelsUsed, reelsCap, trialUs
               <>
                 {showAllPlans && isFree && (
                   <button onClick={() => setShowAllPlans(false)} className="text-xs text-white/40 hover:text-white/60 transition mb-2">
-                    \u2190 Back to trial
+                    ← Back to trial
                   </button>
                 )}
                 {renderUpgradeTiers()}
@@ -249,7 +249,7 @@ export function PaywallModal({ open, onClose, tier, reelsUsed, reelsCap, trialUs
                       <Gift className="w-4 h-4 text-[#D4AF37]" />
                       <span className="text-sm font-bold text-[#D4AF37]">Special One-Time Offer!</span>
                     </div>
-                    <p className="text-xs text-white/60 mb-3">We don\u2019t want you to miss out. Here\u2019s an exclusive deal:</p>
+                    <p className="text-xs text-white/60 mb-3">We don't want you to miss out. Here's an exclusive deal:</p>
                     <div className="space-y-2">
                       {upgradeTiers.slice(0, 2).map(t => {
                         const plan = PLANS[t];
@@ -268,7 +268,7 @@ export function PaywallModal({ open, onClose, tier, reelsUsed, reelsCap, trialUs
                             }`}
                           >
                             {loading === `upgrade-${t}-intro` ? <Loader2 className="w-4 h-4 animate-spin" /> : (isGold ? <Sparkles className="w-4 h-4" /> : <Crown className="w-4 h-4" />)}
-                            {plan.name} \u2014 ${introMo}/mo for {plan.introDurationMonths}mo <span className="text-[10px] text-white/40">(then ${fullMo})</span>
+                            {plan.name} — ${introMo}/mo for {plan.introDurationMonths}mo <span className="text-[10px] text-white/40">(then ${fullMo})</span>
                           </button>
                         );
                       })}
@@ -295,7 +295,7 @@ export function PaywallModal({ open, onClose, tier, reelsUsed, reelsCap, trialUs
                       </div>
                       <div className="text-left">
                         <p className="text-sm font-semibold flex items-center gap-1.5">{bundle.label}{(bundle as any).popular && <span className="px-1.5 py-0.5 rounded-full bg-[#D4AF37]/15 text-[#D4AF37] text-[9px] font-bold uppercase">Popular</span>}</p>
-                        <p className="text-[10px] text-white/40">{bundle.coins} coins \u2022 never expire</p>
+                        <p className="text-[10px] text-white/40">{bundle.coins} coins • never expire</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -332,7 +332,7 @@ export function PaywallModal({ open, onClose, tier, reelsUsed, reelsCap, trialUs
               className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all flex items-center gap-1.5 ${billing === 'annual' ? 'bg-white text-black' : 'text-white/60 hover:text-white'}`}
             >
               Annually
-              <span className="text-[10px] font-bold text-emerald-400">{founders ? '\ud83d\udd25 Founders' : '(Save 20%)'}</span>
+              <span className="text-[10px] font-bold text-emerald-400">{founders ? '🔥 Founders' : '(Save 20%)'}</span>
             </button>
           </div>
         </div>
