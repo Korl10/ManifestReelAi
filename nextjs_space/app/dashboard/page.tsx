@@ -915,6 +915,7 @@ export default function DashboardPage() {
               onStabilityChange={setStability}
               similarity={similarity}
               onSimilarityChange={setSimilarity}
+              speed={speed}
             />
           </div>
         )}

@@ -37,9 +37,16 @@ interface VoiceBrowserProps {
   /** Similarity slider (0-1). */
   similarity: number;
   onSimilarityChange: (v: number) => void;
+  /** Speaking speed preset ('slow' | 'normal' | 'fast') so previews match the reel. */
+  speed?: string;
   /** Show advanced toggle open by default? */
   advancedOpen?: boolean;
 }
+
+// English fallback phrase used when the user hasn't typed a script yet, so the
+// picker always demonstrates the voice speaking ENGLISH (never a foreign
+// canned sample) during our English-only launch.
+const DEFAULT_PREVIEW_PHRASE = 'Today, I am stepping into my power and creating the life I truly desire.';
 
 const TIER_INFO: Record<VoiceTier, { label: string; desc: string; color: string }> = {
   flash: { label: 'Flash v2.5', desc: 'Fast & efficient', color: 'text-blue-400' },
@@ -50,7 +57,7 @@ const TIER_INFO: Record<VoiceTier, { label: string; desc: string; color: string 
 export default function VoiceBrowser({
   selectedVoiceId, onSelect, previewText,
   voiceTier, onTierChange, stability, onStabilityChange,
-  similarity, onSimilarityChange, advancedOpen,
+  similarity, onSimilarityChange, speed = 'normal', advancedOpen,
 }: VoiceBrowserProps) {
   const [voices, setVoices] = useState<VoiceData[]>([]);
   const [filters, setFilters] = useState<any>(null);
@@ -110,18 +117,24 @@ export default function VoiceBrowser({
   }, [playingId, stopAudio]);
 
   const generatePreview = useCallback(async (voice: VoiceData) => {
-    if (!previewText?.trim()) {
-      playSample(voice);
-      return;
-    }
-    // Check if we already have a cached preview
-    if (previewUrls[voice.id]) {
+    // Always synthesize an ENGLISH preview (English-only launch). We never play
+    // the canned ElevenLabs sample, which may be in the voice's native language.
+    const text = (previewText?.trim() || DEFAULT_PREVIEW_PHRASE).slice(0, 120);
+    // Cache key must include tier + speed so changing either re-generates audio
+    // (previously keyed by voice.id alone, so the speed slider had no effect).
+    const cacheKey = `${voice.id}__${voiceTier}__${speed}__${showAdvanced ? `${stability}_${similarity}` : 'def'}`;
+
+    const playUrl = (url: string) => {
       stopAudio();
-      const audio = new Audio(previewUrls[voice.id]);
+      const audio = new Audio(url);
       audioRef.current = audio;
       audio.onended = () => setPlayingId(null);
       audio.play().catch(() => {});
       setPlayingId(voice.id);
+    };
+
+    if (previewUrls[cacheKey]) {
+      playUrl(previewUrls[cacheKey]);
       return;
     }
 
@@ -132,27 +145,25 @@ export default function VoiceBrowser({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           voiceId: voice.id,
-          text: previewText.slice(0, 120),
+          text,
           tier: voiceTier,
+          speed,
           ...(showAdvanced ? { stability, similarity } : {}),
         }),
       });
       const data = await res.json();
       if (data.audioUrl) {
-        setPreviewUrls(prev => ({ ...prev, [voice.id]: data.audioUrl }));
-        stopAudio();
-        const audio = new Audio(data.audioUrl);
-        audioRef.current = audio;
-        audio.onended = () => setPlayingId(null);
-        audio.play().catch(() => {});
-        setPlayingId(voice.id);
+        setPreviewUrls(prev => ({ ...prev, [cacheKey]: data.audioUrl }));
+        playUrl(data.audioUrl);
+      } else {
+        playSample(voice);
       }
     } catch {
       playSample(voice);
     } finally {
       setPreviewLoading(null);
     }
-  }, [previewText, previewUrls, voiceTier, stability, similarity, showAdvanced, playSample, stopAudio]);
+  }, [previewText, previewUrls, voiceTier, speed, stability, similarity, showAdvanced, playSample, stopAudio]);
 
   // Group voices by category
   const grouped = voices.reduce<Record<string, VoiceData[]>>((acc, v) => {

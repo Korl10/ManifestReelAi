@@ -131,6 +131,8 @@ export class ElevenLabsVoiceProvider implements Provider<VoiceInput, VoiceOutput
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'xi-api-key': apiKey },
       body: JSON.stringify({
+        // English-only launch: force English output regardless of voice origin.
+        language_code: 'en',
         text: input.scriptText,
         model_id: modelId,
         voice_settings: {

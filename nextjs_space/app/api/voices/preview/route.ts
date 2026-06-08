@@ -74,6 +74,9 @@ export async function POST(request: Request) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'xi-api-key': apiKey },
       body: JSON.stringify({
+        // English-only launch: force English so non-native voices never
+        // speak their original language (German/Japanese/Arabic etc.).
+        language_code: 'en',
         text: previewText,
         model_id: modelId,
         voice_settings: {

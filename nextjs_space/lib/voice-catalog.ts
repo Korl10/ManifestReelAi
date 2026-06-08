@@ -266,13 +266,13 @@ export function resolveTier(voice: VoiceEntry, requestedTier?: VoiceTier): Voice
   return voice.defaultTier;
 }
 
-/** Speed presets exposed to users (ElevenLabs native speed param). */
-export const SPEED_PRESETS = { slow: 0.85, normal: 1.0, fast: 1.15 } as const;
+/** Speed presets exposed to users (ElevenLabs native speed param, range 0.7–1.2). */
+export const SPEED_PRESETS = { slow: 0.75, normal: 1.0, fast: 1.2 } as const;
 export type SpeedPreset = keyof typeof SPEED_PRESETS;
 
 /** Map a speed preset name (or legacy @slower/@faster suffix) to a numeric speed. */
 export function speedValue(preset?: string | number): number {
-  if (typeof preset === 'number') return Math.min(1.15, Math.max(0.85, preset));
+  if (typeof preset === 'number') return Math.min(1.2, Math.max(0.7, preset));
   const v = (preset || '').toLowerCase();
   if (v.includes('slow')) return SPEED_PRESETS.slow;
   if (v.includes('fast')) return SPEED_PRESETS.fast;
