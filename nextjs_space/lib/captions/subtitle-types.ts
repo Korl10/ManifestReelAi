@@ -29,9 +29,10 @@ export interface SubtitleStyle {
   highlightOpacity: number;     // 0-100, default 60
 
   // Drop shadow
-  shadowEnabled: boolean;
+  shadowEnabled: boolean;       // default false (off)
   shadowColor: string;          // default #000000
-  shadowDepth: number;          // 0-6, default 2
+  shadowDepth: number;          // 0-8, default 2
+  shadowOpacity: number;        // 0-100, default 60
 
   // Animation
   animation: SubtitleAnimation; // default 'karaoke'
@@ -79,9 +80,10 @@ export const DEFAULT_SUBTITLE_STYLE: SubtitleStyle = {
   highlightEnabled: false,
   highlightColor: '#000000',
   highlightOpacity: 60,
-  shadowEnabled: true,
+  shadowEnabled: false,
   shadowColor: '#000000',
   shadowDepth: 2,
+  shadowOpacity: 60,
   animation: 'karaoke',
   position: 'bottom',
   customYOffset: 0,

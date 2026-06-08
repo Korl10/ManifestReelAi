@@ -168,10 +168,12 @@ export function buildAss(
   const alignment = resolveAlignment(s);
   const primaryColor = hexToAss(s.textColor);
   const outlineColor = hexToAss(s.strokeColor);
-  const shadowColor = hexToAss(s.shadowColor);
+  // For BorderStyle=1 (outline+shadow), BackColour is the shadow colour.
+  // Use the configured shadow colour + opacity so the Shadow control is honoured.
+  const shadowAlpha = Math.round((1 - (s.shadowOpacity ?? 60) / 100) * 255);
   const backColor = s.highlightEnabled
     ? hexToAss(s.highlightColor, Math.round((1 - s.highlightOpacity / 100) * 255))
-    : hexToAss('#000000', 0x96);
+    : hexToAss(s.shadowColor, shadowAlpha);
   const borderStyle = s.highlightEnabled ? 3 : 1; // 3 = opaque box, 1 = outline+shadow
   const outline = s.strokeWidth;
   const shadow = s.shadowEnabled ? s.shadowDepth : 0;
