@@ -140,8 +140,10 @@ export default function DashboardPage() {
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Save reel draft config to localStorage so it survives Stripe checkout redirect.
-  // Restore on mount if returning from checkout (trial=1 in URL).
+  // Restore reel config from localStorage after Stripe checkout redirect.
+  // The ref prevents the save effect from overwriting the config with defaults
+  // before the restoration setState calls take effect.
+  const configRestoredRef = useRef(false);
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const params = new URLSearchParams(window.location.search);
@@ -161,11 +163,14 @@ export default function DashboardPage() {
         }
       } catch { /* ignore parse errors */ }
     }
+    // Allow save effect to start persisting after the first render cycle.
+    requestAnimationFrame(() => { configRestoredRef.current = true; });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Persist draft config whenever key values change (so paywall → checkout can restore).
   useEffect(() => {
     if (typeof window === 'undefined') return;
+    if (!configRestoredRef.current) return; // skip initial mount to prevent overwriting restored config
     try {
       const cfg = { prompt, platform, style, mood, voice, targetLength, speed };
       localStorage.setItem('manifestreel_draft_config', JSON.stringify(cfg));
@@ -351,11 +356,18 @@ export default function DashboardPage() {
     (async () => {
       try {
         if (sessionId) {
-          await fetch('/api/payments/verify-session', {
+          const vRes = await fetch('/api/payments/verify-session', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ sessionId }),
           });
+          const vData = await vRes.json().catch(() => ({}));
+          if (vData?.cardAbuse) {
+            toast.error('This card was already used for a free trial. Please subscribe with a different payment method.', { duration: 8000 });
+            // Clean URL params
+            window.history.replaceState({}, '', '/dashboard');
+            return;
+          }
         }
         // Refresh subscription/quota so the UI reflects the new plan immediately.
         const subRes = await fetch('/api/payments/subscription');

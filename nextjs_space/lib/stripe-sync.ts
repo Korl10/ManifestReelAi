@@ -1,11 +1,21 @@
 import { prisma } from '@/lib/prisma';
+import { stripe } from '@/lib/stripe';
 import { PLANS } from '@/lib/pricing';
 import Stripe from 'stripe';
+
+export interface SyncResult {
+  /** true when the subscription was applied (may still be abuse) */
+  applied: boolean;
+  /** true when card-fingerprint abuse was detected (trial revoked) */
+  cardAbuse?: boolean;
+  tier: string;
+  status: string;
+}
 
 // Shared subscription sync logic used by BOTH the Stripe webhook and the
 // success_url verification fallback. Idempotent: safe to run multiple times
 // for the same subscription (upsert + usage-counter reconcile).
-export async function applySubscriptionUpdate(userId: string, subscription: Stripe.Subscription) {
+export async function applySubscriptionUpdate(userId: string, subscription: Stripe.Subscription): Promise<SyncResult> {
   const tier = subscription.metadata?.tier || 'starter';
   const isIntro = subscription.metadata?.isIntro === 'true';
   const plan = PLANS[tier as keyof typeof PLANS] ?? PLANS.starter;
@@ -97,5 +107,66 @@ export async function applySubscriptionUpdate(userId: string, subscription: Stri
     });
   }
 
-  console.log(`[StripeSync] Subscription applied: user=${userId} tier=${tier} status=${status}`);
+  // ── Card-fingerprint anti-abuse for trials ─────────────────────────
+  // If this is a trialing subscription, capture the payment-method
+  // fingerprint and check if another user already trialed with the same card.
+  let cardAbuse = false;
+  if (subscription.status === 'trialing') {
+    try {
+      const pmId = subscription.default_payment_method
+        ?? (subscription as any).pending_setup_intent?.payment_method
+        ?? null;
+      const pmIdStr = typeof pmId === 'string' ? pmId : (pmId as any)?.id;
+      if (pmIdStr) {
+        const pm = await stripe.paymentMethods.retrieve(pmIdStr);
+        const fingerprint = (pm as any)?.card?.fingerprint as string | undefined;
+        if (fingerprint) {
+          // Store fingerprint on this user's subscription
+          await prisma.subscription.update({
+            where: { userId },
+            data: { cardFingerprint: fingerprint },
+          });
+
+          // Check for duplicate: another user who already used a trial with this card
+          const duplicate = await prisma.subscription.findFirst({
+            where: {
+              cardFingerprint: fingerprint,
+              trialUsed: true,
+              userId: { not: userId },
+            },
+            select: { userId: true },
+          });
+
+          if (duplicate) {
+            console.warn(`[StripeSync] Card-fingerprint abuse detected: user=${userId} fingerprint=${fingerprint} matches user=${duplicate.userId}`);
+            // Cancel the Stripe subscription immediately
+            try {
+              await stripe.subscriptions.cancel(subscription.id);
+            } catch (cancelErr: any) {
+              console.error('[StripeSync] Failed to cancel abusive trial:', cancelErr?.message);
+            }
+            // Revert local subscription to free
+            await prisma.subscription.update({
+              where: { userId },
+              data: {
+                tier: 'free',
+                status: 'active',
+                stripeSubscriptionId: null,
+                trialUsed: true, // prevent retrial
+                trialEndsAt: null,
+                cancelAtPeriodEnd: false,
+              },
+            });
+            cardAbuse = true;
+          }
+        }
+      }
+    } catch (fpErr: any) {
+      // Non-fatal: fingerprint check is a bonus anti-abuse layer.
+      console.error('[StripeSync] Fingerprint check failed (non-fatal):', fpErr?.message);
+    }
+  }
+
+  console.log(`[StripeSync] Subscription applied: user=${userId} tier=${tier} status=${status}${cardAbuse ? ' [CARD-ABUSE: reverted to free]' : ''}`);
+  return { applied: true, cardAbuse, tier, status };
 }

@@ -41,7 +41,14 @@ export async function POST(request: Request) {
     if (checkout.mode === 'subscription' && checkout.subscription) {
       const subId = typeof checkout.subscription === 'string' ? checkout.subscription : checkout.subscription.id;
       const fullSub = await stripe.subscriptions.retrieve(subId);
-      await applySubscriptionUpdate(userId, fullSub);
+      const result = await applySubscriptionUpdate(userId, fullSub);
+      if (result.cardAbuse) {
+        return NextResponse.json({
+          activated: false,
+          cardAbuse: true,
+          message: 'This card has already been used for a free trial. Please subscribe to continue.',
+        });
+      }
       return NextResponse.json({ activated: true, type: 'subscription', tier: meta.tier ?? null });
     }
 

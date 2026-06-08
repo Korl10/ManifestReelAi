@@ -194,13 +194,13 @@ export function PaywallModal({ open, onClose, tier, reelsUsed, reelsCap, trialUs
                       </ul>
                     </div>
 
-                    {/* Quick trial CTA — default to Starter */}
+                    {/* Quick trial CTA — default to Pro (most popular) */}
                     <button
-                      onClick={() => handleStartTrial('starter')}
+                      onClick={() => handleStartTrial('pro')}
                       disabled={!!loading}
                       className="w-full py-3.5 rounded-xl gold-gradient text-black font-bold text-sm hover:opacity-90 transition-all flex items-center justify-center gap-2 gold-glow"
                     >
-                      {loading === 'trial-starter' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                      {loading === 'trial-pro' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
                       Start Free Trial
                     </button>
 
