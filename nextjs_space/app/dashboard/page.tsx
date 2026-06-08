@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
-import { Sparkles, Loader2, Clock, Zap, Film, AlertCircle, Check, Wand2, Play, Pause, Mic, Plus, Trash2, Gauge, ToggleRight, ToggleLeft, Crown, Lock, Volume2 } from 'lucide-react';
+import { Sparkles, Loader2, Clock, Zap, Film, AlertCircle, Check, Wand2, Play, Pause, Mic, Plus, Trash2, Gauge, ToggleRight, ToggleLeft, Crown } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { HydrationDate } from '@/components/hydration-date';
@@ -17,7 +17,7 @@ import { ACTIVE_VOICE_CATALOG, VOICE_CATEGORIES as CATALOG_CATEGORIES, CATEGORY_
 import type { VoiceTier } from '@/lib/voice-catalog';
 
 import { modelTierAccess, getModelTier, type ModelTierId } from '@/lib/model-tiers';
-import { FREE_FONTS, FREE_COLORS } from '@/lib/free-tier';
+
 
 const SubtitleEditor = dynamic(() => import('@/components/subtitle-editor'), { ssr: false });
 const VoiceBrowser = dynamic(() => import('@/components/voice-browser'), { ssr: false });
@@ -104,7 +104,7 @@ export default function DashboardPage() {
   const [error, setError] = useState('');
   const [showPaywall, setShowPaywall] = useState(false);
   const [emailUnverified, setEmailUnverified] = useState(false);
-  const [freeReelUsed, setFreeReelUsed] = useState(false);
+
   const [resending, setResending] = useState(false);
   const [limitModal, setLimitModal] = useState<{ title: string; message: string } | null>(null);
   const [enableMotion, setEnableMotion] = useState(false);
@@ -139,6 +139,38 @@ export default function DashboardPage() {
       }
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Save reel draft config to localStorage so it survives Stripe checkout redirect.
+  // Restore on mount if returning from checkout (trial=1 in URL).
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('trial') === '1' || params.get('upgraded')) {
+      try {
+        const saved = localStorage.getItem('manifestreel_draft_config');
+        if (saved) {
+          const cfg = JSON.parse(saved);
+          if (cfg.prompt) setPrompt(cfg.prompt);
+          if (cfg.platform) setPlatform(cfg.platform);
+          if (cfg.style) setStyle(cfg.style);
+          if (cfg.mood) setMood(cfg.mood);
+          if (cfg.voice) setVoice(cfg.voice);
+          if (cfg.targetLength) setTargetLength(cfg.targetLength);
+          if (cfg.speed) setSpeed(cfg.speed);
+          localStorage.removeItem('manifestreel_draft_config');
+        }
+      } catch { /* ignore parse errors */ }
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Persist draft config whenever key values change (so paywall → checkout can restore).
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const cfg = { prompt, platform, style, mood, voice, targetLength, speed };
+      localStorage.setItem('manifestreel_draft_config', JSON.stringify(cfg));
+    } catch { /* quota exceeded — ignore */ }
+  }, [prompt, platform, style, mood, voice, targetLength, speed]);
 
   // Phase 4: applied brand preset (Craft)
   const [appliedPresetId, setAppliedPresetId] = useState<string | null>(null);
@@ -394,6 +426,11 @@ export default function DashboardPage() {
 
   const handleGenerate = async () => {
     if (!prompt?.trim()) { toast.error('Enter a prompt to start'); return; }
+    // Free tier → show paywall directly, never hit server
+    if (isFreeTier) {
+      setShowPaywall(true);
+      return;
+    }
     // Check quota — show paywall if out
     if (quota && !quota.allowed) {
       setShowPaywall(true);
@@ -401,42 +438,23 @@ export default function DashboardPage() {
     }
     setGenerating(true);
     try {
-      // Free tier = one real-AI demo reel: 7s / Standard / default voice /
-      // auto-matched music / allowed subtitle style. Send the clamped body so
-      // the UI never trips the server's free-tier validator.
-      const reqBody = isFreeTier
-        ? {
-            prompt: prompt.trim(),
-            platform: platform.toLowerCase().replace(/\s+/g, '-'),
-            style: style.toLowerCase(),
-            voice: 'female-f-01',
-            mood: mood.toLowerCase(),
-            targetLength: 7,
-            motion: false,
-            subtitleStyle: {
-              ...subtitleStyle,
-              fontFamily: FREE_FONTS.includes(subtitleStyle?.fontFamily as any) ? subtitleStyle.fontFamily : FREE_FONTS[0],
-              textColor: FREE_COLORS.includes((subtitleStyle?.textColor || '').toUpperCase() as any) ? subtitleStyle.textColor : FREE_COLORS[0],
-              animation: 'karaoke',
-            },
-          }
-        : {
-            prompt: prompt.trim(),
-            platform: platform.toLowerCase().replace(/\s+/g, '-'),
-            style: style.toLowerCase(),
-            voice: speed === 'normal' ? voice : `${voice}@${speed}`,
-            mood: mood.toLowerCase(),
-            targetLength,
-            motion: enableMotion,
-            modelTier: enableMotion ? modelTier : undefined,
-            musicTrackId: musicTrackId || undefined,
-            stinger: enableStinger,
-            voiceTier,
-            stability,
-            similarity,
-            subtitleStyle,
-            brandPresetId: appliedPresetId || undefined,
-          };
+      const reqBody = {
+        prompt: prompt.trim(),
+        platform: platform.toLowerCase().replace(/\s+/g, '-'),
+        style: style.toLowerCase(),
+        voice: speed === 'normal' ? voice : `${voice}@${speed}`,
+        mood: mood.toLowerCase(),
+        targetLength,
+        motion: enableMotion,
+        modelTier: enableMotion ? modelTier : undefined,
+        musicTrackId: musicTrackId || undefined,
+        stinger: enableStinger,
+        voiceTier,
+        stability,
+        similarity,
+        subtitleStyle,
+        brandPresetId: appliedPresetId || undefined,
+      };
       const res = await fetch('/api/reels/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -450,19 +468,9 @@ export default function DashboardPage() {
           toast.error('Please verify your email to start generating');
           return;
         }
-        // Free-tier locked premium option / lifetime free reel already used
-        if (res.status === 403 && (data?.reason === 'free_tier' || data?.reason === 'free_locked' || data?.reason === 'free_lifetime_exhausted' || data?.reason === 'insufficient_coins' || data?.reason === 'motion_locked' || data?.reason === 'inactive')) {
-          if (data?.reason === 'free_lifetime_exhausted') setFreeReelUsed(true);
+        // Paywall-triggering reasons
+        if (res.status === 403 && (data?.reason === 'free_locked' || data?.reason === 'insufficient_coins' || data?.reason === 'motion_locked' || data?.reason === 'inactive' || data?.reason === 'trial_limit_reached')) {
           setShowPaywall(true);
-          return;
-        }
-        // Rate / budget limits → friendly modal
-        if (res.status === 429) {
-          const hrs = data?.retryAfterHours;
-          setLimitModal({
-            title: data?.reason === 'budget_exhausted' ? 'Free reels are taking a breather' : "You've used your free reels",
-            message: (data?.message ?? 'Please try again later.') + (hrs ? ` You can create more in about ${hrs} hour${hrs === 1 ? '' : 's'}.` : ''),
-          });
           return;
         }
         toast.error(data?.error ?? 'Generation failed');
@@ -477,12 +485,13 @@ export default function DashboardPage() {
   };
 
   const isFreeTier = (quota?.tier ?? 'free') === 'free';
-  // Lifetime free-reel state: server is source of truth (quota.freeReelUsed),
-  // but a 403 during this session can flip it locally too.
-  const freeReelExhausted = isFreeTier && (freeReelUsed || quota?.freeReelUsed === true);
+  const isTrialing = quota?.isTrialing === true;
+  const trialEndsAt = quota?.trialEndsAt ? new Date(quota.trialEndsAt) : null;
+  const trialReelsUsed = quota?.trialReelsUsed ?? 0;
+  const trialReelLimit = quota?.trialReelLimit ?? 3;
   const remaining = quota
     ? (isFreeTier
-        ? (freeReelExhausted ? 0 : 1)
+        ? 0
         : (quota?.coinsAvailable ?? Math.max(0, (quota?.reelsCap ?? 0) - (quota?.reelsUsed ?? 0))))
     : null;
 
@@ -498,20 +507,38 @@ export default function DashboardPage() {
           <div className="shrink-0 flex items-center gap-2 px-3.5 py-2 rounded-full bg-gradient-to-r from-[#D4AF37]/15 to-[#7B2FBE]/15 border border-[#D4AF37]/30">
             <Zap className="w-4 h-4 text-[#D4AF37]" />
             <span className="text-sm font-bold text-[#D4AF37]">{remaining ?? 0}</span>
-            <span className="text-xs text-white/50 hidden sm:inline">{isFreeTier ? 'preview left' : 'coins left'}</span>
+            <span className="text-xs text-white/50 hidden sm:inline">{isFreeTier ? 'free' : isTrialing ? `trial (${trialReelsUsed}/${trialReelLimit} reels)` : 'coins left'}</span>
           </div>
         )}
       </div>
 
-      {/* Free reel used — persistent upgrade banner */}
-      {freeReelExhausted && (
+      {/* Trial banner */}
+      {isTrialing && trialEndsAt && (() => {
+        const now = new Date();
+        const diff = trialEndsAt.getTime() - now.getTime();
+        const daysLeft = Math.max(0, Math.floor(diff / 86400000));
+        const hoursLeft = Math.max(0, Math.floor((diff % 86400000) / 3600000));
+        return (
+          <div className="p-4 rounded-xl bg-gradient-to-r from-emerald-500/12 to-[#D4AF37]/12 border border-emerald-500/30 flex items-center gap-3">
+            <span className="w-9 h-9 rounded-lg bg-emerald-500/20 flex items-center justify-center shrink-0"><Clock className="w-5 h-5 text-emerald-400" /></span>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-white">Trial: {daysLeft}d {hoursLeft}h left — {trialReelsUsed} of {trialReelLimit} reels used</p>
+              <p className="text-[12px] text-white/55">Subscribe before your trial ends to keep creating.</p>
+            </div>
+            <Link href="/dashboard/settings" className="shrink-0 text-xs px-4 py-2 rounded-lg gold-gradient text-black font-semibold">Manage →</Link>
+          </div>
+        );
+      })()}
+
+      {/* Free tier — start trial banner */}
+      {isFreeTier && (
         <div className="p-4 rounded-xl bg-gradient-to-r from-[#D4AF37]/12 to-[#7B2FBE]/12 border border-[#D4AF37]/30 flex items-center gap-3">
           <span className="w-9 h-9 rounded-lg gold-gradient flex items-center justify-center shrink-0"><Crown className="w-5 h-5 text-black" /></span>
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-white">You’ve used your free AI reel</p>
-            <p className="text-[12px] text-white/55">Upgrade to Pro for longer reels, no watermark, custom voices, music & brand presets.</p>
+            <p className="text-sm font-semibold text-white">Design your perfect reel, then bring it to life</p>
+            <p className="text-[12px] text-white/55">Explore all styles, voices & moods for free. Start a 3-day trial when you're ready to generate.</p>
           </div>
-          <button onClick={() => setShowPaywall(true)} className="shrink-0 text-xs px-4 py-2 rounded-lg gold-gradient text-black font-semibold">Upgrade to Pro →</button>
+          <button onClick={() => setShowPaywall(true)} className="shrink-0 text-xs px-4 py-2 rounded-lg gold-gradient text-black font-semibold">Start Free Trial →</button>
         </div>
       )}
 
@@ -833,32 +860,21 @@ export default function DashboardPage() {
             <Clock className="w-4 h-4 text-[#D4AF37]" />
             <span className="text-sm font-medium text-white">Reel Length</span>
           </div>
-          {isFreeTier ? (
-            <div className="inline-flex items-center gap-2">
-              <div className="inline-flex rounded-xl bg-white/5 border border-white/10 p-1">
-                <span className="px-4 py-1.5 rounded-lg text-xs font-semibold gold-gradient text-black">7s</span>
-              </div>
-              <button type="button" onClick={() => setShowPaywall(true)} className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-[#D4AF37]/30 bg-[#D4AF37]/10 text-[11px] font-medium text-[#D4AF37] hover:bg-[#D4AF37]/20 transition">
-                <Lock className="w-3 h-3" /> 15–30s with Pro
+          <div className="inline-flex rounded-xl bg-white/5 border border-white/10 p-1">
+            {[5, 10, 15, 25, 30].map((len) => (
+              <button
+                key={len}
+                type="button"
+                onClick={() => setTargetLength(len)}
+                className={`px-4 sm:px-4 py-2.5 sm:py-1.5 rounded-lg text-xs font-semibold transition-all min-w-[44px] min-h-[44px] sm:min-h-0 ${
+                  targetLength === len ? 'gold-gradient text-black' : 'text-white/55 hover:text-white'
+                }`}
+              >
+                {len}s
               </button>
-            </div>
-          ) : (
-            <div className="inline-flex rounded-xl bg-white/5 border border-white/10 p-1">
-              {[5, 10, 15, 25, 30].map((len) => (
-                <button
-                  key={len}
-                  type="button"
-                  onClick={() => setTargetLength(len)}
-                  className={`px-4 sm:px-4 py-2.5 sm:py-1.5 rounded-lg text-xs font-semibold transition-all min-w-[44px] min-h-[44px] sm:min-h-0 ${
-                    targetLength === len ? 'gold-gradient text-black' : 'text-white/55 hover:text-white'
-                  }`}
-                >
-                  {len}s
-                </button>
-              ))}
-            </div>
-          )}
-          <span className="text-[11px] text-white/40">{isFreeTier ? 'Free reels are a 7-second demo. Upgrade for full-length reels.' : 'Your reel is guaranteed to be this length (±1s) or your credits are refunded.'}</span>
+            ))}
+          </div>
+          <span className="text-[11px] text-white/40">Your reel is guaranteed to be this length (±1s) or your credits are refunded.</span>
         </div>
 
         {/* Audio playback is now lazy — elements created on first play */}
@@ -919,36 +935,16 @@ export default function DashboardPage() {
       <section>
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-display text-base font-semibold">Voice Settings</h2>
-          {isFreeTier ? (
-            <button
-              onClick={() => setShowPaywall(true)}
-              className="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg border border-[#D4AF37]/30 bg-[#D4AF37]/10 text-[#D4AF37] hover:bg-[#D4AF37]/20 transition"
-            >
-              <Lock className="w-3 h-3" /> 57 voices with Pro
-            </button>
-          ) : (
-            <button
-              onClick={() => setShowVoiceBrowser(!showVoiceBrowser)}
-              className={`text-xs px-3 py-1.5 rounded-lg transition ${
-                showVoiceBrowser ? 'bg-[#D4AF37]/20 text-[#D4AF37]' : 'bg-white/5 text-white/40 hover:bg-white/10'
-              }`}
-            >
-              {showVoiceBrowser ? 'Hide Advanced' : 'Advanced Voice Controls'}
-            </button>
-          )}
+          <button
+            onClick={() => setShowVoiceBrowser(!showVoiceBrowser)}
+            className={`text-xs px-3 py-1.5 rounded-lg transition ${
+              showVoiceBrowser ? 'bg-[#D4AF37]/20 text-[#D4AF37]' : 'bg-white/5 text-white/40 hover:bg-white/10'
+            }`}
+          >
+            {showVoiceBrowser ? 'Hide Advanced' : 'Advanced Voice Controls'}
+          </button>
         </div>
-        {isFreeTier && (
-          <div className="rounded-xl bg-white/[0.02] border border-white/5 p-3.5 flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-[#D4AF37]/15 flex items-center justify-center shrink-0">
-              <Volume2 className="w-4 h-4 text-[#D4AF37]" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-white">Aria — Warm &amp; confident</p>
-              <p className="text-[11px] text-white/40">Free reels use our signature voice. Unlock all 57 voices with Pro.</p>
-            </div>
-          </div>
-        )}
-        {!isFreeTier && showVoiceBrowser && (
+        {showVoiceBrowser && (
           <div className="rounded-xl bg-white/[0.02] border border-white/5 p-4">
             <VoiceBrowser
               selectedVoiceId={voice}
@@ -1015,7 +1011,7 @@ export default function DashboardPage() {
             value={subtitleStyle}
             onChange={setSubtitleStyle}
             previewText={prompt || 'Your abundance is flowing toward you now'}
-            lockedFree={isFreeTier}
+            lockedFree={false}
           />
         )}
       </section>
@@ -1110,32 +1106,30 @@ export default function DashboardPage() {
           <Zap className="w-4 h-4 text-[#D4AF37]" />
           <span className="text-sm text-white/60">
             {isFreeTier ? (
-              freeReelExhausted
-                ? <><span className="text-white font-semibold">0</span> free reels left — upgrade to keep creating</>
-                : <><span className="text-white font-semibold">1</span> free AI reel — your one-time demo</>
+              <>Explore freely — <button onClick={() => setShowPaywall(true)} className="text-[#D4AF37] hover:underline">start a free trial</button> to generate</>
+            ) : isTrialing ? (
+              <><span className="text-white font-semibold">{trialReelsUsed}/{trialReelLimit}</span> trial reels used • <span className="text-white font-semibold">{quota?.coinsAvailable ?? 0}</span> coins</>
             ) : (
               <><span className="text-white font-semibold">{quota?.coinsAvailable ?? 0}</span> coins available{(quota?.rolloverCoins ?? 0) > 0 ? <span className="text-emerald-400/70"> • {quota.rolloverCoins} rolled over</span> : null}{(quota?.bundleCoins ?? 0) > 0 ? ` • ${quota.bundleCoins} bundle` : ''}</>
             )}
             <span className="text-white/30 ml-2">({(quota?.tier ?? 'free').charAt(0).toUpperCase() + (quota?.tier ?? 'free').slice(1)} plan)</span>
           </span>
-          {!quota?.allowed && (
+          {!quota?.allowed && !isFreeTier && (
             <Link href="/dashboard/settings" className="ml-auto text-xs text-[#D4AF37] hover:underline">Upgrade →</Link>
           )}
         </div>
       )}
 
-      {/* Create button — once the free reel is used it becomes a locked upgrade CTA */}
+      {/* Create button — always enabled for free users (shows paywall on click) */}
       <button
-        onClick={() => { if (freeReelExhausted) { setShowPaywall(true); } else { handleGenerate(); } }}
-        disabled={generating || (!freeReelExhausted && !prompt?.trim())}
+        onClick={handleGenerate}
+        disabled={generating || !prompt?.trim()}
         className="w-full py-4 rounded-2xl gold-gradient text-black font-bold text-base hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2 gold-glow"
       >
         {generating ? (
           <><Loader2 className="w-5 h-5 animate-spin" /> Generating...</>
-        ) : freeReelExhausted ? (
-          <><Lock className="w-5 h-5" /> Upgrade to Create More ✨</>
         ) : isFreeTier ? (
-          <><Sparkles className="w-5 h-5" /> Generate My Free AI Reel ✨</>
+          <><Sparkles className="w-5 h-5" /> ✨ Generate Reel</>
         ) : (
           <><Sparkles className="w-5 h-5" /> {enableMotion ? `Generate ${getModelTier(modelTier).name} Reel (${getModelTier(modelTier).coinCost} coins) ✨` : 'Generate Reel (1 coin) ✨'}</>
         )}
@@ -1254,6 +1248,7 @@ export default function DashboardPage() {
         tier={quota?.tier ?? 'free'}
         reelsUsed={quota?.reelsUsed ?? 0}
         reelsCap={quota?.reelsCap ?? 0}
+        trialUsed={!!quota?.trialUsed}
       />
       {/* Free-tier rate / budget limit modal */}
       {limitModal && (

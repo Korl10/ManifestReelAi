@@ -38,6 +38,12 @@ export async function POST(request: Request) {
     });
   }
 
+  // One-trial-per-user: reject if trial already used.
+  const wantsTrial = body?.trial === true;
+  if (wantsTrial && sub?.trialUsed) {
+    return NextResponse.json({ error: 'You have already used your free trial. Choose a plan to subscribe.', code: 'trial_already_used' }, { status: 400 });
+  }
+
   // Determine price and trial. Intro offers only apply to monthly billing.
   const isAnnual = billing === 'annual';
   const isIntro = !isAnnual && useIntro && !sub?.introUsed;
@@ -53,6 +59,7 @@ export async function POST(request: Request) {
     : (isIntro ? plan.introMonthlyPrice : plan.monthlyPrice);
 
   // Build checkout session params
+  const applyTrial = wantsTrial && !sub?.trialUsed;
   const params: any = {
     mode: 'subscription' as const,
     customer: customerId,
@@ -61,18 +68,19 @@ export async function POST(request: Request) {
         currency: 'usd',
         product_data: {
           name: `ManifestReel AI ${plan.name}`,
-          description: `${plan.coins} coins/month • billed ${isAnnual ? (isFounders ? "annually (Founders' pricing)" : 'annually') : 'monthly'}${isIntro ? ' (introductory offer)' : ''}`,
+          description: `${plan.coins} coins/month • billed ${isAnnual ? (isFounders ? "annually (Founders' pricing)" : 'annually') : 'monthly'}${isIntro ? ' (introductory offer)' : ''}${applyTrial ? ' • 3-day free trial' : ''}`,
         },
         unit_amount: unitAmount,
         recurring: { interval },
       },
       quantity: 1,
     }],
-    success_url: `${origin}/dashboard?upgraded=${tier}&session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${origin}/dashboard/settings`,
-    metadata: { userId, tier, isIntro: isIntro ? 'true' : 'false', billing, isFounders: isFounders ? 'true' : 'false' },
+    success_url: `${origin}/dashboard?upgraded=${tier}&session_id={CHECKOUT_SESSION_ID}${applyTrial ? '&trial=1' : ''}`,
+    cancel_url: `${origin}/dashboard`,
+    metadata: { userId, tier, isIntro: isIntro ? 'true' : 'false', billing, isFounders: isFounders ? 'true' : 'false', isTrial: applyTrial ? 'true' : 'false' },
     subscription_data: {
       metadata: { userId, tier, isIntro: isIntro ? 'true' : 'false', billing, isFounders: isFounders ? 'true' : 'false' },
+      ...(applyTrial ? { trial_period_days: 3 } : {}),
     },
   };
 

@@ -217,7 +217,7 @@ const FEATURES = [
 ];
 
 const TIERS = [
-  { name: 'Free', monthly: 0, annualMo: 0, annualTotal: 0, annualSave: 0, foundersMo: 0, foundersTotal: 0, foundersSave: 0, features: ['Demo gallery access', '7s watermarked preview', 'Explore all styles & moods', 'No card required'], cta: 'Start Free', tier: 'free', popular: false },
+  { name: 'Free', monthly: 0, annualMo: 0, annualTotal: 0, annualSave: 0, foundersMo: 0, foundersTotal: 0, foundersSave: 0, features: ['Demo gallery access', 'Full configurator access — explore all styles & moods', 'Browse premium voices & music library', 'No card required'], cta: 'Start 3-Day Free Trial', tier: 'free', popular: false },
   { name: 'Starter', monthly: 19.99, annualMo: 15.99, annualTotal: 191.88, annualSave: 48, foundersMo: 12.99, foundersTotal: 155.88, foundersSave: 84, features: ['200 coins / month', 'Standard + Pro tiers', '1080p exports, no watermark', 'Full voice catalog (~150)', 'Manual export only'], cta: 'Get Starter', tier: 'starter', popular: false },
   { name: 'Pro', monthly: 39.99, annualMo: 31.99, annualTotal: 383.88, annualSave: 96, foundersMo: 24.99, foundersTotal: 299.88, foundersSave: 180, features: ['500 coins / month', 'All 3 quality tiers', '1080p exports', '1 Craft preset', 'Auto-post IG + TikTok (coming soon)'], cta: 'Get Pro', tier: 'pro', popular: true },
   { name: 'Premium', monthly: 89.99, annualMo: 71.99, annualTotal: 863.88, annualSave: 216, foundersMo: 59.99, foundersTotal: 719.88, foundersSave: 360, features: ['1,200 coins / month', 'All 3 quality tiers', 'Brand Kit (unlimited presets)', '1080p exports', 'Fastest generation speeds'], cta: 'Get Premium', tier: 'premium', popular: false },
@@ -486,6 +486,13 @@ export function LandingPage() {
                   {isPro && (
                     <div className="absolute -top-3 right-3 px-3 py-1 rounded-full gold-gradient text-black text-[11px] font-bold flex items-center gap-1 shadow-lg">
                       ⭐ MOST POPULAR
+                    </div>
+                  )}
+
+                  {/* Trial badge — paid tiers only (not Agency) */}
+                  {t.monthly > 0 && !isAgency && (
+                    <div className="mb-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-semibold">
+                      🎁 3-day free trial
                     </div>
                   )}
 

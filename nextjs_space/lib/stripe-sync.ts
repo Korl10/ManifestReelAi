@@ -43,6 +43,11 @@ export async function applySubscriptionUpdate(userId: string, subscription: Stri
   }
   const customerId = typeof subscription.customer === 'string' ? subscription.customer : subscription.customer.id;
 
+  // Derive trial end date from Stripe's trial_end timestamp.
+  const trialEndsAt = (typeof subscription.trial_end === 'number' && subscription.trial_end > 0)
+    ? new Date(subscription.trial_end * 1000)
+    : undefined;
+
   await prisma.subscription.upsert({
     where: { userId },
     create: {
@@ -52,6 +57,7 @@ export async function applySubscriptionUpdate(userId: string, subscription: Stri
       stripeCustomerId: customerId,
       stripeSubscriptionId: subscription.id,
       trialUsed: subscription.status === 'trialing' || !!subscription.trial_end,
+      ...(trialEndsAt ? { trialEndsAt } : {}),
       introUsed: isIntro,
       cancelAtPeriodEnd: subscription.cancel_at_period_end ?? false,
       currentPeriodStart: periodStart,
@@ -63,6 +69,7 @@ export async function applySubscriptionUpdate(userId: string, subscription: Stri
       stripeCustomerId: customerId,
       stripeSubscriptionId: subscription.id,
       trialUsed: subscription.status === 'trialing' || !!subscription.trial_end,
+      ...(trialEndsAt ? { trialEndsAt } : {}),
       introUsed: isIntro ? true : undefined,
       cancelAtPeriodEnd: subscription.cancel_at_period_end ?? false,
       currentPeriodStart: periodStart,

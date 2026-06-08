@@ -11,11 +11,19 @@ export async function GET() {
   const userId = (session.user as any)?.id;
   const sub = await prisma.subscription.findUnique({ where: { userId } });
   const quota = await checkQuota(userId);
-  // Surface free-tier lifetime + verification state so the dashboard can show
-  // the right funnel (free reel used → locked controls + upgrade banner).
   const u = await prisma.user.findUnique({ where: { id: userId }, select: { freeReelUsed: true, emailVerified: true } });
   return NextResponse.json({
     subscription: sub,
-    quota: { ...quota, freeReelUsed: !!u?.freeReelUsed, emailVerified: !!u?.emailVerified },
+    quota: {
+      ...quota,
+      freeReelUsed: !!u?.freeReelUsed,
+      emailVerified: !!u?.emailVerified,
+      // Trial state surfaced for dashboard UI
+      isTrialing: quota.isTrialing,
+      trialEndsAt: quota.trialEndsAt,
+      trialReelsUsed: quota.trialReelsUsed,
+      trialReelLimit: 3,
+      trialUsed: !!sub?.trialUsed,
+    },
   });
 }

@@ -48,6 +48,8 @@ model Subscription {
   stripeSubscriptionId String?  @map("stripe_subscription_id")
   cancelAtPeriodEnd    Boolean  @default(false) @map("cancel_at_period_end")
   trialUsed            Boolean  @default(false) @map("trial_used")
+  trialReelsUsed       Int      @default(0)     @map("trial_reels_used")
+  trialEndsAt          DateTime? @map("trial_ends_at")
   introUsed            Boolean  @default(false) @map("intro_used")
   currentPeriodStart   DateTime @default(now()) @map("current_period_start")
   currentPeriodEnd     DateTime @default(dbgenerated("NOW() + interval '30 days'")) @map("current_period_end")

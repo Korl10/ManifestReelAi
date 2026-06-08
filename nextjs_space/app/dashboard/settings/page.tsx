@@ -124,15 +124,50 @@ export default function SettingsPage() {
               <Crown className="w-5 h-5 text-[#D4AF37]" />
               <div>
                 <p className="text-sm font-semibold capitalize">{currentTier === 'free' ? 'Free' : currentTier} Plan</p>
-                <p className="text-xs text-white/40">{sub?.status === 'active' ? 'Active' : sub?.status ?? 'Active'}{sub?.cancelAtPeriodEnd ? ' • Cancels at period end' : ''}</p>
+                <p className="text-xs text-white/40">
+                  {quota?.isTrialing ? 'Trial' : sub?.status === 'active' ? 'Active' : sub?.status ?? 'Active'}
+                  {sub?.cancelAtPeriodEnd ? ' • Cancels at period end' : ''}
+                </p>
               </div>
             </div>
+
+            {/* Trial status banner */}
+            {quota?.isTrialing && quota?.trialEndsAt && (() => {
+              const now = new Date();
+              const end = new Date(quota.trialEndsAt);
+              const diff = end.getTime() - now.getTime();
+              const daysLeft = Math.max(0, Math.floor(diff / 86400000));
+              const hoursLeft = Math.max(0, Math.floor((diff % 86400000) / 3600000));
+              return (
+                <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-semibold text-emerald-400">🎁 Free Trial</span>
+                    <span className="text-xs text-emerald-400/70">{daysLeft}d {hoursLeft}h remaining</span>
+                  </div>
+                  <div className="flex justify-between text-xs text-white/50 mb-1">
+                    <span>Trial reels</span>
+                    <span>{quota?.trialReelsUsed ?? 0} of {quota?.trialReelLimit ?? 3} used</span>
+                  </div>
+                  <div className="h-1.5 rounded-full bg-white/5 overflow-hidden mb-2">
+                    <div className="h-full rounded-full bg-emerald-500" style={{ width: `${Math.min(100, ((quota?.trialReelsUsed ?? 0) / (quota?.trialReelLimit ?? 3)) * 100)}%` }} />
+                  </div>
+                  <button
+                    onClick={handlePortal}
+                    disabled={portalLoading}
+                    className="text-xs text-red-400 hover:text-red-300 transition disabled:opacity-50"
+                  >
+                    {portalLoading ? 'Opening...' : 'Cancel trial'}
+                  </button>
+                </div>
+              );
+            })()}
+
             {quota && (
               <div className="p-3 rounded-lg bg-white/[0.02]">
                 {currentTier === 'free' ? (
-                  <div className="flex justify-between text-xs text-white/50">
-                    <span>Free preview</span>
-                    <span>{quota?.reelsUsed ?? 0} / 1 used</span>
+                  <div className="text-xs text-white/50">
+                    <p>Free plan — explore all configurator features.</p>
+                    <button onClick={() => handleUpgrade('starter')} className="mt-2 text-[#D4AF37] hover:underline">Start 3-day free trial →</button>
                   </div>
                 ) : (
                   <>

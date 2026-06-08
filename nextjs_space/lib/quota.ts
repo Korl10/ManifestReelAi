@@ -21,6 +21,9 @@ export interface CoinBalance {
   rolloverInfo: RolloverInfo[]; // individual rollover records for display
   bundleCoins: number;          // non-expired purchased coins remaining
   coinsAvailable: number;       // subscriptionRemaining + rolloverCoins + bundleCoins
+  isTrialing: boolean;           // currently in trial period
+  trialEndsAt: string | null;    // ISO date when trial expires
+  trialReelsUsed: number;        // reels generated during trial
 }
 
 const TIER_COINS: Record<string, number> = {
@@ -124,11 +127,17 @@ export async function getCoinBalance(userId: string): Promise<CoinBalance> {
   const subscriptionRemaining = Math.max(0, subscriptionCoins - subscriptionUsed);
   const coinsAvailable = subscriptionRemaining + rolloverCoins + bundleCoins;
 
+  // Trial state
+  const isTrialing = !!(sub && sub.trialEndsAt && new Date(sub.trialEndsAt) > now && sub.status === 'active' && sub.tier !== 'free');
+  const trialEndsAt = sub?.trialEndsAt ? sub.trialEndsAt.toISOString() : null;
+  const trialReelsUsed = sub?.trialReelsUsed ?? 0;
+
   return {
     tier, status, motionEnabled,
     subscriptionCoins, subscriptionUsed, subscriptionRemaining,
     rolloverCoins, rolloverInfo,
     bundleCoins, coinsAvailable,
+    isTrialing, trialEndsAt, trialReelsUsed,
   };
 }
 
@@ -136,11 +145,12 @@ export async function getCoinBalance(userId: string): Promise<CoinBalance> {
 export interface GenerationCheck {
   allowed: boolean;
   message: string;
-  reason?: 'free_tier' | 'inactive' | 'motion_locked' | 'insufficient_coins';
+  reason?: 'free_tier' | 'inactive' | 'motion_locked' | 'insufficient_coins' | 'free_locked' | 'trial_limit_reached';
   cost: number;            // coins this generation will consume
   motion: boolean;
   balance: CoinBalance;
   isFreePreview?: boolean;
+  isTrialing?: boolean;
 }
 
 /**
@@ -155,12 +165,17 @@ export async function checkGeneration(userId: string, motion: boolean, modelTier
     return { allowed: false, reason: 'inactive', message: 'Your subscription is not active. Please renew to continue.', cost: 0, motion, balance };
   }
 
-  // FREE TIER: watermarked 7s reels built from cached/sample assets ($0 cost).
+  // FREE TIER: no generation. Full configurator access only.
   if (balance.tier === 'free') {
-    if (motion) {
-      return { allowed: false, reason: 'motion_locked', message: 'Motion reels are a paid feature. Upgrade to start creating.', cost: 0, motion, balance };
+    return { allowed: false, reason: 'free_locked', message: 'Start a free trial to create your first reel.', cost: 0, motion, balance };
+  }
+
+  // TRIAL REEL LIMIT: max 3 reels during trial
+  if (balance.isTrialing) {
+    const sub = await prisma.subscription.findUnique({ where: { userId } });
+    if (sub && sub.trialReelsUsed >= 3) {
+      return { allowed: false, reason: 'trial_limit_reached', message: 'You\'ve used all 3 trial reels. Subscribe to keep creating.', cost: 0, motion, balance };
     }
-    return { allowed: true, message: 'OK', cost: 0, motion: false, balance, isFreePreview: true };
   }
 
   // Resolve model tier access for this subscription.
@@ -310,6 +325,10 @@ export interface QuotaCheckResult {
   bundleCoins: number;
   motionEnabled: boolean;
   status: string;
+  // trial state
+  isTrialing: boolean;
+  trialEndsAt: string | null;
+  trialReelsUsed: number;
 }
 
 export async function checkQuota(userId: string): Promise<QuotaCheckResult> {
@@ -320,10 +339,8 @@ export async function checkQuota(userId: string): Promise<QuotaCheckResult> {
     allowed = false;
     message = 'Your subscription is not active. Please renew to continue.';
   } else if (b.tier === 'free') {
-    // Free tier can always start a reel from the UI; the generate route applies
-    // the daily/IP rate limits and budget pool at request time.
-    allowed = true;
-    message = 'OK';
+    allowed = false;
+    message = 'Start a free trial to create reels.';
   } else {
     allowed = b.coinsAvailable >= COIN_COST.static;
     message = allowed ? 'OK' : 'You\u2019re out of coins. Buy a coin bundle or wait for your monthly reset.';
@@ -340,6 +357,9 @@ export async function checkQuota(userId: string): Promise<QuotaCheckResult> {
     rolloverInfo: b.rolloverInfo,
     bundleCoins: b.bundleCoins,
     motionEnabled: b.motionEnabled,
+    isTrialing: b.isTrialing,
+    trialEndsAt: b.trialEndsAt,
+    trialReelsUsed: b.trialReelsUsed,
   };
 }
 
