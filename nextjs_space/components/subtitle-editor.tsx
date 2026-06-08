@@ -108,8 +108,10 @@ function RangeInput({ label, value, min, max, step, onChange, suffix }: {
   label: string; value: number; min: number; max: number; step?: number;
   onChange: (v: number) => void; suffix?: string;
 }) {
+  const pct = max > min ? ((value - min) / (max - min)) * 100 : 0;
+  const clampedPct = Math.max(0, Math.min(100, pct));
   return (
-    <label className="flex flex-col gap-1">
+    <label className="flex flex-col gap-1 select-none">
       <div className="flex items-center justify-between">
         <span className="text-[11px] text-white/50">{label}</span>
         <span className="text-[11px] text-white/70 font-mono">{value}{suffix}</span>
@@ -117,7 +119,8 @@ function RangeInput({ label, value, min, max, step, onChange, suffix }: {
       <input
         type="range" min={min} max={max} step={step ?? 1} value={value}
         onChange={e => onChange(Number(e.target.value))}
-        className="w-full h-3 bg-white/10 rounded-full appearance-none cursor-pointer touch-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-7 [&::-webkit-slider-thumb]:h-7 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#D4AF37] [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white/20 [&::-moz-range-thumb]:w-7 [&::-moz-range-thumb]:h-7 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-[#D4AF37] [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white/20 [&::-moz-range-thumb]:cursor-pointer"
+        style={{ background: `linear-gradient(to right, #D4AF37 0%, #D4AF37 ${clampedPct}%, rgba(255,255,255,0.12) ${clampedPct}%, rgba(255,255,255,0.12) 100%)` }}
+        className="w-full h-3 rounded-full appearance-none cursor-pointer touch-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-7 [&::-webkit-slider-thumb]:h-7 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#D4AF37] [&::-webkit-slider-thumb]:cursor-grab active:[&::-webkit-slider-thumb]:cursor-grabbing [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-moz-range-thumb]:w-7 [&::-moz-range-thumb]:h-7 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-[#D4AF37] [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white [&::-moz-range-thumb]:cursor-grab"
       />
     </label>
   );
@@ -333,9 +336,11 @@ export default function SubtitleEditor({ value, onChange, previewText, lockedFre
 
             {/* Subtitle preview */}
             <div
-              className="absolute left-4 right-4 flex items-center justify-center"
+              className="absolute left-4 right-4 flex items-center justify-center transition-transform duration-150"
               style={{
                 ...(value.position === 'top' ? { top: '8%' } : value.position === 'center' ? { top: '42%' } : { bottom: `${Math.max(5, parseInt(safeBottomPct) + 2)}%` }),
+                // Reflect Y Offset: +value moves text DOWN from top anchor, UP from bottom/center anchor.
+                transform: `translateY(${(value.position === 'top' ? 1 : -1) * (value.customYOffset ?? 0) * 0.25}px)`,
               }}
             >
               <div
