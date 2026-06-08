@@ -225,7 +225,6 @@ export function PaywallModal({ open, onClose, tier, reelsUsed, reelsCap }: Paywa
                           {isPaid && <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-white/40">UPGRADE</span>}
                         </div>
                         <span className="text-sm font-bold text-white flex items-baseline gap-1">
-                          {billing === 'annual' && <span className="text-xs font-normal text-white/30 line-through">${monthly}</span>}
                           ${billing === 'annual' ? annualMo : monthly}<span className="text-white/40 font-normal">/mo</span>
                         </span>
                       </div>

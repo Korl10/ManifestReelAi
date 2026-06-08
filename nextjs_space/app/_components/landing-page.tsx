@@ -506,20 +506,14 @@ export function LandingPage() {
                         <span className="text-sm text-white/40">forever</span>
                       </div>
                     ) : billing === 'annual' ? (
-                      /* ── Annual view ── */
+                      /* ── Annual view (clean: price + /mo + save badge) ── */
                       <div>
-                        <div className="flex items-baseline gap-1.5 flex-wrap">
-                          {showFoundersAnnual && (
-                            <span className="text-lg font-semibold text-white/30 line-through">${t.monthly % 1 === 0 ? t.monthly.toFixed(0) : t.monthly.toFixed(2)}</span>
-                          )}
+                        <div className="flex items-baseline gap-1.5">
                           <span className="text-3xl font-bold text-[#D4AF37]">
                             ${showFoundersAnnual ? (t.foundersMo % 1 === 0 ? t.foundersMo.toFixed(0) : t.foundersMo.toFixed(2)) : (t.annualMo % 1 === 0 ? t.annualMo.toFixed(0) : t.annualMo.toFixed(2))}
                           </span>
-                          <span className="text-sm text-white/40">/month</span>
+                          <span className="text-sm text-white/40">/mo</span>
                         </div>
-                        <p className="text-xs text-white/40 mt-1">
-                          billed annually (${showFoundersAnnual ? t.foundersTotal.toFixed(2) : t.annualTotal.toFixed(2)}/yr)
-                        </p>
                         {/* Green savings badge */}
                         <div className="mt-2 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/20">
                           <span className="text-[11px] font-bold text-emerald-400">💰 Save ${showFoundersAnnual ? t.foundersSave : t.annualSave}/year</span>
@@ -536,9 +530,8 @@ export function LandingPage() {
                           <span className="text-3xl font-bold text-[#D4AF37]">
                             ${t.monthly % 1 === 0 ? t.monthly.toFixed(0) : t.monthly.toFixed(2)}
                           </span>
-                          <span className="text-sm text-white/40">/month</span>
+                          <span className="text-sm text-white/40">/mo</span>
                         </div>
-                        <p className="text-xs text-white/40 mt-1">billed monthly</p>
                         {/* Upsell to annual */}
                         {t.monthly > 0 && (
                           <button
