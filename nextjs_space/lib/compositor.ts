@@ -316,15 +316,27 @@ export async function compositeReel(input: CompositeInput): Promise<CompositeRes
     const scRatio = vocal ? '20' : '10';
     const scRelease = vocal ? '450' : '300';
     const scAttack = vocal ? '5' : '20';
+    // CRITICAL: sidechaincompress emits only while BOTH inputs have signal, so
+    // the ducked music would otherwise end exactly when the VO ends. When the
+    // pipeline extends the final scene past the VO to hit the target length,
+    // that would leave a SILENT video tail. We pad the sidechain key (vokey)
+    // with silence out to T so the compressor keeps running for the full reel:
+    // once the VO stops, the key is silent → no compression → the music gently
+    // swells back to bed level and sustains under the held outro frame, then
+    // fades out over the last 0.8s. The ducked music is also trimmed to exactly
+    // T so the looped source can never overshoot.
     fc.push(
       `[${musicIdx}:a]aformat=sample_rates=44100:channel_layouts=stereo,volume=${bedVol}[musbed];` +
-      `[${voiceIdx}:a]aformat=sample_rates=44100:channel_layouts=stereo,volume=1.0,asplit=2[vo][vokey];` +
+      `[${voiceIdx}:a]aformat=sample_rates=44100:channel_layouts=stereo,volume=1.0,asplit=2[vo][vokeyraw];` +
+      `[vokeyraw]apad,atrim=0:${T.toFixed(2)},asetpts=PTS-STARTPTS[vokey];` +
       `[musbed][vokey]sidechaincompress=threshold=${scThresh}:ratio=${scRatio}:attack=${scAttack}:release=${scRelease}:makeup=1[mduck];` +
-      `[mduck]afade=t=in:st=0:d=0.3,afade=t=out:st=${(T - 0.8).toFixed(2)}:d=0.8[musf];` +
+      `[mduck]atrim=0:${T.toFixed(2)},asetpts=PTS-STARTPTS,afade=t=in:st=0:d=0.3,afade=t=out:st=${(T - 0.8).toFixed(2)}:d=0.8[musf];` +
       `[vo][musf]amix=inputs=2:duration=longest:dropout_transition=0:normalize=0[${mainLabel}]`,
     );
   } else if (voiceIdx >= 0) {
-    fc.push(`[${voiceIdx}:a]aformat=sample_rates=44100:channel_layouts=stereo,volume=1.0,afade=t=out:st=${(T - 0.8).toFixed(2)}:d=0.8[${mainLabel}]`);
+    // Voice-only reel: pad the VO with silence to T so the audio stream length
+    // matches the (possibly extended) video and there is no container mismatch.
+    fc.push(`[${voiceIdx}:a]aformat=sample_rates=44100:channel_layouts=stereo,volume=1.0,apad,atrim=0:${T.toFixed(2)},asetpts=PTS-STARTPTS,afade=t=out:st=${(T - 0.8).toFixed(2)}:d=0.8[${mainLabel}]`);
   } else if (musicIdx >= 0) {
     // Music-only reel: slightly louder bed with the same 300ms/800ms fades.
     fc.push(

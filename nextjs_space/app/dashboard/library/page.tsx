@@ -127,9 +127,9 @@ export default function LibraryPage() {
               </Link>
               <div className="p-4">
                 <p className="text-sm font-medium truncate mb-1 text-white">{reel?.title ?? reel?.prompt?.slice(0, 40) ?? 'Untitled'}</p>
-                <p className="text-xs mb-3 text-white/60">{reel?.style ?? ''} • {reel?.platform ?? ''}</p>
+                <p className="text-xs mb-3 text-white/70">{reel?.style ?? ''} • {reel?.platform ?? ''}</p>
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1 text-xs text-white/60">
+                  <div className="flex items-center gap-1 text-xs text-white/70">
                     <Clock className="w-3 h-3" />
                     <HydrationDate date={reel?.createdAt} fallback="—" />
                   </div>
