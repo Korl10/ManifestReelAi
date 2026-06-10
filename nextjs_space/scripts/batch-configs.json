@@ -1,0 +1,14 @@
+[
+  { "label": "Cine15-A", "modelTier": "cinematic", "target": 15, "mood": "uplifting", "style": "celestial", "prompt": "I am a magnet for abundance and prosperity flows to me effortlessly" },
+  { "label": "Cine15-B", "modelTier": "cinematic", "target": 15, "mood": "calm", "style": "nature", "prompt": "I release all fear and welcome deep inner peace into my life" },
+  { "label": "Cine15-C", "modelTier": "cinematic", "target": 15, "mood": "powerful", "style": "cosmic", "prompt": "I am unstoppable and my confidence grows stronger every single day" },
+  { "label": "Cine25-A", "modelTier": "cinematic", "target": 25, "mood": "uplifting", "style": "celestial", "prompt": "Every door of opportunity opens for me as I step into my power" },
+  { "label": "Cine25-B", "modelTier": "cinematic", "target": 25, "mood": "love", "style": "dreamy", "prompt": "I am worthy of deep love and meaningful connection surrounds me" },
+  { "label": "Cine25-C", "modelTier": "cinematic", "target": 25, "mood": "confident", "style": "urban", "prompt": "I trust myself completely and I create the life of my dreams" },
+  { "label": "Pro15-A", "modelTier": "pro", "target": 15, "mood": "uplifting", "style": "celestial", "prompt": "Abundance is my natural state and wealth flows to me with ease" },
+  { "label": "Pro15-B", "modelTier": "pro", "target": 15, "mood": "calm", "style": "nature", "prompt": "I breathe in serenity and exhale all tension from my body" },
+  { "label": "Pro25-A", "modelTier": "pro", "target": 25, "mood": "powerful", "style": "cosmic", "prompt": "I am the architect of my destiny and I build it boldly" },
+  { "label": "Pro25-B", "modelTier": "pro", "target": 25, "mood": "love", "style": "dreamy", "prompt": "My heart is open and I attract beautiful loving relationships" },
+  { "label": "Std15-A", "modelTier": "standard", "target": 15, "mood": "uplifting", "style": "celestial", "prompt": "I am grateful for the abundance that fills my life each day" },
+  { "label": "Std25-A", "modelTier": "standard", "target": 25, "mood": "calm", "style": "nature", "prompt": "Peace flows through me and I am centered in this present moment" }
+]

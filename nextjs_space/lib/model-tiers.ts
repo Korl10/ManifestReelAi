@@ -3,8 +3,8 @@
 // carries the fal.ai model ids + measured per-second pricing so the pipeline
 // and the cost dashboard stay honest about unit economics.
 //
-//   Standard  → Kling 2.5 Turbo (standard) + Flux 1.1 Pro
-//   Pro       → Kling 2.5 Turbo Pro        + Flux 1.1 Pro Ultra
+//   Standard  → Kling 2.5 Turbo (2 hero motion scenes) + Flux 1.1 Pro stills
+//   Pro       → Kling 2.5 Turbo Pro (up to 4 motion) + Flux 1.1 Pro Ultra
 //   Cinematic → Veo 3 Fast + Flux 1.1 Pro Ultra + Luma Ray 2 (b-roll)
 //
 // Coin costs are now duration-based: see REEL_COIN_COSTS in lib/pricing.ts.
@@ -50,7 +50,7 @@ export const MODEL_TIERS: Record<ModelTierId, ModelTier> = {
   standard: {
     id: 'standard',
     name: 'Standard',
-    tagline: 'Cinematic Ken Burns stills for everyday reels',
+    tagline: 'AI video with 2 cinematic motion scenes + premium stills',
     videoModel: 'fal-ai/kling-video/v2.5-turbo/standard/image-to-video',
     videoPricePerSec: 0.05,
     imageModel: 'fal-ai/flux-pro/v1.1',
@@ -59,9 +59,10 @@ export const MODEL_TIERS: Record<ModelTierId, ModelTier> = {
     minSubscription: 'starter',
     sampleVideoUrl: '/showcase/dream.mp4',
     samplePoster: '/showcase/dream-poster.jpg',
-    // Standard = AI stills + continuous Ken Burns motion (pan + drift). No
-    // generative video clips — those start at Pro (hybrid) / Cinematic (all-motion).
-    features: ['Flux 1.1 Pro AI stills', 'Cinematic Ken Burns motion', 'Synced captions & voice', 'Great for daily posting'],
+    // Standard = hybrid: 2 hero Kling motion scenes + Flux 1.1 Pro stills with
+    // continuous Ken Burns motion (pan + drift). Pro raises this to 4 motion
+    // scenes; Cinematic animates every scene with Veo 3.
+    features: ['2 cinematic motion scenes (Kling 2.5 Turbo)', 'Flux 1.1 Pro AI stills + Ken Burns', 'Synced captions & voice', 'Great for daily posting'],
   },
   pro: {
     id: 'pro',
@@ -144,7 +145,7 @@ export function tierModelSummary(id?: string | null): string {
       return 'Kling 2.5 Turbo Pro (animated hero scenes) + Flux 1.1 Pro Ultra stills';
     case 'standard':
     default:
-      return 'Flux 1.1 Pro AI stills with cinematic Ken Burns motion';
+      return 'Kling 2.5 Turbo (2 motion scenes) + Flux 1.1 Pro stills';
   }
 }
 

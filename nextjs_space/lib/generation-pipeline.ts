@@ -231,11 +231,11 @@ export async function runGenerationPipeline(
     // Requested final reel length — hard duration target enforced below.
     const targetDur = resolveTargetDuration(pipelineOpts?.targetDuration);
     console.log(`[pipeline] target duration = ${targetDur}s`);
-    // FIX B/C — tier-aware motion policy:
-    //   standard  -> NO motion (Ken Burns cinematic stills only, by design)
+    // FIX B/C — tier-aware motion policy (revised Standard, 2025-06):
+    //   standard  -> hybrid: up to 2 hero Kling motion clips + Ken Burns stills
     //   pro       -> hybrid: up to 4 hero motion clips + Ken Burns stills
     //   cinematic -> EVERY scene must be real motion (all-or-fail, see guardrail)
-    const tierAllowsMotion = modelTier.id === 'pro' || modelTier.id === 'cinematic';
+    const tierAllowsMotion = modelTier.id === 'standard' || modelTier.id === 'pro' || modelTier.id === 'cinematic';
     const wantsMotion = !isPreview && reel.motion === true && tierAllowsMotion && !!process.env.FAL_KEY;
     console.log(`[pipeline] model tier=${modelTier.id} (video=${modelTier.videoModel}, image=${modelTier.imageModel}), tierAllowsMotion=${tierAllowsMotion}, wantsMotion=${wantsMotion}`);
 
@@ -366,14 +366,17 @@ export async function runGenerationPipeline(
     let motionDowngraded = false;
     let motionHardFailed = false;
     costBreakdown['video_cost'] = 0;
-    // A paid motion reel was promised: a motion-capable tier (pro/cinematic)
-    // requested motion and we have a key. Standard never reaches here.
+    // A paid motion reel was promised: a motion-capable tier
+    // (standard/pro/cinematic) requested motion and we have a key.
     const motionAttempted = wantsMotion;
     if (motionAttempted) {
       try {
         // Cinematic animates EVERY scene (no slideshow feel). Lower tiers
-        // animate the hero scenes (hook + emotional peaks) to control cost.
-        const maxMotion = modelTier.id === 'cinematic' ? sceneCount : 4;
+        // animate the hero scenes (hook + emotional peaks) to control cost:
+        //   standard -> max 2 hero motion clips, pro -> max 4.
+        const maxMotion = modelTier.id === 'cinematic'
+          ? sceneCount
+          : (modelTier.id === 'standard' ? 2 : 4);
         const heroIndices = selectHeroScenes(sceneCount, maxMotion);
         motionExpected = heroIndices.length;
         const motionInput = {
@@ -518,14 +521,32 @@ export async function runGenerationPipeline(
       voiceProviderName = v.provider;
       costBreakdown['voice_cost'] = voiceUrl ? vp.estimateCost(voiceInput) : 0;
 
-      // Whisper re-transcription for frame-accurate word timestamps
+      // Whisper re-transcription for frame-accurate word timestamps.
+      // GUARD (duration integrity): ElevenLabs returns char-aligned word
+      // timestamps straight from the TTS engine — those are ground truth for
+      // the true audio length (v.durationSec). Whisper is only a *refinement*
+      // for frame-accurate caption sync. Whisper Large v3 occasionally
+      // hallucinates a long tail (e.g. 28s of timestamps for a 9s clip), which
+      // previously poisoned the whole pipeline: the compositor padded the video
+      // to the bogus narration length and the reel blew way past its target
+      // duration. We now ONLY adopt Whisper timestamps when they agree with the
+      // real ElevenLabs audio length; otherwise we keep ElevenLabs timestamps.
       if (voiceUrl && process.env.FAL_KEY) {
         try {
           const whisperResult = await transcribeWithWhisper(voiceUrl, v.durationSec);
-          if (whisperResult.words.length > 0) {
+          const elDur = v.durationSec || 0;
+          const wDur = whisperResult.durationSec || (whisperResult.words.length ? whisperResult.words[whisperResult.words.length - 1].end : 0);
+          // Accept Whisper only if its span is within a sane tolerance of the
+          // true audio length (±25% + 1.5s slack). Otherwise it's corrupt.
+          const tolerance = elDur * 0.25 + 1.5;
+          const whisperSane = whisperResult.words.length > 0 && elDur > 0 && Math.abs(wDur - elDur) <= tolerance;
+          if (whisperSane) {
             words = whisperResult.words;
             costBreakdown['whisper_cost'] = whisperResult.cost;
-            console.log(`[pipeline] Whisper timestamps: ${whisperResult.words.length} words, cost=$${whisperResult.cost.toFixed(4)}`);
+            console.log(`[pipeline] Whisper timestamps adopted: ${whisperResult.words.length} words, whisperDur=${wDur.toFixed(2)}s vs elDur=${elDur.toFixed(2)}s, cost=$${whisperResult.cost.toFixed(4)}`);
+          } else {
+            costBreakdown['whisper_cost'] = whisperResult.cost ?? 0;
+            console.warn(`[pipeline] Whisper REJECTED (corrupt timestamps): whisperDur=${wDur.toFixed(2)}s vs elDur=${elDur.toFixed(2)}s tol=±${tolerance.toFixed(2)}s — keeping ElevenLabs timestamps (${words.length} words).`);
           }
         } catch (e) {
           console.warn('[pipeline] Whisper transcription failed, using ElevenLabs timestamps:', (e as any)?.message);

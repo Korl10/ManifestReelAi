@@ -142,10 +142,33 @@ async function pollClip(model: string, sub: SubmitResponse): Promise<string | nu
           return rjson?.video?.url || rjson?.data?.video?.url || null;
         }
         const eb = await rres.text().catch(() => '');
-        // Content-policy rejections are permanent — don't waste time retrying.
-        if (rres.status === 422 || eb.includes('content_policy')) {
-          throw new PermanentError('fal content policy / unprocessable: ' + eb.slice(0, 120));
+        const lower = eb.toLowerCase();
+        // Distinguish a genuine content/safety block (PERMANENT — retrying is
+        // pointless and wastes credits) from a transient generation miss.
+        const isPolicy =
+          lower.includes('content_policy') || lower.includes('content policy') ||
+          lower.includes('safety') || lower.includes('flagged') ||
+          lower.includes('prohibited') || lower.includes('violat') ||
+          lower.includes('nsfw') || lower.includes('not allowed');
+        // Veo 3 frequently returns a 422 "The model did not generate the
+        // expected output for this prompt. This may occur for several reasons"
+        // even for perfectly benign prompts. This is a TRANSIENT generation
+        // miss, not a policy block — a fresh submission usually succeeds. We
+        // must retry it (this was previously misclassified as permanent and was
+        // the #1 cause of cinematic all-or-fail render failures).
+        const isTransientGenMiss =
+          lower.includes('did not generate the expected output') ||
+          lower.includes('may occur for several reasons') ||
+          lower.includes('please try again');
+        if (isPolicy && !isTransientGenMiss) {
+          throw new PermanentError('fal content policy: ' + eb.slice(0, 160));
         }
+        if (isTransientGenMiss) {
+          // Bubble up so attemptClip resubmits a FRESH Veo 3 job (with backoff).
+          throw new RetryableError('fal generation miss (model produced no output, will retry): ' + eb.slice(0, 160));
+        }
+        // Unknown 422 right after COMPLETED — likely a finalize race; retry the
+        // result fetch a few times before bubbling up as retryable.
         await sleep(2_000);
       }
       throw new RetryableError('fal result not ready after COMPLETED');
