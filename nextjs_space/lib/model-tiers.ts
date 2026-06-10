@@ -50,7 +50,7 @@ export const MODEL_TIERS: Record<ModelTierId, ModelTier> = {
   standard: {
     id: 'standard',
     name: 'Standard',
-    tagline: 'Fast, crisp motion for everyday reels',
+    tagline: 'Cinematic Ken Burns stills for everyday reels',
     videoModel: 'fal-ai/kling-video/v2.5-turbo/standard/image-to-video',
     videoPricePerSec: 0.05,
     imageModel: 'fal-ai/flux-pro/v1.1',
@@ -59,7 +59,9 @@ export const MODEL_TIERS: Record<ModelTierId, ModelTier> = {
     minSubscription: 'starter',
     sampleVideoUrl: '/showcase/dream.mp4',
     samplePoster: '/showcase/dream-poster.jpg',
-    features: ['Kling 2.5 Turbo', 'Flux 1.1 Pro stills', '5s hero clips', 'Great for daily posting'],
+    // Standard = AI stills + continuous Ken Burns motion (pan + drift). No
+    // generative video clips — those start at Pro (hybrid) / Cinematic (all-motion).
+    features: ['Flux 1.1 Pro AI stills', 'Cinematic Ken Burns motion', 'Synced captions & voice', 'Great for daily posting'],
   },
   pro: {
     id: 'pro',
@@ -73,7 +75,7 @@ export const MODEL_TIERS: Record<ModelTierId, ModelTier> = {
     minSubscription: 'starter',
     sampleVideoUrl: '/showcase/wealth.mp4',
     samplePoster: '/showcase/wealth-poster.jpg',
-    features: ['Kling 2.5 Turbo Pro', 'Flux 1.1 Pro Ultra stills', 'Higher fidelity & detail', 'Best for hero content'],
+    features: ['Kling 2.5 Turbo Pro motion', 'Animated hero scenes + stills', 'Flux 1.1 Pro Ultra stills', 'Best for hero content'],
   },
   cinematic: {
     id: 'cinematic',
@@ -88,7 +90,7 @@ export const MODEL_TIERS: Record<ModelTierId, ModelTier> = {
     minSubscription: 'pro',
     sampleVideoUrl: '/showcase/selflove.mp4',
     samplePoster: '/showcase/selflove-poster.jpg',
-    features: ['Google Veo 3 Fast', 'Flux 1.1 Pro Ultra stills', 'Luma Ray 2 b-roll', 'Premium flagship quality'],
+    features: ['Google Veo 3 Fast — every scene animated', 'Flux 1.1 Pro Ultra stills', 'Luma Ray 2 b-roll', '100% all-motion AI video'],
   },
 };
 
@@ -128,6 +130,22 @@ export function resolveModelTier(requested: string | null | undefined, subTier: 
 export function getModelTier(id?: string | null): ModelTier {
   const key = (id ?? '').toLowerCase() as ModelTierId;
   return MODEL_TIERS[key] ?? MODEL_TIERS[DEFAULT_MODEL_TIER];
+}
+
+/**
+ * Plain-language summary of exactly which AI models a tier uses, for the studio
+ * "This reel will use: …" transparency line (Fix D).
+ */
+export function tierModelSummary(id?: string | null): string {
+  switch ((id ?? '').toLowerCase()) {
+    case 'cinematic':
+      return 'Veo 3 Fast (every scene animated) + Flux 1.1 Pro Ultra stills';
+    case 'pro':
+      return 'Kling 2.5 Turbo Pro (animated hero scenes) + Flux 1.1 Pro Ultra stills';
+    case 'standard':
+    default:
+      return 'Flux 1.1 Pro AI stills with cinematic Ken Burns motion';
+  }
 }
 
 /** Custom music upload slots per subscription tier. */

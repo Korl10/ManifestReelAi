@@ -212,7 +212,7 @@ function ShowcaseReel({ reel, index }: { reel: any; index: number }) {
 const FEATURES = [
   { icon: Type, title: 'AI Script Writing', desc: 'Powerful manifestation scripts crafted by AI, optimized for engagement and spiritual impact.', color: '#D4AF37' },
   { icon: Music, title: 'Voice & Music', desc: 'Soothing voiceovers paired with 528Hz frequency music and ambient soundscapes.', color: '#7B2FBE' },
-  { icon: Video, title: 'Cinematic Visuals', desc: 'Stock visuals and AI-generated backgrounds matched to your manifestation theme.', color: '#D4AF37' },
+  { icon: Video, title: 'Cinematic AI Motion', desc: 'Cinematic tier is all-motion AI video powered by Veo 3 Fast — every scene animated. Pro adds animated hero scenes; Standard delivers cinematic Ken Burns stills.', color: '#D4AF37' },
   { icon: Sparkles, title: 'Auto Captions', desc: 'Perfectly synced karaoke-style captions that boost engagement and accessibility.', color: '#7B2FBE' },
 ];
 

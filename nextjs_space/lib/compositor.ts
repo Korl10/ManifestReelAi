@@ -248,14 +248,22 @@ export async function compositeReel(input: CompositeInput): Promise<CompositeRes
     }
     const f = frames(d);
     const zoomIn = i % 2 === 0;
+    // FIX A: continuous slow zoom that NEVER reaches its cap within the scene,
+    // so the frame is always moving — no visible freeze even when a scene is
+    // extended to fill the target duration. Rate 0.0006/frame caps only after
+    // ~16s (zoom-in) / ~10s (zoom-out); scenes are always shorter than that.
     const z = zoomIn
-      ? `min(zoom+0.0010,1.20)`
-      : `if(eq(on,1),1.20,max(zoom-0.0010,1.0))`;
-    // gentle diagonal drift
-    const x = `iw/2-(iw/zoom/2)+(${i % 2 === 0 ? '' : '-'}${(i % 3) * 12})`;
+      ? `min(zoom+0.0006,1.30)`
+      : `if(eq(on,1),1.18,max(zoom-0.0006,1.0))`;
+    // Animated parallax pan ACROSS the scene (driven by output frame `on`),
+    // not a static per-scene offset. This guarantees positional motion that is
+    // independent of the zoom, which is what kills the "slideshow" perception.
+    const panDir = i % 2 === 0 ? 1 : -1;
+    const x = `iw/2-(iw/zoom/2)+(${panDir}*(on/${f})*90)-(${panDir}*45)`;
+    const y = `ih/2-(ih/zoom/2)+((on/${f})*60)-30`;
     fc.push(
       `[${i}:v]scale=2160:3840:force_original_aspect_ratio=increase,crop=2160:3840,` +
-      `zoompan=z='${z}':d=${f}:x='${x}':y='ih/2-(ih/zoom/2)':s=${W}x${H}:fps=${FPS},` +
+      `zoompan=z='${z}':d=${f}:x='${x}':y='${y}':s=${W}x${H}:fps=${FPS},` +
       `setsar=1,format=yuv420p[v${i}]`,
     );
   });

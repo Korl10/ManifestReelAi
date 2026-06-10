@@ -21,7 +21,34 @@ export default function GenerationProgressPage() {
   const [job, setJob] = useState<any>(null);
   const [error, setError] = useState('');
   const [pollCount, setPollCount] = useState(0);
+  const [retrying, setRetrying] = useState(false);
   const hasRedirected = useRef(false);
+
+  // A motion/cinematic failure offers an engine-switch fallback.
+  const isMotionFailure = /veo 3|congestion|couldn't be animated|motion render/i.test(error);
+
+  const handleRetry = useCallback(async (mode: 'same' | 'switch_pro') => {
+    if (!job?.reelId) return;
+    setRetrying(true);
+    try {
+      const res = await fetch(`/api/reels/${job.reelId}/retry`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data?.error ?? 'Could not start retry. Please try again.');
+        setRetrying(false);
+        return;
+      }
+      hasRedirected.current = true;
+      router.replace(`/dashboard/generate/${data.jobId}`);
+    } catch {
+      setError('Could not start retry. Please check your connection.');
+      setRetrying(false);
+    }
+  }, [job?.reelId, router]);
 
   const pollJob = useCallback(async () => {
     try {
@@ -92,13 +119,29 @@ export default function GenerationProgressPage() {
             <AlertCircle className="w-5 h-5 text-red-400 shrink-0" />
             <p className="text-sm text-red-300">{error}</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            {job?.reelId && (
+              <button
+                onClick={() => handleRetry('same')}
+                disabled={retrying}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#D4AF37]/15 text-xs text-[#D4AF37] hover:bg-[#D4AF37]/25 disabled:opacity-50"
+              >
+                {retrying ? <Loader2 className="w-3 h-3 animate-spin" /> : <RotateCcw className="w-3 h-3" />}
+                {isMotionFailure ? 'Retry on Veo 3' : 'Retry'}
+              </button>
+            )}
+            {job?.reelId && isMotionFailure && (
+              <button
+                onClick={() => handleRetry('switch_pro')}
+                disabled={retrying}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white/5 text-xs text-white/70 hover:bg-white/10 disabled:opacity-50"
+              >
+                <Sparkles className="w-3 h-3" /> Switch to Kling 2.5 (Pro)
+              </button>
+            )}
             <Link href="/dashboard" className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white/5 text-xs text-white/50 hover:bg-white/10">
-              <ArrowLeft className="w-3 h-3" /> Back to Dashboard
+              <ArrowLeft className="w-3 h-3" /> Try again later
             </Link>
-            <button onClick={() => { setError(''); setPollCount(0); pollJob(); }} className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white/5 text-xs text-white/50 hover:bg-white/10">
-              <RotateCcw className="w-3 h-3" /> Retry
-            </button>
           </div>
         </div>
       )}
@@ -115,6 +158,12 @@ export default function GenerationProgressPage() {
             />
           </div>
           <p className="text-xs text-white/30 mt-2 text-right">{progress}%</p>
+          {typeof job?.currentStep === 'string' && /queue/i.test(job.currentStep) && (
+            <div className="mt-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-[#D4AF37]/10 border border-[#D4AF37]/20">
+              <Loader2 className="w-3.5 h-3.5 text-[#D4AF37] animate-spin shrink-0" />
+              <p className="text-xs text-[#D4AF37]/90">{job.currentStep}</p>
+            </div>
+          )}
         </div>
       )}
 

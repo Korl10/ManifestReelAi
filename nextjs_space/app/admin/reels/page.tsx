@@ -56,6 +56,7 @@ export default function AdminReelsPage() {
                 <th className="p-4 text-white/40 font-medium hidden md:table-cell">User</th>
                 <th className="p-4 text-white/40 font-medium">Status</th>
                 <th className="p-4 text-white/40 font-medium hidden sm:table-cell">Style</th>
+                <th className="p-4 text-white/40 font-medium hidden md:table-cell">Model</th>
                 <th className="p-4 text-white/40 font-medium">Cost</th>
                 <th className="p-4 text-white/40 font-medium hidden lg:table-cell">Date</th>
               </tr>
@@ -71,6 +72,12 @@ export default function AdminReelsPage() {
                     </span>
                   </td>
                   <td className="p-4 text-white/40 capitalize hidden sm:table-cell">{reel?.style ?? '—'}</td>
+                  <td className="p-4 hidden md:table-cell">{(() => {
+                    const mt = (reel?.scenesJson as any)?.model_tier;
+                    const label = mt === 'cinematic' ? 'Veo 3 Fast' : mt === 'pro' ? 'Kling Pro' : mt === 'standard' ? 'Stills (Ken Burns)' : (reel?.motion ? 'Motion' : 'Stills');
+                    const cls = mt === 'cinematic' ? 'text-[#A855F7]' : mt === 'pro' ? 'text-[#D4AF37]' : 'text-white/40';
+                    return <span className={`text-xs font-medium ${cls}`}>{label}</span>;
+                  })()}</td>
                   <td className="p-4 font-mono text-[#D4AF37]">${(reel?.totalCost ?? 0).toFixed(2)}</td>
                   <td className="p-4 text-white/30 hidden lg:table-cell"><HydrationDate date={reel?.createdAt} fallback="—" /></td>
                 </tr>

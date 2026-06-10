@@ -13,11 +13,15 @@ function wordCount(s: string): number {
   return (s || '').trim().split(/\s+/).filter(Boolean).length;
 }
 
-// Map a requested reel length to a TOTAL spoken-word budget + line count so the
-// narration reliably lands UNDER the target — the pipeline then pads/holds the
-// final scene to hit the exact requested duration (never cuts speech).
-// Slow affirmation narration runs ~0.55s per word (including natural pauses),
-// so we budget words for (target - 2.5s) of speech to leave padding headroom.
+// Map a requested reel length to a TOTAL spoken-word budget + line count.
+//
+// FIX A (duration discipline): we now budget words so the narration nearly
+// FILLS the requested duration instead of landing 2.5s short. Landing short was
+// the root cause of the "held final frame" dead zones — the pipeline dumped all
+// the slack onto the last scene. We budget for (target - 0.8s) of speech: a tiny
+// 0.8s headroom for the closing breath/fade, distributed (capped) across scenes
+// by enforceDurationTarget so no single scene holds a frozen frame.
+// Slow affirmation narration runs ~0.55s per word (including natural pauses).
 const SEC_PER_SPOKEN_WORD = 0.55;
 // `speed` is the ElevenLabs native speed multiplier (0.85 slow / 1.0 / 1.15 fast).
 // Effective time-per-word scales inversely with speed, so the word budget scales
@@ -32,10 +36,12 @@ function scriptPlanForDuration(targetDuration?: number, speed: number = 1.0): { 
   // delivered MP4 reliably passes the ±1s duration gate. A 4-scene/16-word
   // script (the normal floor) spoke for ~8s and overran a 7s target.
   if (target <= 9) {
-    const wordBudget = Math.max(8, Math.round(((target - 2.0) / SEC_PER_SPOKEN_WORD) * spd));
+    // Short reels: fill close to target (target - 0.6s) so the final scene
+    // never holds a long frozen frame on a tiny reel.
+    const wordBudget = Math.max(9, Math.round(((target - 0.6) / SEC_PER_SPOKEN_WORD) * spd));
     return { affirmationLines: 2, totalScenes: 3, wordBudget };
   }
-  const wordBudget = Math.max(14, Math.round(((target - 2.5) / SEC_PER_SPOKEN_WORD) * spd));
+  const wordBudget = Math.max(16, Math.round(((target - 0.8) / SEC_PER_SPOKEN_WORD) * spd));
   const totalScenes = Math.max(4, Math.round(wordBudget / 7)); // ~7 words per scene incl. hook
   const affirmationLines = Math.max(3, totalScenes - 1);
   return { affirmationLines, totalScenes, wordBudget };

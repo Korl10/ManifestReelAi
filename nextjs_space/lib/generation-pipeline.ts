@@ -6,6 +6,7 @@ import { refundCoins } from '@/lib/quota';
 import { matchTrack, matchTrackAsync, getTrackById, getStingerById, defaultStinger, isCloudTrack } from '@/lib/music-library';
 import { getFileUrl } from '@/lib/s3';
 import { selectHeroScenes } from '@/lib/providers/motion-prompts';
+import { modelQueue, modelFamily } from '@/lib/concurrency/model-queue';
 import { buildTemplateScript, fallbackSceneImages } from '@/lib/providers/fallback';
 import { estimateTimestamps } from '@/lib/providers/elevenlabs-voice';
 import type { ExtendedVoiceInput } from '@/lib/providers/elevenlabs-voice';
@@ -74,8 +75,33 @@ function enforceDurationTarget(
   const curSum = durs.reduce((a, b) => a + b, 0);
 
   if (curSum <= targetSum) {
-    // UNDER target: extend the final scene (held frame + slow zoom + ambient).
-    durs[n - 1] = +(durs[n - 1] + (targetSum - curSum)).toFixed(2);
+    // UNDER target: DISTRIBUTE the residual across ALL scenes (capped per scene)
+    // instead of dumping it all on the final scene. Dumping everything on the
+    // last scene was the root cause of the held-frame dead zone (Fix A). A small
+    // extra per scene reads as a slightly longer beat, not a freeze.
+    const PER_SCENE_CAP = 1.2;   // max extra seconds added to a non-final scene
+    const FINAL_SCENE_CAP = 1.5; // max extra seconds added to the final scene
+    let residual = +(targetSum - curSum).toFixed(2);
+    // Pass 1: spread evenly, respecting per-scene caps.
+    for (let pass = 0; pass < 3 && residual > 0.01; pass++) {
+      const headroom = durs.map((_, i) => {
+        const cap = i === n - 1 ? FINAL_SCENE_CAP : PER_SCENE_CAP;
+        const added = +(durs[i] - sceneDurations[i]).toFixed(2);
+        return Math.max(0, cap - added);
+      });
+      const totalHeadroom = headroom.reduce((a, b) => a + b, 0);
+      if (totalHeadroom <= 0.01) break;
+      const give = Math.min(residual, totalHeadroom);
+      for (let i = 0; i < n; i++) {
+        if (headroom[i] <= 0) continue;
+        const share = +(give * (headroom[i] / totalHeadroom)).toFixed(3);
+        durs[i] = +(durs[i] + share).toFixed(2);
+      }
+      residual = +(targetSum - durs.reduce((a, b) => a + b, 0)).toFixed(2);
+    }
+    // Any tiny leftover (caps exhausted) goes to the final scene; the ±1s gate
+    // catches pathological cases. With the new script budget this is ~0.
+    if (residual > 0.01) durs[n - 1] = +(durs[n - 1] + residual).toFixed(2);
     const timeline = durs.reduce((a, b) => a + b, 0) - xfadeTotal;
     return { durations: durs, predictedTimeline: +timeline.toFixed(2), fitFeasible: true };
   }
@@ -205,8 +231,13 @@ export async function runGenerationPipeline(
     // Requested final reel length — hard duration target enforced below.
     const targetDur = resolveTargetDuration(pipelineOpts?.targetDuration);
     console.log(`[pipeline] target duration = ${targetDur}s`);
-    const wantsMotion = !isPreview && reel.motion === true && !!process.env.FAL_KEY;
-    console.log(`[pipeline] model tier=${modelTier.id} (video=${modelTier.videoModel}, image=${modelTier.imageModel}), wantsMotion=${wantsMotion}`);
+    // FIX B/C — tier-aware motion policy:
+    //   standard  -> NO motion (Ken Burns cinematic stills only, by design)
+    //   pro       -> hybrid: up to 4 hero motion clips + Ken Burns stills
+    //   cinematic -> EVERY scene must be real motion (all-or-fail, see guardrail)
+    const tierAllowsMotion = modelTier.id === 'pro' || modelTier.id === 'cinematic';
+    const wantsMotion = !isPreview && reel.motion === true && tierAllowsMotion && !!process.env.FAL_KEY;
+    console.log(`[pipeline] model tier=${modelTier.id} (video=${modelTier.videoModel}, image=${modelTier.imageModel}), tierAllowsMotion=${tierAllowsMotion}, wantsMotion=${wantsMotion}`);
 
     // Subject lock (premium quality): keep the same subject/look across scenes.
     // Default ON for paid motion reels; a brand preset may override it.
@@ -335,8 +366,9 @@ export async function runGenerationPipeline(
     let motionDowngraded = false;
     let motionHardFailed = false;
     costBreakdown['video_cost'] = 0;
-    // A paid motion reel was promised: tier requested motion and we have a key.
-    const motionAttempted = !isPreview && reel.motion === true && !!process.env.FAL_KEY;
+    // A paid motion reel was promised: a motion-capable tier (pro/cinematic)
+    // requested motion and we have a key. Standard never reaches here.
+    const motionAttempted = wantsMotion;
     if (motionAttempted) {
       try {
         // Cinematic animates EVERY scene (no slideshow feel). Lower tiers
@@ -355,22 +387,31 @@ export async function runGenerationPipeline(
           videoPricePerSec: modelTier.videoPricePerSec,
         };
         const vp = getVideoProvider(modelTier.videoModel, modelTier.videoPricePerSec);
-        let motion = await vp.generate(motionInput);
 
-        // Cinematic fallback: if the flagship model produced 0 clips (rate
-        // limit / policy / outage), retry ONCE with Kling 2.5 Turbo Pro so the
-        // reel still gets REAL motion (cheaper engine). This is a genuine
-        // downgrade — we refund the price delta below.
-        if (((motion as any).generatedCount ?? 0) === 0 && modelTier.id === 'cinematic') {
-          console.warn('[pipeline] cinematic produced 0 clips, retrying with Kling 2.5 Turbo Pro');
-          const fb = getVideoProvider('fal-ai/kling-video/v2.5-turbo/pro/image-to-video', 0.07);
-          motion = await fb.generate({
-            ...motionInput,
-            videoModel: 'fal-ai/kling-video/v2.5-turbo/pro/image-to-video',
-            videoPricePerSec: 0.07,
-          });
-          if (((motion as any).generatedCount ?? 0) > 0) motionDowngraded = true;
-        }
+        // Fix B2 — surface live queue position + ETA to the user before we start
+        // pulling motion clips, so an overloaded engine shows "position N, ETA ~Xs"
+        // instead of an opaque spinner. The actual semaphore is enforced inside
+        // the provider per-request; this is purely the user-facing preview.
+        try {
+          const fam = modelFamily(modelTier.videoModel);
+          const wait = modelQueue.previewWait(fam);
+          if (wait.position > 0) {
+            const etaSec = Math.max(1, Math.round(wait.etaMs / 1000));
+            await prisma.generationJob.update({
+              where: { id: jobId },
+              data: { currentStep: `Rendering motion — position ${wait.position} in queue, ETA ~${etaSec}s` },
+            }).catch(() => {});
+            console.log(`[pipeline] motion queue: family=${fam} position=${wait.position} eta=${etaSec}s active=${wait.active}/${wait.limit} waiting=${wait.waiting}`);
+          }
+        } catch {}
+
+        const motion = await vp.generate(motionInput);
+        // NOTE (Fix B/C): the previous silent cinematic→Kling auto-downgrade was
+        // REMOVED. Cinematic promises all-Veo-3 motion; a partial/failed render
+        // now fails loudly + refunds (guardrail below), and the user is offered
+        // an explicit "Switch to Kling (Pro)" retry in the failure UX instead of
+        // a hidden engine swap. The per-request retry/backoff + global queue in
+        // the provider make transient failures rare to begin with.
 
         sceneClipUrls = motion.clipUrls;
         motionClipCount = (motion as any).generatedCount ?? motion.clipUrls.filter(Boolean).length;
@@ -385,9 +426,19 @@ export async function runGenerationPipeline(
       }
     }
 
-    // Motion verification: a motion-tier reel MUST have at least one real clip.
-    motionVerified = motionAttempted ? motionClipCount > 0 : false;
+    // Motion verification (Fix B4/B5 — tier-aware "ready" gate):
+    //   cinematic -> EVERY hero scene (== every scene) must have a real clip.
+    //                Partial motion on the flagship tier is NOT acceptable.
+    //   pro       -> at least one hero clip (hybrid motion + disclosed stills).
+    if (motionAttempted) {
+      motionVerified = modelTier.id === 'cinematic'
+        ? (motionExpected > 0 && motionClipCount >= motionExpected)
+        : (motionClipCount > 0);
+    } else {
+      motionVerified = false;
+    }
     if (motionAttempted && !motionVerified) motionHardFailed = true;
+    console.log(`[pipeline] motion verify: tier=${modelTier.id} clips=${motionClipCount}/${motionExpected} verified=${motionVerified} hardFail=${motionHardFailed}`);
 
     // ----------------------------------------------------------------
     // GUARDRAIL — Motion render hard-fail (billing integrity)
@@ -412,19 +463,23 @@ export async function runGenerationPipeline(
           scenesJson: {
             motionVerified: false,
             motionExpected,
-            motionClipCount: 0,
+            motionClipCount,
             model_tier: modelTier.id,
+            targetDuration: targetDur,
             refundedCoins,
             failureReason: 'motion_render_failed',
           } as any,
         },
       }).catch(() => {});
+      const missingScenes = Math.max(0, motionExpected - motionClipCount);
       await prisma.generationJob.update({
         where: { id: jobId },
         data: {
           status: 'failed',
           currentStep: 'error',
-          errorMessage: 'Cinematic engines were busy — your reel was not charged. Please try again in a few minutes, or switch to Standard for instant generation.',
+          errorMessage: modelTier.id === 'cinematic'
+            ? `${missingScenes} scene${missingScenes === 1 ? '' : 's'} couldn't be animated (Veo 3 congestion). Your full refund has been issued — no charge. Retry on Veo 3, or switch to Kling (Pro) for faster generation.`
+            : 'Motion render came up short — your reel was not charged. Please retry, or try again in a few minutes.',
         },
       }).catch(() => {});
 
@@ -637,8 +692,23 @@ export async function runGenerationPipeline(
     // so narration lands under 7s and the pipeline extends the final scene to the
     // exact target — they pass this gate just like paid reels.
     const durationMet = Math.abs(durationDelta) <= 1;
-    console.log(`[pipeline] duration check: target=${targetDur}s actual=${finalDuration.toFixed(2)}s delta=${durationDelta}s met=${durationMet} tier=${tier}`);
-    if (!isPreview && !durationMet) {
+
+    // Fix A runtime assert: the spoken narration must never run past the end of
+    // the video (Mode-2 cutoff bug — voice/subtitles trailing off into black).
+    // Derive narration end from the last word timestamp (fallback: voice clip).
+    const narrationDuration = (words && words.length > 0)
+      ? Math.max(...words.map((w) => w.end || 0))
+      : 0;
+    // Allow a small 0.5s grace for the natural decay tail of the last syllable.
+    const narrationFits = narrationDuration <= finalDuration + 0.5;
+    // The delivered video must also not blow past target by more than 0.3s.
+    const overshootOk = finalDuration <= targetDur + 0.3;
+    const assertOk = narrationFits && overshootOk;
+    console.log(`[pipeline] duration check: target=${targetDur}s actual=${finalDuration.toFixed(2)}s delta=${durationDelta}s met=${durationMet} narration=${narrationDuration.toFixed(2)}s narrationFits=${narrationFits} overshootOk=${overshootOk} tier=${tier}`);
+    if (!isPreview && (!durationMet || !assertOk)) {
+      const assertFailReason = !durationMet
+        ? 'duration_check_failed'
+        : (!narrationFits ? 'narration_overrun' : 'duration_overshoot');
       const refundAmt = reel.coinCost ?? 0;
       let refundedDur = 0;
       try {
@@ -659,7 +729,8 @@ export async function runGenerationPipeline(
             durationDelta,
             model_tier: modelTier.id,
             refundedCoins: refundedDur,
-            failureReason: 'duration_check_failed',
+            narrationDuration: +narrationDuration.toFixed(2),
+            failureReason: assertFailReason,
           } as any,
         },
       }).catch(() => {});
@@ -668,7 +739,9 @@ export async function runGenerationPipeline(
         data: {
           status: 'failed',
           currentStep: 'error',
-          errorMessage: 'Render failed duration check — credits refunded, please retry.',
+          errorMessage: assertFailReason === 'narration_overrun'
+            ? 'Narration ran past the video length — credits refunded, please retry.'
+            : 'Render failed duration check — credits refunded, please retry.',
         },
       }).catch(() => {});
 

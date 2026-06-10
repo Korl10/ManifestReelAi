@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Lock, Check, Play, Sparkles, Coins } from 'lucide-react';
 import Link from 'next/link';
-import { MODEL_TIER_LIST, type ModelTierId } from '@/lib/model-tiers';
+import { MODEL_TIER_LIST, tierModelSummary, type ModelTierId } from '@/lib/model-tiers';
 import { reelCoinCost, REEL_COIN_COSTS } from '@/lib/pricing';
 
 interface Props {
@@ -19,6 +19,7 @@ export default function ModelTierPicker({ value, onChange, allowed, durationSec 
   const [preview, setPreview] = useState<string | null>(null);
 
   return (
+    <div>
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
       {MODEL_TIER_LIST.map((tier) => {
         const locked = !allowed.includes(tier.id);
@@ -117,6 +118,16 @@ export default function ModelTierPicker({ value, onChange, allowed, durationSec 
           </div>
         );
       })}
+    </div>
+    {allowed.includes(value) && (
+      <div className="mt-3 flex items-start gap-2 px-3 py-2 rounded-lg bg-white/[0.03] border border-white/10">
+        <Sparkles className="w-3.5 h-3.5 text-[#D4AF37] mt-0.5 shrink-0" />
+        <p className="text-[11px] text-white/55">
+          <span className="text-white/75 font-medium">This reel will use:</span>{' '}
+          {tierModelSummary(value)}
+        </p>
+      </div>
+    )}
     </div>
   );
 }
