@@ -162,6 +162,14 @@ export default function ReelPreviewPage() {
           {reel?.watermarked && (
             <p className="mt-2 text-center text-[10px] text-[#D4AF37]/80">Watermarked • Upgrade to remove</p>
           )}
+          {reel?.music?.attributionRequired && (
+            <div className="mt-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
+              <p className="text-[10px] uppercase tracking-wide text-white/40 mb-0.5">Music credit</p>
+              <p className="text-xs text-white/70">
+                Music: <span className="text-white">“{reel.music.title}”</span> — please keep this credit in your post caption.
+              </p>
+            </div>
+          )}
           <div className="mt-4 flex gap-2">
             <button onClick={handleDownload} className="flex-1 py-2.5 rounded-lg gold-gradient text-black font-semibold text-sm flex items-center justify-center gap-2 hover:opacity-90 transition-all">
               <Download className="w-4 h-4" /> Download

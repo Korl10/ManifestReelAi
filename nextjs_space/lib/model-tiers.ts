@@ -140,3 +140,43 @@ export function customMusicSlots(subTier?: string | null): number {
     default: return 0;
   }
 }
+
+// ---- Music library capabilities by subscription tier (Phase 3) ----
+export interface MusicCapabilities {
+  /** Browse and pick from the full curated library. */
+  canBrowse: boolean;
+  /** Click "Regenerate match" to get a fresh AI-matched alternate. */
+  canRegenerate: boolean;
+  /** Save tracks as favorites for quick reuse. */
+  canFavorite: boolean;
+  /** Bulk-download license sheet for all library tracks. */
+  canBulkLicense: boolean;
+  /** Human label of the gate reason when browse is locked. */
+  lockedReason: string | null;
+}
+
+/**
+ * Resolve music capabilities. During an active trial the user is treated as a
+ * restricted (free-level) browser regardless of the underlying plan tier, per
+ * the product rule "Free + Trial = AI auto-matched only, no manual browse".
+ */
+export function musicCapabilities(subTier?: string | null, isTrialing?: boolean): MusicCapabilities {
+  const effective = isTrialing ? 'free' : (subTier ?? 'free');
+  switch (effective) {
+    case 'agency':
+      return { canBrowse: true, canRegenerate: true, canFavorite: true, canBulkLicense: true, lockedReason: null };
+    case 'premium':
+      return { canBrowse: true, canRegenerate: true, canFavorite: true, canBulkLicense: false, lockedReason: null };
+    case 'pro':
+      return { canBrowse: true, canRegenerate: true, canFavorite: false, canBulkLicense: false, lockedReason: null };
+    case 'starter':
+      return { canBrowse: true, canRegenerate: false, canFavorite: false, canBulkLicense: false, lockedReason: null };
+    default:
+      return {
+        canBrowse: false, canRegenerate: false, canFavorite: false, canBulkLicense: false,
+        lockedReason: isTrialing
+          ? 'During your trial, music is AI-matched to your mood. Upgrade to browse the full library.'
+          : 'Music is AI-matched to your mood. Upgrade to Starter to browse the full library.',
+      };
+  }
+}

@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
 import { resolveReelAssets, isPlaceholderUrl, getVoiceSample } from '@/lib/reel-assets';
+import { getTrackById } from '@/lib/music-library';
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
@@ -25,6 +26,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
     // back to the generic style template when the reel has no real thumbnail.
     posterUrl: isPlaceholderUrl(reel.thumbnailUrl) ? assets.posterUrl : reel.thumbnailUrl,
     voiceSampleUrl: getVoiceSample(reel.voice),
+    music: await resolveReelMusic(reel.musicTrackId),
   };
   return NextResponse.json(resolved);
 }
@@ -57,4 +59,45 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
   if (!reel) return NextResponse.json({ error: 'Reel not found' }, { status: 404 });
   await prisma.reel.delete({ where: { id: params.id } });
   return NextResponse.json({ success: true });
+}
+
+/**
+ * Resolve a reel's music track into a compact descriptor for the UI, including
+ * its licensing posture. Attribution credit is shown on the reel landing page
+ * only when license_status === 'attribution_required' (never burned into video).
+ */
+async function resolveReelMusic(musicTrackId: string | null) {
+  if (!musicTrackId) return null;
+  // Static curated library (V1).
+  const lib = getTrackById(musicTrackId);
+  if (lib) {
+    return {
+      trackId: lib.id,
+      title: lib.title,
+      licenseStatus: lib.license_status,
+      attributionRequired: lib.license_status === 'attribution_required',
+    };
+  }
+  // V2 cloud library tracks are stored as v2_<dbid>.
+  if (musicTrackId.startsWith('v2_')) {
+    try {
+      const row = await prisma.libraryTrack.findUnique({ where: { id: musicTrackId.slice(3) } });
+      if (row) {
+        return {
+          trackId: musicTrackId,
+          title: row.title,
+          licenseStatus: (row as any).licenseStatus ?? 'royalty_free',
+          attributionRequired: ((row as any).licenseStatus ?? 'royalty_free') === 'attribution_required',
+        };
+      }
+    } catch { /* ignore */ }
+  }
+  // Custom user upload — owned by the user, no attribution.
+  try {
+    const cm = await prisma.customMusic.findUnique({ where: { id: musicTrackId } });
+    if (cm) {
+      return { trackId: cm.id, title: cm.name, licenseStatus: 'royalty_free', attributionRequired: false };
+    }
+  } catch { /* ignore */ }
+  return null;
 }

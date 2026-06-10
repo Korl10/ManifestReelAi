@@ -37,6 +37,10 @@ export interface CompositeInput {
   words: WordTimestamp[];
   voiceUrl: string | null;
   musicUrl: string | null; // public URL
+  /** Whether the chosen music track contains vocals. When true and a VO track is
+   *  present, the compositor ducks music more aggressively (≈-20dB) so the VO
+   *  stays intelligible; when false, music sits prouder (≈-13dB). */
+  musicHasVocals?: boolean;
   /** Optional short intro/outro accent stinger (public URL). null/undefined → none. */
   stingerUrl?: string | null;
   watermark: boolean;
@@ -299,13 +303,23 @@ export async function compositeReel(input: CompositeInput): Promise<CompositeRes
   const hasMain = voiceIdx >= 0 || musicIdx >= 0;
   const mainLabel = stingerIdx >= 0 ? 'amain' : 'aout';
   if (voiceIdx >= 0 && musicIdx >= 0) {
-    // Sidechain ducking: the music bed sits at ~-8dB (0.40) in the gaps and is
-    // pulled down to ~-18dB whenever the voiceover is present, then restored.
-    // Music gets a 300ms fade-in and an 800ms fade-out at the tail.
+    // Sidechain ducking. Parameters adapt to whether the music has vocals:
+    //  - Instrumental (has_vocals=false): bed sits at 0.40 (~-8dB), ducked to
+    //    ~-15dB under VO (ratio 10, release 300ms). Music sits prouder.
+    //  - Vocal music (has_vocals=true): bed sits lower at 0.22 (~-13dB) and is
+    //    ducked much harder (ratio 20, lower threshold, release 450ms) so the
+    //    track's own vocals don't fight the VO; the longer release keeps it
+    //    suppressed between words (sidechain "pause" effect) → ~-20 to -22dB.
+    const vocal = input.musicHasVocals === true;
+    const bedVol = vocal ? '0.22' : '0.40';
+    const scThresh = vocal ? '0.015' : '0.03';
+    const scRatio = vocal ? '20' : '10';
+    const scRelease = vocal ? '450' : '300';
+    const scAttack = vocal ? '5' : '20';
     fc.push(
-      `[${musicIdx}:a]aformat=sample_rates=44100:channel_layouts=stereo,volume=0.40[musbed];` +
+      `[${musicIdx}:a]aformat=sample_rates=44100:channel_layouts=stereo,volume=${bedVol}[musbed];` +
       `[${voiceIdx}:a]aformat=sample_rates=44100:channel_layouts=stereo,volume=1.0,asplit=2[vo][vokey];` +
-      `[musbed][vokey]sidechaincompress=threshold=0.03:ratio=10:attack=20:release=300:makeup=1[mduck];` +
+      `[musbed][vokey]sidechaincompress=threshold=${scThresh}:ratio=${scRatio}:attack=${scAttack}:release=${scRelease}:makeup=1[mduck];` +
       `[mduck]afade=t=in:st=0:d=0.3,afade=t=out:st=${(T - 0.8).toFixed(2)}:d=0.8[musf];` +
       `[vo][musf]amix=inputs=2:duration=longest:dropout_transition=0:normalize=0[${mainLabel}]`,
     );

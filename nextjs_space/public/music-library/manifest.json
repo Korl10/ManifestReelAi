@@ -1,5 +1,5 @@
 {
-  "version": "1.0",
+  "version": "1.1",
   "track_count": 45,
   "tracks": [
     {
@@ -22,8 +22,11 @@
         "shorts"
       ],
       "has_vocals": false,
-      "bpm": null,
-      "is_stinger": false
+      "bpm": 95,
+      "is_stinger": false,
+      "bpm_raw": 95,
+      "size_kb": 1282,
+      "license_status": "royalty_free"
     },
     {
       "id": "abundant_02_dark",
@@ -45,8 +48,11 @@
         "shorts"
       ],
       "has_vocals": false,
-      "bpm": null,
-      "is_stinger": false
+      "bpm": 141,
+      "is_stinger": false,
+      "bpm_raw": 141,
+      "size_kb": 1204,
+      "license_status": "royalty_free"
     },
     {
       "id": "abundant_03_diamond_hours",
@@ -68,8 +74,11 @@
         "shorts"
       ],
       "has_vocals": false,
-      "bpm": null,
-      "is_stinger": false
+      "bpm": 91,
+      "is_stinger": false,
+      "bpm_raw": 91,
+      "size_kb": 1162,
+      "license_status": "royalty_free"
     },
     {
       "id": "abundant_04_empire_mindset",
@@ -91,8 +100,11 @@
         "shorts"
       ],
       "has_vocals": false,
-      "bpm": null,
-      "is_stinger": false
+      "bpm": 97,
+      "is_stinger": false,
+      "bpm_raw": 194,
+      "size_kb": 1197,
+      "license_status": "royalty_free"
     },
     {
       "id": "abundant_05_gold_standard",
@@ -114,8 +126,11 @@
         "shorts"
       ],
       "has_vocals": false,
-      "bpm": null,
-      "is_stinger": false
+      "bpm": 141,
+      "is_stinger": false,
+      "bpm_raw": 141,
+      "size_kb": 1194,
+      "license_status": "royalty_free"
     },
     {
       "id": "abundant_06_manifest",
@@ -137,8 +152,11 @@
         "shorts"
       ],
       "has_vocals": false,
-      "bpm": null,
-      "is_stinger": false
+      "bpm": 72,
+      "is_stinger": false,
+      "bpm_raw": 72,
+      "size_kb": 1210,
+      "license_status": "royalty_free"
     },
     {
       "id": "calm_01_breathe_healing_43",
@@ -160,8 +178,11 @@
         "tiktok"
       ],
       "has_vocals": false,
-      "bpm": null,
-      "is_stinger": false
+      "bpm": 137,
+      "is_stinger": false,
+      "bpm_raw": 137,
+      "size_kb": 1348,
+      "license_status": "royalty_free"
     },
     {
       "id": "calm_02_depths",
@@ -183,8 +204,11 @@
         "tiktok"
       ],
       "has_vocals": false,
-      "bpm": null,
-      "is_stinger": false
+      "bpm": 94,
+      "is_stinger": false,
+      "bpm_raw": 94,
+      "size_kb": 1233,
+      "license_status": "royalty_free"
     },
     {
       "id": "calm_03_soft_focus",
@@ -206,8 +230,11 @@
         "tiktok"
       ],
       "has_vocals": false,
-      "bpm": null,
-      "is_stinger": false
+      "bpm": 148,
+      "is_stinger": false,
+      "bpm_raw": 148,
+      "size_kb": 1260,
+      "license_status": "royalty_free"
     },
     {
       "id": "calm_04_stillwater",
@@ -229,8 +256,11 @@
         "tiktok"
       ],
       "has_vocals": false,
-      "bpm": null,
-      "is_stinger": false
+      "bpm": 122,
+      "is_stinger": false,
+      "bpm_raw": 122,
+      "size_kb": 1228,
+      "license_status": "royalty_free"
     },
     {
       "id": "calm_05_twilight_mind",
@@ -252,8 +282,11 @@
         "tiktok"
       ],
       "has_vocals": false,
-      "bpm": null,
-      "is_stinger": false
+      "bpm": 65,
+      "is_stinger": false,
+      "bpm_raw": 65,
+      "size_kb": 1254,
+      "license_status": "royalty_free"
     },
     {
       "id": "empowered_01_apex",
@@ -274,8 +307,11 @@
         "shorts"
       ],
       "has_vocals": false,
-      "bpm": null,
-      "is_stinger": false
+      "bpm": 94,
+      "is_stinger": false,
+      "bpm_raw": 188,
+      "size_kb": 1277,
+      "license_status": "royalty_free"
     },
     {
       "id": "empowered_02_build_it",
@@ -296,8 +332,11 @@
         "shorts"
       ],
       "has_vocals": false,
-      "bpm": null,
-      "is_stinger": false
+      "bpm": 134,
+      "is_stinger": false,
+      "bpm_raw": 134,
+      "size_kb": 1252,
+      "license_status": "royalty_free"
     },
     {
       "id": "empowered_03_discipline",
@@ -318,8 +357,11 @@
         "shorts"
       ],
       "has_vocals": false,
-      "bpm": null,
-      "is_stinger": false
+      "bpm": 95,
+      "is_stinger": false,
+      "bpm_raw": 95,
+      "size_kb": 1194,
+      "license_status": "royalty_free"
     },
     {
       "id": "empowered_04_in_the_zon",
@@ -340,8 +382,11 @@
         "shorts"
       ],
       "has_vocals": false,
-      "bpm": null,
-      "is_stinger": false
+      "bpm": 117,
+      "is_stinger": false,
+      "bpm_raw": 117,
+      "size_kb": 1225,
+      "license_status": "royalty_free"
     },
     {
       "id": "empowered_05_locked_in",
@@ -362,8 +407,11 @@
         "shorts"
       ],
       "has_vocals": false,
-      "bpm": null,
-      "is_stinger": false
+      "bpm": 115,
+      "is_stinger": false,
+      "bpm_raw": 115,
+      "size_kb": 1262,
+      "license_status": "royalty_free"
     },
     {
       "id": "empowered_06_rise_now",
@@ -384,8 +432,11 @@
         "shorts"
       ],
       "has_vocals": false,
-      "bpm": null,
-      "is_stinger": false
+      "bpm": 144,
+      "is_stinger": false,
+      "bpm_raw": 144,
+      "size_kb": 1305,
+      "license_status": "royalty_free"
     },
     {
       "id": "empowered_07_the_climb",
@@ -406,8 +457,11 @@
         "shorts"
       ],
       "has_vocals": false,
-      "bpm": null,
-      "is_stinger": false
+      "bpm": 137,
+      "is_stinger": false,
+      "bpm_raw": 137,
+      "size_kb": 1253,
+      "license_status": "royalty_free"
     },
     {
       "id": "grateful_01_chimes",
@@ -428,8 +482,11 @@
         "tiktok"
       ],
       "has_vocals": false,
-      "bpm": null,
-      "is_stinger": false
+      "bpm": 141,
+      "is_stinger": false,
+      "bpm_raw": 141,
+      "size_kb": 3326,
+      "license_status": "royalty_free"
     },
     {
       "id": "grateful_02_inner_light_io",
@@ -450,8 +507,11 @@
         "tiktok"
       ],
       "has_vocals": false,
-      "bpm": null,
-      "is_stinger": false
+      "bpm": 94,
+      "is_stinger": false,
+      "bpm_raw": 94,
+      "size_kb": 1196,
+      "license_status": "royalty_free"
     },
     {
       "id": "grateful_03_quite_devotion",
@@ -472,8 +532,11 @@
         "tiktok"
       ],
       "has_vocals": false,
-      "bpm": null,
-      "is_stinger": false
+      "bpm": 97,
+      "is_stinger": false,
+      "bpm_raw": 97,
+      "size_kb": 1210,
+      "license_status": "royalty_free"
     },
     {
       "id": "grateful_04_sacred_sunrise",
@@ -494,8 +557,11 @@
         "tiktok"
       ],
       "has_vocals": false,
-      "bpm": null,
-      "is_stinger": false
+      "bpm": 90,
+      "is_stinger": false,
+      "bpm_raw": 181,
+      "size_kb": 4369,
+      "license_status": "royalty_free"
     },
     {
       "id": "grateful_05_sanctuary",
@@ -516,8 +582,11 @@
         "tiktok"
       ],
       "has_vocals": false,
-      "bpm": null,
-      "is_stinger": false
+      "bpm": 78,
+      "is_stinger": false,
+      "bpm_raw": 39,
+      "size_kb": 1198,
+      "license_status": "royalty_free"
     },
     {
       "id": "hype_01_drop_zone",
@@ -538,8 +607,11 @@
         "shorts"
       ],
       "has_vocals": false,
-      "bpm": null,
-      "is_stinger": false
+      "bpm": 128,
+      "is_stinger": false,
+      "bpm_raw": 128,
+      "size_kb": 1293,
+      "license_status": "royalty_free"
     },
     {
       "id": "hype_02_glow_up_tiktok_energy",
@@ -560,8 +632,11 @@
         "shorts"
       ],
       "has_vocals": false,
-      "bpm": null,
-      "is_stinger": false
+      "bpm": 131,
+      "is_stinger": false,
+      "bpm_raw": 131,
+      "size_kb": 1264,
+      "license_status": "royalty_free"
     },
     {
       "id": "hype_03_run_it_tiktok_energy",
@@ -582,8 +657,11 @@
         "shorts"
       ],
       "has_vocals": false,
-      "bpm": null,
-      "is_stinger": false
+      "bpm": 97,
+      "is_stinger": false,
+      "bpm_raw": 97,
+      "size_kb": 1140,
+      "license_status": "royalty_free"
     },
     {
       "id": "hype_04_viral_pulse",
@@ -604,8 +682,11 @@
         "shorts"
       ],
       "has_vocals": false,
-      "bpm": null,
-      "is_stinger": false
+      "bpm": 141,
+      "is_stinger": false,
+      "bpm_raw": 141,
+      "size_kb": 1249,
+      "license_status": "royalty_free"
     },
     {
       "id": "hype_05_execute_it",
@@ -626,8 +707,11 @@
         "shorts"
       ],
       "has_vocals": false,
-      "bpm": null,
-      "is_stinger": false
+      "bpm": 97,
+      "is_stinger": false,
+      "bpm_raw": 97,
+      "size_kb": 1234,
+      "license_status": "royalty_free"
     },
     {
       "id": "inspired_01_echoes_of_you_cinematic_universal",
@@ -648,8 +732,11 @@
         "tiktok"
       ],
       "has_vocals": false,
-      "bpm": null,
-      "is_stinger": false
+      "bpm": 91,
+      "is_stinger": false,
+      "bpm_raw": 91,
+      "size_kb": 1253,
+      "license_status": "royalty_free"
     },
     {
       "id": "inspired_02_horizon_cinematic_universal",
@@ -670,8 +757,11 @@
         "tiktok"
       ],
       "has_vocals": false,
-      "bpm": null,
-      "is_stinger": false
+      "bpm": 134,
+      "is_stinger": false,
+      "bpm_raw": 134,
+      "size_kb": 1244,
+      "license_status": "royalty_free"
     },
     {
       "id": "inspired_03_the_promise_cinematic_universal",
@@ -692,8 +782,11 @@
         "tiktok"
       ],
       "has_vocals": false,
-      "bpm": null,
-      "is_stinger": false
+      "bpm": 69,
+      "is_stinger": false,
+      "bpm_raw": 69,
+      "size_kb": 1357,
+      "license_status": "royalty_free"
     },
     {
       "id": "inspired_04_unfolding",
@@ -714,8 +807,11 @@
         "tiktok"
       ],
       "has_vocals": false,
-      "bpm": null,
-      "is_stinger": false
+      "bpm": 74,
+      "is_stinger": false,
+      "bpm_raw": 74,
+      "size_kb": 1265,
+      "license_status": "royalty_free"
     },
     {
       "id": "inspired_05_becoming_cinematic_universal",
@@ -736,8 +832,11 @@
         "tiktok"
       ],
       "has_vocals": false,
-      "bpm": null,
-      "is_stinger": false
+      "bpm": 77,
+      "is_stinger": false,
+      "bpm_raw": 77,
+      "size_kb": 1291,
+      "license_status": "royalty_free"
     },
     {
       "id": "joyful_01_blossom_blooms",
@@ -759,8 +858,11 @@
         "tiktok"
       ],
       "has_vocals": false,
-      "bpm": null,
-      "is_stinger": false
+      "bpm": 141,
+      "is_stinger": false,
+      "bpm_raw": 141,
+      "size_kb": 1237,
+      "license_status": "royalty_free"
     },
     {
       "id": "joyful_02_bright_morning",
@@ -782,8 +884,11 @@
         "tiktok"
       ],
       "has_vocals": false,
-      "bpm": null,
-      "is_stinger": false
+      "bpm": 104,
+      "is_stinger": false,
+      "bpm_raw": 104,
+      "size_kb": 1247,
+      "license_status": "royalty_free"
     },
     {
       "id": "joyful_03_bloom",
@@ -805,8 +910,11 @@
         "tiktok"
       ],
       "has_vocals": false,
-      "bpm": null,
-      "is_stinger": false
+      "bpm": 85,
+      "is_stinger": false,
+      "bpm_raw": 170,
+      "size_kb": 1222,
+      "license_status": "royalty_free"
     },
     {
       "id": "joyful_04_hope",
@@ -828,8 +936,11 @@
         "tiktok"
       ],
       "has_vocals": false,
-      "bpm": null,
-      "is_stinger": false
+      "bpm": 99,
+      "is_stinger": false,
+      "bpm_raw": 99,
+      "size_kb": 1243,
+      "license_status": "royalty_free"
     },
     {
       "id": "joyful_05_joy",
@@ -851,8 +962,11 @@
         "tiktok"
       ],
       "has_vocals": false,
-      "bpm": null,
-      "is_stinger": false
+      "bpm": 95,
+      "is_stinger": false,
+      "bpm_raw": 95,
+      "size_kb": 1210,
+      "license_status": "royalty_free"
     },
     {
       "id": "joyful_06_lightness",
@@ -874,8 +988,11 @@
         "tiktok"
       ],
       "has_vocals": false,
-      "bpm": null,
-      "is_stinger": false
+      "bpm": 120,
+      "is_stinger": false,
+      "bpm_raw": 120,
+      "size_kb": 1218,
+      "license_status": "royalty_free"
     },
     {
       "id": "joyful_07_open_skies",
@@ -897,8 +1014,11 @@
         "tiktok"
       ],
       "has_vocals": false,
-      "bpm": null,
-      "is_stinger": false
+      "bpm": 95,
+      "is_stinger": false,
+      "bpm_raw": 95,
+      "size_kb": 1264,
+      "license_status": "royalty_free"
     },
     {
       "id": "stingers_01_cta_punch_3_5_sec",
@@ -919,8 +1039,11 @@
         "shorts"
       ],
       "has_vocals": false,
-      "bpm": null,
-      "is_stinger": true
+      "bpm": 100,
+      "is_stinger": true,
+      "bpm_raw": 201,
+      "size_kb": 154,
+      "license_status": "royalty_free"
     },
     {
       "id": "stingers_02_open_3_5_sec",
@@ -941,8 +1064,11 @@
         "shorts"
       ],
       "has_vocals": false,
-      "bpm": null,
-      "is_stinger": true
+      "bpm": 84,
+      "is_stinger": true,
+      "bpm_raw": 84,
+      "size_kb": 221,
+      "license_status": "royalty_free"
     },
     {
       "id": "stingers_03_reels_open",
@@ -963,8 +1089,11 @@
         "shorts"
       ],
       "has_vocals": false,
-      "bpm": null,
-      "is_stinger": true
+      "bpm": 82,
+      "is_stinger": true,
+      "bpm_raw": 165,
+      "size_kb": 131,
+      "license_status": "royalty_free"
     },
     {
       "id": "stingers_04_soft_close_3_5_sec",
@@ -985,8 +1114,11 @@
         "shorts"
       ],
       "has_vocals": false,
-      "bpm": null,
-      "is_stinger": true
+      "bpm": 120,
+      "is_stinger": true,
+      "bpm_raw": 60,
+      "size_kb": 394,
+      "license_status": "royalty_free"
     },
     {
       "id": "stingers_05_tiktok_reels_open",
@@ -1007,8 +1139,15 @@
         "shorts"
       ],
       "has_vocals": false,
-      "bpm": null,
-      "is_stinger": true
+      "bpm": 89,
+      "is_stinger": true,
+      "bpm_raw": 89,
+      "size_kb": 126,
+      "license_status": "royalty_free"
     }
-  ]
+  ],
+  "enriched": {
+    "bpm": "librosa beat_track + octave-normalized to 65-150",
+    "license": "owner-owned Suno exports = royalty_free"
+  }
 }

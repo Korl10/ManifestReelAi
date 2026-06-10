@@ -42,6 +42,14 @@ export interface MusicTrack {
   has_vocals: boolean;
   is_stinger: boolean;
   bpm: number | null;
+  /** Approximate file size in kilobytes (display / bandwidth hints). */
+  size_kb?: number | null;
+  /** Licensing posture. Determines whether public attribution is required.
+   *  - royalty_free: free to use, no credit needed (owner-owned library)
+   *  - attribution_required: must credit the artist on the reel landing page
+   *  - paid_license: covered by a paid license, no public credit needed
+   *  - unknown: needs admin review before shipping */
+  license_status: 'royalty_free' | 'attribution_required' | 'paid_license' | 'unknown';
   /** Provenance of the track. The shipped library is the curated v1 batch.
    *  A future “default” fallback batch would be tagged 'default' so it can be
    *  ranked below curated picks and phased out later. */
@@ -153,6 +161,10 @@ function normalizeTrack(t: any): MusicTrack {
     has_vocals: t.has_vocals === true,
     is_stinger: t.is_stinger === true,
     bpm: t.bpm != null ? Number(t.bpm) : null,
+    size_kb: t.size_kb != null ? Number(t.size_kb) : null,
+    license_status: ['royalty_free', 'attribution_required', 'paid_license', 'unknown'].includes(t.license_status)
+      ? t.license_status
+      : 'royalty_free',
     source: (t.source === 'default' ? 'default' : 'curated_v1'),
   };
 }
@@ -268,6 +280,10 @@ function dbTrackToMusicTrack(row: any): MusicTrack {
     has_vocals: row.hasVocals === true,
     is_stinger: false,
     bpm: row.bpm ?? null,
+    size_kb: row.sizeKb ?? null,
+    license_status: ['royalty_free', 'attribution_required', 'paid_license', 'unknown'].includes(row.licenseStatus)
+      ? row.licenseStatus
+      : 'unknown',
     source: 'curated_v1', // scored the same as v1 curated
   };
 }

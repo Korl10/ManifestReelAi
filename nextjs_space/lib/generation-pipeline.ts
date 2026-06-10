@@ -511,6 +511,7 @@ export async function runGenerationPipeline(
     let musicPublicUrl: string | null = null;
     let musicTrackId: string | null = pipelineOpts?.musicTrackId ?? null;
     let musicSource: string | null = null; // 'curated_v1' | 'default' | 'custom' | 'legacy'
+    let musicHasVocals = false; // drives aggressive vs standard ducking in the compositor
     costBreakdown['music_cost'] = 0; // curated library + custom uploads are $0/reel
 
     // 1) Explicit custom-music upload (db id that isn't in the static library).
@@ -546,7 +547,8 @@ export async function runGenerationPipeline(
             musicPublicUrl = await ensurePublicLocalAsset(matched.file, 'audio/mpeg');
           }
           musicUrlLocal = matched.file;
-          console.log(`[pipeline] music: matched "${matched.title}" (${matched.id}) source=${musicSource} mood=${reel.mood} bpm=${matched.bpm} energy=${matched.energy}`);
+          musicHasVocals = (matched as any).has_vocals === true;
+          console.log(`[pipeline] music: matched "${matched.title}" (${matched.id}) source=${musicSource} mood=${reel.mood} bpm=${matched.bpm} energy=${matched.energy} hasVocals=${musicHasVocals}`);
         } catch (e) {
           console.error('[pipeline] matched track upload failed, using legacy provider:', (e as any)?.message);
           musicPublicUrl = null;
@@ -604,6 +606,7 @@ export async function runGenerationPipeline(
         words,
         voiceUrl,
         musicUrl: musicPublicUrl,
+        musicHasVocals,
         stingerUrl: stingerPublicUrl,
         watermark,
         sceneClipUrls,

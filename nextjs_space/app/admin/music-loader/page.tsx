@@ -44,9 +44,17 @@ interface ExistingTrack {
   mood: string[];
   style: string[];
   energy: string;
+  licenseStatus?: string;
   isActive: boolean;
   createdAt: string;
 }
+
+const LICENSE_BADGE: Record<string, { label: string; cls: string }> = {
+  royalty_free:         { label: 'royalty-free', cls: 'bg-emerald-500/10 text-emerald-400' },
+  attribution_required: { label: 'attribution',  cls: 'bg-amber-500/15 text-amber-400' },
+  paid_license:         { label: 'paid license', cls: 'bg-sky-500/10 text-sky-400' },
+  unknown:              { label: 'review',        cls: 'bg-red-500/15 text-red-400' },
+};
 
 export default function MusicLoaderPage() {
   const [files, setFiles] = useState<FileEntry[]>([]);
@@ -413,6 +421,9 @@ export default function MusicLoaderPage() {
                   <span className={`${t.durationSec === 60 ? 'text-emerald-400/70' : 'text-amber-400'}`}>{t.durationSec}s</span>
                   {t.bpm && <span className="text-white/30">{t.bpm}bpm</span>}
                   <span className="text-white/20">{t.energy}</span>
+                  {(() => { const b = LICENSE_BADGE[t.licenseStatus || 'royalty_free'] || LICENSE_BADGE.unknown; return (
+                    <span className={`px-1.5 py-0.5 rounded text-[9px] font-medium ${b.cls}`} title={`License: ${t.licenseStatus || 'royalty_free'}`}>{b.label}</span>
+                  ); })()}
                   <span className={`px-1 py-0.5 rounded text-[9px] ${t.isActive ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
                     {t.isActive ? 'active' : 'disabled'}
                   </span>
