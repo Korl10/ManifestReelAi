@@ -1,6 +1,8 @@
-// ── Email verification helpers ──────────────────────────────────────
+// ── Email verification helpers ─────────────────────────────────────────
+// Uses SMTP mailer (Namecheap Private Email) with Abacus API fallback.
 import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
+import { sendMail } from '@/lib/smtp-mailer';
 
 const TOKEN_TTL_HOURS = 48;
 
@@ -26,9 +28,6 @@ export function buildVerifyUrl(token: string): string {
  * API fails, so signup never hard-fails on a transient email error.
  */
 export async function sendVerificationEmail(email: string, name: string | null, token: string): Promise<boolean> {
-  const appUrl = process.env.NEXTAUTH_URL || '';
-  let hostname = 'manifestreelai.com';
-  try { hostname = new URL(appUrl).hostname; } catch {}
   const verifyUrl = buildVerifyUrl(token);
   const displayName = name || email.split('@')[0];
 
@@ -53,30 +52,11 @@ export async function sendVerificationEmail(email: string, name: string | null, 
       <p style="font-size: 11px; color:#9a9a9a; text-align:center;">If you didn't create a ManifestReel AI account, you can safely ignore this email.</p>
     </div>`;
 
-  try {
-    const res = await fetch('https://apps.abacus.ai/api/sendNotificationEmail', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        deployment_token: process.env.ABACUSAI_API_KEY,
-        app_id: process.env.WEB_APP_ID,
-        notification_id: process.env.NOTIF_ID_EMAIL_VERIFICATION,
-        subject: 'Verify your email to start creating reels',
-        body: htmlBody,
-        is_html: true,
-        recipient_email: email,
-        sender_email: `noreply@${hostname}`,
-        sender_alias: 'ManifestReel AI',
-      }),
-    });
-    const result = await res.json().catch(() => ({}));
-    if (!result?.success && !result?.notification_disabled) {
-      console.warn('[email-verify] send failed:', result?.message);
-      return false;
-    }
-    return true;
-  } catch (e) {
-    console.warn('[email-verify] send error:', (e as any)?.message);
-    return false;
-  }
+  return sendMail({
+    emailType: 'email_verification',
+    to: email,
+    subject: 'Verify your email to start creating reels',
+    html: htmlBody,
+    notificationId: process.env.NOTIF_ID_EMAIL_VERIFICATION || '',
+  });
 }

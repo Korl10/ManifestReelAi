@@ -1,6 +1,9 @@
-// ── Trial lifecycle emails ──────────────────────────────────────────
+// ── Trial lifecycle emails ───────────────────────────────────────────────
+// Uses SMTP mailer (Namecheap Private Email) with Abacus API fallback.
 // Best-effort sends: log and resolve even when the mail API errors so webhook
 // processing never fails because of a transient email issue.
+
+import { sendMail } from '@/lib/smtp-mailer';
 
 /**
  * Notify a user that their free trial is ending soon and a charge is imminent.
@@ -8,8 +11,6 @@
  */
 export async function sendTrialEndingEmail(email: string, name: string | null, tier: string): Promise<boolean> {
   const appUrl = process.env.NEXTAUTH_URL || '';
-  let hostname = 'manifestreelai.com';
-  try { hostname = new URL(appUrl).hostname; } catch {}
   const displayName = name || email.split('@')[0];
   const billingUrl = `${appUrl.replace(/\/$/, '')}/dashboard/settings`;
   const planName = tier.charAt(0).toUpperCase() + tier.slice(1);
@@ -36,30 +37,11 @@ export async function sendTrialEndingEmail(email: string, name: string | null, t
       <p style="font-size: 11px; color:#9a9a9a; text-align:center;">You're receiving this because you started a free trial on ManifestReel AI.</p>
     </div>`;
 
-  try {
-    const res = await fetch('https://apps.abacus.ai/api/sendNotificationEmail', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        deployment_token: process.env.ABACUSAI_API_KEY,
-        app_id: process.env.WEB_APP_ID,
-        notification_id: process.env.NOTIF_ID_TRIAL_ENDING_SOON,
-        subject: 'Your ManifestReel AI free trial ends in 24 hours',
-        body: htmlBody,
-        is_html: true,
-        recipient_email: email,
-        sender_email: `noreply@${hostname}`,
-        sender_alias: 'ManifestReel AI',
-      }),
-    });
-    const result = await res.json().catch(() => ({}));
-    if (!result?.success && !result?.notification_disabled) {
-      console.warn('[email-trial] send failed:', result?.message);
-      return false;
-    }
-    return true;
-  } catch (e) {
-    console.warn('[email-trial] send error:', (e as any)?.message);
-    return false;
-  }
+  return sendMail({
+    emailType: 'trial_reminder',
+    to: email,
+    subject: 'Your ManifestReel AI free trial ends in 24 hours',
+    html: htmlBody,
+    notificationId: process.env.NOTIF_ID_TRIAL_ENDING_SOON || '',
+  });
 }

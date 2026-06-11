@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server';
 import { createOtp, getLatestOtp } from '@/lib/otp';
 import { isDisposableDomain } from '@/lib/disposable-domains';
 import { prisma } from '@/lib/prisma';
+import { sendMail } from '@/lib/smtp-mailer';
 
 /**
  * POST /api/trial/send-otp
@@ -59,9 +60,6 @@ export async function POST(request: Request) {
 
     // Send the email
     const appUrl = (process.env.NEXTAUTH_URL || '').replace(/\/$/, '');
-    let hostname = 'manifestreelai.com';
-    try { hostname = new URL(appUrl).hostname; } catch {}
-
     const magicUrl = `${appUrl}/api/trial/verify-magic?token=${encodeURIComponent(otpRecord.magicToken || '')}`;
     const displayCode = otpRecord.code;
 
@@ -95,20 +93,12 @@ export async function POST(request: Request) {
       </div>`;
 
     try {
-      await fetch('https://apps.abacus.ai/api/sendNotificationEmail', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          deployment_token: process.env.ABACUSAI_API_KEY,
-          app_id: process.env.WEB_APP_ID,
-          notification_id: process.env.NOTIF_ID_EMAIL_OTP_VERIFICATION,
-          subject: `${displayCode} — Your ManifestReel AI verification code`,
-          body: htmlBody,
-          is_html: true,
-          recipient_email: normalizedEmail,
-          sender_email: `noreply@${hostname}`,
-          sender_alias: 'ManifestReel AI',
-        }),
+      await sendMail({
+        emailType: 'email_otp',
+        to: normalizedEmail,
+        subject: `${displayCode} — Your ManifestReel AI verification code`,
+        html: htmlBody,
+        notificationId: process.env.NOTIF_ID_EMAIL_OTP_VERIFICATION || '',
       });
     } catch (emailErr) {
       console.warn('[send-otp] Email send failed (non-fatal):', (emailErr as any)?.message);

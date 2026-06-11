@@ -1,52 +1,14 @@
 /**
  * Subscription lifecycle emails
  * ============================================================
+ * Uses SMTP mailer (Namecheap Private Email) with Abacus API fallback.
  * Best-effort sends: log and resolve even when the mail API errors.
  */
 
-function getHostname(): string {
-  const appUrl = process.env.NEXTAUTH_URL || '';
-  try { return new URL(appUrl).hostname; } catch { return 'manifestreelai.com'; }
-}
+import { sendMail, getAdminEmail } from '@/lib/smtp-mailer';
 
 function getAppUrl(): string {
   return (process.env.NEXTAUTH_URL || '').replace(/\/$/, '');
-}
-
-async function sendEmail(params: {
-  notificationId: string;
-  recipientEmail: string;
-  subject: string;
-  htmlBody: string;
-  senderAlias?: string;
-}): Promise<boolean> {
-  const hostname = getHostname();
-  try {
-    const res = await fetch('https://apps.abacus.ai/api/sendNotificationEmail', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        deployment_token: process.env.ABACUSAI_API_KEY,
-        app_id: process.env.WEB_APP_ID,
-        notification_id: params.notificationId,
-        subject: params.subject,
-        body: params.htmlBody,
-        is_html: true,
-        recipient_email: params.recipientEmail,
-        sender_email: `noreply@${hostname}`,
-        sender_alias: params.senderAlias || 'ManifestReel AI',
-      }),
-    });
-    const result = await res.json().catch(() => ({}));
-    if (!(result as any)?.success && !(result as any)?.notification_disabled) {
-      console.warn('[email-sub] send failed:', (result as any)?.message);
-      return false;
-    }
-    return true;
-  } catch (e) {
-    console.warn('[email-sub] send error:', (e as any)?.message);
-    return false;
-  }
 }
 
 function wrap(innerHtml: string): string {
@@ -66,11 +28,11 @@ function wrap(innerHtml: string): string {
 export async function sendWelcomeEmail(email: string, name: string | null, planName: string, credits: number): Promise<boolean> {
   const displayName = name || email.split('@')[0];
   const dashUrl = `${getAppUrl()}/dashboard`;
-  return sendEmail({
-    notificationId: process.env.NOTIF_ID_SUBSCRIPTION_WELCOME || '',
-    recipientEmail: email,
+  return sendMail({
+    emailType: 'welcome',
+    to: email,
     subject: `Welcome to ${planName}, ${displayName}! 🌟`,
-    htmlBody: wrap(`
+    html: wrap(`
       <h2 style="margin: 0 0 12px; font-size: 18px;">You're officially a ${planName} member! 🎉</h2>
       <p style="font-size: 14px; line-height: 1.6; margin: 0 0 16px;">
         Your ${credits.toLocaleString()} monthly credits are loaded and ready to go.
@@ -80,6 +42,7 @@ export async function sendWelcomeEmail(email: string, name: string | null, planN
         <a href="${dashUrl}" style="display:inline-block; background:#7B2FBE; color:#ffffff; text-decoration:none; padding: 12px 28px; border-radius: 999px; font-weight:600; font-size:14px;">Start creating</a>
       </div>
     `),
+    notificationId: process.env.NOTIF_ID_SUBSCRIPTION_WELCOME || '',
   });
 }
 
@@ -87,11 +50,11 @@ export async function sendWelcomeEmail(email: string, name: string | null, planN
 export async function sendPaymentFailedEmail(email: string, name: string | null): Promise<boolean> {
   const displayName = name || email.split('@')[0];
   const settingsUrl = `${getAppUrl()}/dashboard/settings`;
-  return sendEmail({
-    notificationId: process.env.NOTIF_ID_PAYMENT_FAILED || '',
-    recipientEmail: email,
+  return sendMail({
+    emailType: 'payment_failed',
+    to: email,
     subject: 'Action needed: payment failed for your ManifestReel AI subscription',
-    htmlBody: wrap(`
+    html: wrap(`
       <h2 style="margin: 0 0 12px; font-size: 18px;">Payment issue, ${displayName} ⚠️</h2>
       <p style="font-size: 14px; line-height: 1.6; margin: 0 0 16px;">
         We couldn't process your subscription payment. Your account has a 3-day grace period —
@@ -101,6 +64,7 @@ export async function sendPaymentFailedEmail(email: string, name: string | null)
         <a href="${settingsUrl}" style="display:inline-block; background:#D4AF37; color:#1a1a1a; text-decoration:none; padding: 12px 28px; border-radius: 999px; font-weight:600; font-size:14px;">Update payment method</a>
       </div>
     `),
+    notificationId: process.env.NOTIF_ID_PAYMENT_FAILED || '',
   });
 }
 
@@ -108,11 +72,11 @@ export async function sendPaymentFailedEmail(email: string, name: string | null)
 export async function sendCancellationEmail(email: string, name: string | null, planName: string): Promise<boolean> {
   const displayName = name || email.split('@')[0];
   const appUrl = getAppUrl();
-  return sendEmail({
-    notificationId: process.env.NOTIF_ID_SUBSCRIPTION_CANCELLED || '',
-    recipientEmail: email,
+  return sendMail({
+    emailType: 'cancellation',
+    to: email,
     subject: `We're sorry to see you go, ${displayName}`,
-    htmlBody: wrap(`
+    html: wrap(`
       <h2 style="margin: 0 0 12px; font-size: 18px;">Your ${planName} plan has been cancelled</h2>
       <p style="font-size: 14px; line-height: 1.6; margin: 0 0 16px;">
         We're sad to see you go, ${displayName}. Your existing reels will remain accessible,
@@ -125,16 +89,17 @@ export async function sendCancellationEmail(email: string, name: string | null, 
         <a href="${appUrl}" style="display:inline-block; background:#7B2FBE; color:#ffffff; text-decoration:none; padding: 12px 28px; border-radius: 999px; font-weight:600; font-size:14px;">Come back anytime</a>
       </div>
     `),
+    notificationId: process.env.NOTIF_ID_SUBSCRIPTION_CANCELLED || '',
   });
 }
 
 /** Dispute alert to admin. */
 export async function sendDisputeAlertEmail(userEmail: string, amount: number, disputeId: string): Promise<boolean> {
-  return sendEmail({
-    notificationId: process.env.NOTIF_ID_DISPUTE_ALERT || '',
-    recipientEmail: 'granatk@seznam.cz',
+  return sendMail({
+    emailType: 'dispute_alert',
+    to: getAdminEmail(),
     subject: `⚠️ Dispute opened: $${(amount / 100).toFixed(2)} from ${userEmail}`,
-    htmlBody: wrap(`
+    html: wrap(`
       <h2 style="margin: 0 0 12px; font-size: 18px;">Charge Dispute Opened ⚠️</h2>
       <p style="font-size: 14px; line-height: 1.6; margin: 0 0 8px;"><strong>User:</strong> ${userEmail}</p>
       <p style="font-size: 14px; line-height: 1.6; margin: 0 0 8px;"><strong>Amount:</strong> $${(amount / 100).toFixed(2)}</p>
@@ -144,5 +109,6 @@ export async function sendDisputeAlertEmail(userEmail: string, amount: number, d
         Review in the <a href="${getAppUrl()}/admin/abuse" style="color:#7B2FBE;">Abuse Dashboard</a>.
       </p>
     `),
+    notificationId: process.env.NOTIF_ID_DISPUTE_ALERT || '',
   });
 }
