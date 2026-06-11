@@ -432,6 +432,36 @@ model EmailOtp {
   @@map("email_otps")
 }
 
+// ── Stripe webhook event log (idempotency + audit) ────────────────
+model WebhookEvent {
+  id              String    @id @default(cuid())
+  stripeEventId   String    @unique @map("stripe_event_id")
+  eventType       String    @map("event_type")
+  payload         Json?
+  processedAt     DateTime? @map("processed_at")
+  processingError String?   @map("processing_error")
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  @@index([eventType])
+  @@map("webhook_events")
+}
+
+// ── Credit ledger (tracks all credit grants/debits for audit) ─────
+model CreditLedger {
+  id             String   @id @default(cuid())
+  userId         String   @map("user_id")
+  amount         Int      // positive=grant, negative=debit
+  type           String   // PLAN_GRANT | TOPUP | PRORATION_GRANT | REEL_DEBIT | MIGRATION | REFUND
+  description    String?
+  subscriptionId String?  @map("subscription_id") // Stripe sub ID if applicable
+  stripeEventId  String?  @map("stripe_event_id") // for deduplication
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@index([userId, createdAt])
+  @@index([stripeEventId])
+  @@map("credit_ledger")
+}
+
 // ── Rate limiting (durable, DB-backed across serverless instances) ──
 // One row per (bucket, identifier). A fixed window starting at windowStart;
 // when the window lapses the counter resets on the next hit.

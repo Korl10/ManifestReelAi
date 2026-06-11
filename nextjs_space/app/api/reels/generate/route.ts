@@ -7,6 +7,9 @@ import { checkGeneration, consumeCoins } from '@/lib/quota';
 import { runGenerationPipeline } from '@/lib/generation-pipeline';
 import type { PipelineOptions } from '@/lib/generation-pipeline';
 import { consumeRateLimit } from '@/lib/rate-limit';
+import { PRICING_V2_ENABLED } from '@/lib/pricing-v2';
+import { enforceTrialConstraints, TRIAL_REEL_CONFIG } from '@/lib/trial-constraints';
+import { markTrialConsumed } from '@/lib/trial-gates';
 
 
 /** Best-effort client IP from proxy headers (used for free-tier anti-abuse). */
@@ -74,6 +77,28 @@ export async function POST(request: Request) {
       }
     }
 
+    // ═══ PRICING V2: SERVER-SIDE TRIAL CONSTRAINT ENFORCEMENT ═══
+    // If user is trialing under v2, forcefully override ANY client-supplied
+    // params to the immutable trial config. This prevents API-tampering
+    // where a power user sends { duration:30, quality:"cinematic" }.
+    let effectiveDuration = targetDuration;
+    let effectiveModelTier = modelTier;
+    let forceWatermark = false;
+    if (PRICING_V2_ENABLED && isTrialing) {
+      const { enforced, warnings } = enforceTrialConstraints({
+        durationSeconds: targetDuration,
+        resolution: body?.resolution,
+        qualityTier: modelTier,
+        voiceId: voice,
+      });
+      effectiveDuration = enforced.durationSeconds; // always 5
+      effectiveModelTier = enforced.qualityTier;     // always 'standard'
+      forceWatermark = enforced.watermarkBurned;     // always true
+      if (warnings.length > 0) {
+        console.log(`[generate] Trial constraints enforced for user=${userId}: ${warnings.join('; ')}`);
+      }
+    }
+
     // Create reel + job
     // Validate the brand preset belongs to this user (defensive) before linking.
     let validPresetId: string | undefined = undefined;
@@ -86,10 +111,11 @@ export async function POST(request: Request) {
       data: {
         userId, prompt, platform, style, voice, mood,
         status: 'rendering',
-        motion,
+        motion: (PRICING_V2_ENABLED && isTrialing) ? false : motion, // trial = no motion
         coinCost,
         tier: gate.balance.tier,
         clientIp: clientIp ?? undefined,
+        watermarked: forceWatermark || false,
         ...(validPresetId ? { brandPresetId: validPresetId } : {}),
       },
     });
@@ -101,6 +127,14 @@ export async function POST(request: Request) {
         where: { userId },
         data: { trialReelsUsed: { increment: 1 } },
       });
+
+      // PRICING_V2: Mark trial consumed in trial_locks (best-effort).
+      if (PRICING_V2_ENABLED) {
+        const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
+        if (user?.email) {
+          markTrialConsumed(user.email, reel.id).catch(() => {});
+        }
+      }
     }
 
     // Track preset usage for analytics (Phase 4b). Best-effort, non-blocking.
@@ -120,16 +154,17 @@ export async function POST(request: Request) {
     }
 
     // Build pipeline options from advanced settings.
+    // Use effective* values which are overridden for trial users under PRICING_V2.
     const pipelineOpts: PipelineOptions = {
       voiceTier,
       stability,
       similarity,
       subtitleStyle,
-      modelTier,
+      modelTier: effectiveModelTier,
       musicTrackId,
       stinger,
       stingerId,
-      targetDuration,
+      targetDuration: effectiveDuration,
     };
 
     // Start pipeline (fire-and-forget).
