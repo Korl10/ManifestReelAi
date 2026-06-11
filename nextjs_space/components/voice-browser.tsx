@@ -2,9 +2,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Search, Play, Pause, Loader2, Filter, ChevronDown, ChevronRight,
-  Settings2, Sliders, Mic, Globe, User, Tag,
+  Settings2, Sliders, Mic, Globe, User, Tag, Lock, Sparkles,
 } from 'lucide-react';
 import type { VoiceTier } from '@/lib/voice-catalog';
+import { voiceAccess, PLANS_V2, type PlanTierV2 } from '@/lib/pricing-v2';
 
 interface VoiceData {
   id: string;
@@ -41,6 +42,11 @@ interface VoiceBrowserProps {
   speed?: string;
   /** Show advanced toggle open by default? */
   advancedOpen?: boolean;
+  /** The current user's plan tier (canonical V2). When set, voices above the
+   *  plan are locked with an upgrade overlay. Omit to show all unlocked. */
+  planTier?: PlanTierV2;
+  /** Called when a locked voice is clicked, with the tier needed to unlock. */
+  onUpgrade?: (requiredTier: PlanTierV2) => void;
 }
 
 // English fallback phrase used when the user hasn't typed a script yet, so the
@@ -58,6 +64,7 @@ export default function VoiceBrowser({
   selectedVoiceId, onSelect, previewText,
   voiceTier, onTierChange, stability, onStabilityChange,
   similarity, onSimilarityChange, speed = 'normal', advancedOpen,
+  planTier, onUpgrade,
 }: VoiceBrowserProps) {
   const [voices, setVoices] = useState<VoiceData[]>([]);
   const [filters, setFilters] = useState<any>(null);
@@ -72,6 +79,7 @@ export default function VoiceBrowser({
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [previewLoading, setPreviewLoading] = useState<string | null>(null);
   const [previewUrls, setPreviewUrls] = useState<Record<string, string>>({});
+  const [upgradeTarget, setUpgradeTarget] = useState<PlanTierV2 | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Fetch catalog
@@ -310,17 +318,29 @@ export default function VoiceBrowser({
             <div key={category}>
               <p className="text-[10px] text-white/30 uppercase tracking-wider mb-1.5 sticky top-0 bg-[#0a0a0a] py-1 z-10">{category}</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-                {catVoices.map(v => (
+                {catVoices.map(v => {
+                  const access = planTier ? voiceAccess(planTier, v.id) : null;
+                  const locked = !!access?.locked;
+                  return (
                   <button
                     key={v.id}
-                    onClick={() => onSelect(v.id)}
-                    className={`group flex items-center gap-2 px-2.5 py-2 rounded-lg text-left transition ${
+                    onClick={() => {
+                      if (locked) {
+                        if (onUpgrade) onUpgrade(access!.requiredTier);
+                        else setUpgradeTarget(access!.requiredTier);
+                        return;
+                      }
+                      onSelect(v.id);
+                    }}
+                    className={`group relative flex items-center gap-2 px-2.5 py-2 rounded-lg text-left transition ${
                       selectedVoiceId === v.id
                         ? 'bg-[#D4AF37]/15 border border-[#D4AF37]/30'
+                        : locked
+                        ? 'bg-white/[0.015] border border-white/5 hover:border-[#D4AF37]/25'
                         : 'bg-white/[0.02] border border-white/5 hover:bg-white/[0.04]'
                     }`}
                   >
-                    <div className="flex-1 min-w-0">
+                    <div className={`flex-1 min-w-0 ${locked ? 'opacity-50' : ''}`}>
                       <div className="flex items-center gap-1.5">
                         <span className={`text-xs font-medium truncate ${
                           selectedVoiceId === v.id ? 'text-[#D4AF37]' : 'text-white/80'
@@ -333,26 +353,88 @@ export default function VoiceBrowser({
                       </div>
                       <p className="text-[10px] text-white/35 truncate">{v.description}</p>
                     </div>
-                    <button
-                      onClick={e => { e.stopPropagation(); generatePreview(v); }}
-                      className="shrink-0 w-7 h-7 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition"
-                    >
-                      {previewLoading === v.id ? (
-                        <Loader2 className="w-3 h-3 text-[#D4AF37] animate-spin" />
-                      ) : playingId === v.id ? (
-                        <Pause className="w-3 h-3 text-[#D4AF37]" />
-                      ) : (
-                        <Play className="w-3 h-3 text-white/50" />
-                      )}
-                    </button>
+                    {locked ? (
+                      <span
+                        title={`Unlock with ${access!.requiredTierName}`}
+                        className="shrink-0 flex items-center gap-1 px-1.5 h-6 rounded-full bg-[#D4AF37]/12 border border-[#D4AF37]/30 text-[#D4AF37]"
+                      >
+                        <Lock className="w-2.5 h-2.5" />
+                        <span className="text-[9px] font-medium">{access!.requiredTierName}</span>
+                      </span>
+                    ) : (
+                      <button
+                        onClick={e => { e.stopPropagation(); generatePreview(v); }}
+                        className="shrink-0 w-7 h-7 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition"
+                      >
+                        {previewLoading === v.id ? (
+                          <Loader2 className="w-3 h-3 text-[#D4AF37] animate-spin" />
+                        ) : playingId === v.id ? (
+                          <Pause className="w-3 h-3 text-[#D4AF37]" />
+                        ) : (
+                          <Play className="w-3 h-3 text-white/50" />
+                        )}
+                      </button>
+                    )}
+                    {locked && (
+                      <button
+                        onClick={e => { e.stopPropagation(); generatePreview(v); }}
+                        title="Preview voice"
+                        className="shrink-0 w-7 h-7 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition"
+                      >
+                        {previewLoading === v.id ? (
+                          <Loader2 className="w-3 h-3 text-[#D4AF37] animate-spin" />
+                        ) : playingId === v.id ? (
+                          <Pause className="w-3 h-3 text-[#D4AF37]" />
+                        ) : (
+                          <Play className="w-3 h-3 text-white/40" />
+                        )}
+                      </button>
+                    )}
                   </button>
-                ))}
+                  );
+                })}
               </div>
             </div>
           ))}
           {voices.length === 0 && (
             <p className="text-center text-white/25 text-xs py-8">No voices match your filters</p>
           )}
+        </div>
+      )}
+
+      {/* Upgrade prompt for locked voices (only used when no onUpgrade handler is supplied) */}
+      {upgradeTarget && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+          onClick={() => setUpgradeTarget(null)}
+        >
+          <div
+            className="w-full max-w-sm rounded-2xl bg-[#111] border border-[#D4AF37]/25 p-6 text-center"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="mx-auto mb-3 w-12 h-12 rounded-full bg-[#D4AF37]/15 flex items-center justify-center">
+              <Sparkles className="w-6 h-6 text-[#D4AF37]" />
+            </div>
+            <h3 className="text-base font-semibold text-white">Unlock this voice</h3>
+            <p className="mt-1.5 text-xs text-white/55">
+              This voice is included with the <span className="text-[#D4AF37] font-medium">{PLANS_V2[upgradeTarget].name}</span> plan
+              {' '}— ${(PLANS_V2[upgradeTarget].monthlyCents / 100).toFixed(2)}/mo, {PLANS_V2[upgradeTarget].voiceCount} voices and more.
+            </p>
+            <div className="mt-4 flex gap-2">
+              <button
+                onClick={() => setUpgradeTarget(null)}
+                className="flex-1 px-3 py-2 rounded-lg text-xs text-white/60 bg-white/5 hover:bg-white/10 transition"
+              >
+                Maybe later
+              </button>
+              <a
+                href="/dashboard/settings?upgrade=1"
+                className="flex-1 px-3 py-2 rounded-lg text-xs font-medium text-black bg-[#D4AF37] hover:bg-[#e3c558] transition"
+              >
+                Upgrade to {PLANS_V2[upgradeTarget].name}
+              </a>
+            </div>
+          </div>
         </div>
       )}
     </div>
