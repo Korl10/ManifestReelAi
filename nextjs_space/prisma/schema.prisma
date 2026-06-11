@@ -402,11 +402,26 @@ model TrialLock {
   subscriptionId  String?   @map("subscription_id")
   supportOverride Boolean   @default(false) @map("support_override")
   overrideReason  String?   @map("override_reason")
+  gateResults     Json?     @map("gate_results")      // Full gate decision log (5D)
+  recaptchaScore  Float?    @map("recaptcha_score")    // reCAPTCHA v3 score 0.0-1.0
+  ipCountry       String?   @map("ip_country")         // ISO country code from IP scoring
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
 
   @@index([trialOutcome])
+  @@index([ipCountry])
   @@map("trial_locks")
+}
+
+// ── Admin IP allowlist (bypass VPN/geo blocks for trusted IPs) ───────
+model IpAllowlist {
+  id        String   @id @default(cuid())
+  ip        String   @unique             // exact IPv4/v6 or CIDR
+  label     String?                       // e.g. "Owner home", "Office"
+  addedBy   String?  @map("added_by")    // admin userId
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("ip_allowlist")
 }
 
 // ── Admin-managed blocked email domains ─────────────────────────────

@@ -7,10 +7,8 @@ import { prisma } from '@/lib/prisma';
 
 /**
  * GET /api/admin/abuse
- * Returns trial locks + blocked domains for the admin abuse dashboard.
- *
- * POST /api/admin/abuse
- * Actions: add_domain, remove_domain, override_lock, update_outcome
+ * Returns trial locks (with gateResults), blocked domains, IP allowlist,
+ * and outcome stats for the admin abuse dashboard.
  */
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -19,12 +17,15 @@ export async function GET() {
   }
 
   try {
-    const [trialLocks, blockedDomains, stats] = await Promise.all([
+    const [trialLocks, blockedDomains, ipAllowlist, stats] = await Promise.all([
       prisma.trialLock.findMany({
         orderBy: { createdAt: 'desc' },
         take: 200,
       }),
       prisma.blockedDomain.findMany({
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.ipAllowlist.findMany({
         orderBy: { createdAt: 'desc' },
       }),
       prisma.trialLock.groupBy({
@@ -41,6 +42,7 @@ export async function GET() {
     return NextResponse.json({
       trialLocks,
       blockedDomains,
+      ipAllowlist,
       outcomeStats,
       totalLocks: trialLocks.length,
     });
@@ -108,6 +110,37 @@ export async function POST(request: Request) {
           where: { id },
           data: { trialOutcome: outcome },
         });
+        return NextResponse.json({ success: true });
+      }
+
+      // ── IP Allowlist CRUD (Phase 5D) ──────────────────────────
+      case 'add_ip': {
+        const { ip, label } = body;
+        if (!ip || typeof ip !== 'string') {
+          return NextResponse.json({ error: 'IP address is required' }, { status: 400 });
+        }
+        const trimmedIp = ip.trim();
+        await prisma.ipAllowlist.upsert({
+          where: { ip: trimmedIp },
+          create: {
+            ip: trimmedIp,
+            label: label || null,
+            addedBy: (session.user as any).id || (session.user as any).email,
+          },
+          update: {
+            label: label || undefined,
+            addedBy: (session.user as any).id || (session.user as any).email,
+          },
+        });
+        return NextResponse.json({ success: true, ip: trimmedIp });
+      }
+
+      case 'remove_ip': {
+        const { ipId } = body;
+        if (!ipId) {
+          return NextResponse.json({ error: 'IP allowlist ID is required' }, { status: 400 });
+        }
+        await prisma.ipAllowlist.delete({ where: { id: ipId } });
         return NextResponse.json({ success: true });
       }
 
