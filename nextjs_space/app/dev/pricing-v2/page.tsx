@@ -36,8 +36,14 @@ export default function PricingV2Preview() {
     <div className="min-h-screen bg-[#0a0a0a] text-white p-6 md:p-10 space-y-8">
       <div className="max-w-5xl mx-auto space-y-8">
         <header>
-          <h1 className="text-2xl font-bold">Pricing V2 — Phase 5A Preview</h1>
+          <h1 className="text-2xl font-bold">Pricing V2 — Phase 5A/5B Preview</h1>
           <p className="text-sm text-white/50 mt-1">Internal verification page (PRICING_V2 flag still off).</p>
+          <a
+            href="/dev/pricing-v2/trial"
+            className="inline-flex items-center gap-1.5 mt-3 bg-[#7B2FBE]/20 hover:bg-[#7B2FBE]/30 text-[#A855F7] px-4 py-2 rounded-lg text-sm transition-colors"
+          >
+            🛡️ Phase 5B: Trial Flow Staging →
+          </a>
         </header>
 
         <ConversionBanner previousCoins={sampleCoins} newCredits={coinsToCredits(sampleCoins)} />

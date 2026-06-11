@@ -384,6 +384,54 @@ model LibraryTrack {
   @@map("library_tracks")
 }
 
+// ── Trial abuse prevention locks ────────────────────────────────────
+// Lifetime gate: each column is UNIQUE — once consumed, that identity
+// can never claim another trial regardless of which account they create.
+model TrialLock {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  cardFingerprint String?   @unique @map("card_fingerprint")
+  ipAddressHash   String?   @unique @map("ip_address_hash")   // SHA-256 + salt (Phase 5D)
+  deviceFpHash    String?   @unique @map("device_fp_hash")
+  trialStartedAt  DateTime  @default(now()) @map("trial_started_at")
+  trialConsumedAt DateTime? @map("trial_consumed_at")
+  trialOutcome    String    @default("PENDING") // PENDING | CONVERTED | CANCELLED | EXPIRED
+  reelId          String?   @map("reel_id")     // link to the trial reel record
+  subscriptionId  String?   @map("subscription_id")
+  supportOverride Boolean   @default(false) @map("support_override")
+  overrideReason  String?   @map("override_reason")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  @@index([trialOutcome])
+  @@map("trial_locks")
+}
+
+// ── Admin-managed blocked email domains ─────────────────────────────
+model BlockedDomain {
+  id        String   @id @default(cuid())
+  domain    String   @unique     // e.g. "mailinator.com"
+  source    String   @default("admin") // admin | disposable_list
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("blocked_domains")
+}
+
+// ── Email OTP codes ─────────────────────────────────────────────────
+model EmailOtp {
+  id         String   @id @default(cuid())
+  email      String
+  code       String
+  magicToken String?  @unique @map("magic_token")
+  attempts   Int      @default(0)
+  verified   Boolean  @default(false)
+  expiresAt  DateTime @map("expires_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([email, createdAt])
+  @@map("email_otps")
+}
+
 // ── Rate limiting (durable, DB-backed across serverless instances) ──
 // One row per (bucket, identifier). A fixed window starting at windowStart;
 // when the window lapses the counter resets on the next hit.

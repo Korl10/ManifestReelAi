@@ -13,6 +13,7 @@ const TABS = [
   { href: '/admin/ops', label: 'Ops', icon: Activity },
   { href: '/admin/voice-lab', label: 'Voice Lab', icon: Mic2 },
   { href: '/admin/music-loader', label: 'Music Loader', icon: Music2 },
+  { href: '/admin/abuse', label: 'Abuse', icon: Shield },
 ];
 
 export function AdminShell({ children }: { children: React.ReactNode }) {

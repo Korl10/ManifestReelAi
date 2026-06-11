@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { stripe } from '@/lib/stripe';
 import { PLANS } from '@/lib/pricing';
+import { createTrialLock, updateTrialOutcome } from '@/lib/trial-gates';
 import Stripe from 'stripe';
 
 export interface SyncResult {
@@ -160,6 +161,20 @@ export async function applySubscriptionUpdate(userId: string, subscription: Stri
               },
             });
             cardAbuse = true;
+          } else {
+            // No abuse: create trial lock with card fingerprint
+            try {
+              const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
+              if (user?.email) {
+                await createTrialLock({
+                  email: user.email,
+                  cardFingerprint: fingerprint,
+                  subscriptionId: subscription.id,
+                });
+              }
+            } catch (lockErr: any) {
+              console.warn('[StripeSync] Trial lock creation failed (non-fatal):', lockErr?.message);
+            }
           }
         }
       }

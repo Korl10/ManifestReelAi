@@ -142,7 +142,7 @@ export const PLANS_V2: Record<PlanTierV2, PlanV2> = {
     upscale4k: true,
     features: [
       '10,000 credits / month',
-      'All 150+ premium voices',
+      'All 150+ professional voices',
       'Up to Cinematic quality reels',
       '4K upscale add-on',
       'Priority rendering',
@@ -162,7 +162,7 @@ export const PLANS_V2: Record<PlanTierV2, PlanV2> = {
     upscale4k: true,
     features: [
       '30,000 credits / month',
-      'All 150+ premium voices',
+      'All 150+ professional voices',
       'Custom voice cloning',
       'Up to Cinematic quality reels',
       '4K upscale add-on',
