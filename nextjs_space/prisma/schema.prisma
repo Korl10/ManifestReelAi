@@ -68,6 +68,8 @@ model Subscription {
   cardFingerprint      String?   @map("card_fingerprint")
   graceEndsAt          DateTime? @map("grace_ends_at")
   introUsed            Boolean  @default(false) @map("intro_used")
+  creditBalance        Int      @default(0) @map("credit_balance")       // V2 credit balance
+  scheduledTier        String?  @map("scheduled_tier")                   // V2 downgrade scheduled for next cycle
   currentPeriodStart   DateTime @default(now()) @map("current_period_start")
   currentPeriodEnd     DateTime @default(dbgenerated("NOW() + interval '30 days'")) @map("current_period_end")
   createdAt            DateTime @default(now()) @map("created_at")
@@ -410,8 +412,9 @@ model TrialLock {
 // ── Admin-managed blocked email domains ─────────────────────────────
 model BlockedDomain {
   id        String   @id @default(cuid())
-  domain    String   @unique     // e.g. "mailinator.com"
-  source    String   @default("admin") // admin | disposable_list
+  domain    String   @unique     // e.g. "mailinator.com" or "card:<fingerprint>"
+  source    String   @default("admin") // admin | disposable_list | dispute_block
+  reason    String?                     // e.g. "dispute:dp_xxx:user@email"
   createdAt DateTime @default(now()) @map("created_at")
 
   @@map("blocked_domains")
