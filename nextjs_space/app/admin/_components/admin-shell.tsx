@@ -3,7 +3,7 @@ import React from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { usePathname, useRouter } from 'next/navigation';
-import { Shield, BarChart3, Film, Users, TrendingUp, ArrowLeft, Loader2, Mic2, Music2, Activity } from 'lucide-react';
+import { Shield, BarChart3, Film, Users, TrendingUp, ArrowLeft, Loader2, Mic2, Music2, Activity, LineChart } from 'lucide-react';
 
 const TABS = [
   { href: '/admin', label: 'Overview', icon: BarChart3 },
@@ -13,6 +13,7 @@ const TABS = [
   { href: '/admin/ops', label: 'Ops', icon: Activity },
   { href: '/admin/voice-lab', label: 'Voice Lab', icon: Mic2 },
   { href: '/admin/music-loader', label: 'Music Loader', icon: Music2 },
+  { href: '/admin/conversions', label: 'Conversions', icon: LineChart },
   { href: '/admin/abuse', label: 'Abuse', icon: Shield },
 ];
 
