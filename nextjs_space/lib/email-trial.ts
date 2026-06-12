@@ -12,7 +12,7 @@ import { sendMail } from '@/lib/smtp-mailer';
 export async function sendTrialEndingEmail(email: string, name: string | null, tier: string): Promise<boolean> {
   const appUrl = process.env.NEXTAUTH_URL || '';
   const displayName = name || email.split('@')[0];
-  const billingUrl = `${appUrl.replace(/\/$/, '')}/dashboard/settings`;
+  const billingUrl = `${appUrl.replace(/\/$/, '')}/login?return=/dashboard/settings`;
   const planName = tier.charAt(0).toUpperCase() + tier.slice(1);
 
   const htmlBody = `
@@ -40,7 +40,8 @@ export async function sendTrialEndingEmail(email: string, name: string | null, t
   return sendMail({
     emailType: 'trial_reminder',
     to: email,
-    subject: 'Your ManifestReel AI free trial ends in 24 hours',
+    subject: 'Your trial expires in 24 hours',
+    text: `Hi ${displayName}, your ManifestReel AI ${planName} free trial ends in about 24 hours. Your subscription will begin automatically. To manage your subscription, visit: ${billingUrl} — ManifestReel AI Team`,
     html: htmlBody,
     notificationId: process.env.NOTIF_ID_TRIAL_ENDING_SOON || '',
   });

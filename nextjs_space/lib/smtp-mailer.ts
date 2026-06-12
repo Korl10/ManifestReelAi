@@ -27,6 +27,8 @@ export interface SendMailParams {
   to: string;
   subject: string;
   html: string;
+  /** Plain-text alternative (multipart/alternative) — improves spam score */
+  text?: string;
   /** Abacus notification ID — used only when falling back to Abacus API */
   notificationId?: string;
 }
@@ -97,12 +99,18 @@ function getTransport(): nodemailer.Transporter {
 async function sendViaSmtp(params: SendMailParams): Promise<boolean> {
   const transport = getTransport();
   try {
+    const unsubUrl = `${(process.env.NEXTAUTH_URL || `https://${DOMAIN}`).replace(/\/$/, '')}/dashboard/settings`;
     const info = await transport.sendMail({
       from: getFrom(params.emailType),
       to: params.to,
       replyTo: getReplyTo(params.emailType),
       subject: params.subject,
       html: params.html,
+      ...(params.text ? { text: params.text } : {}),
+      headers: {
+        'List-Unsubscribe': `<${unsubUrl}>`,
+        'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+      },
     });
     console.log(`[smtp-mailer] ✓ Sent via SMTP (${params.emailType}): messageId=${info.messageId}`);
     return true;
