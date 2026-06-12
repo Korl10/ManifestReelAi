@@ -18,3 +18,10 @@ out
 .deploy
 .logs
 *.tsbuildinfo
+
+# Environment secrets
+nextjs_space/.env
+.env
+.env.local
+.env.production
+.env.staging
