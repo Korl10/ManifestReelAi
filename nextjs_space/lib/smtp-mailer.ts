@@ -32,9 +32,12 @@ export interface SendMailParams {
 }
 
 // ── FROM / REPLY-TO mapping ──────────────────────────────────────
+// NOTE: Namecheap Private Email only allows sending from the authenticated
+// mailbox (SMTP_USER). All emails use noreply@ as FROM, with support@ as
+// REPLY-TO so user replies go to the right inbox.
 const FROM_MAP: Record<EmailType, { fromLocal: string; replyToLocal: string }> = {
-  welcome:            { fromLocal: 'hello',   replyToLocal: 'support' },
-  trial_reminder:     { fromLocal: 'hello',   replyToLocal: 'support' },
+  welcome:            { fromLocal: 'noreply', replyToLocal: 'support' },
+  trial_reminder:     { fromLocal: 'noreply', replyToLocal: 'support' },
   payment_failed:     { fromLocal: 'noreply', replyToLocal: 'support' },
   cancellation:       { fromLocal: 'noreply', replyToLocal: 'support' },
   email_verification: { fromLocal: 'noreply', replyToLocal: 'support' },
