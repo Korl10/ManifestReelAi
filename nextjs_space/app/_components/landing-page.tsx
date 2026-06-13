@@ -601,6 +601,45 @@ export function LandingPage() {
         </div>
       </section>
 
+      {/* Demo Videos — YouTube-style showcase */}
+      <section className="py-20 md:py-32">
+        <div className="max-w-[1200px] mx-auto px-4">
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} className="text-center mb-14">
+            <h2 className="font-display text-3xl md:text-4xl font-bold tracking-tight mb-4">
+              From idea to viral — <span className="text-[#D4AF37]">watch it happen live.</span>
+            </h2>
+            <p className="text-white/50 max-w-2xl mx-auto">
+              Real creators, real reactions — generating scroll-stopping reels with ManifestReel AI in just 30 seconds. No editing skills, no expensive gear, just a few clicks.
+            </p>
+          </motion.div>
+
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[
+              { src: '/showcase/demos/demo-1.mp4', label: 'Creating a manifestation reel from scratch' },
+              { src: '/showcase/demos/demo-2.mp4', label: 'Picking voice, style & mood in seconds' },
+              { src: '/showcase/demos/demo-3.mp4', label: 'From prompt to finished reel — 30s' },
+            ].map((v, i) => (
+              <div key={i} className="group relative rounded-2xl overflow-hidden border border-white/[0.06] bg-white/[0.02] backdrop-blur-sm">
+                <div className="relative w-full" style={{ aspectRatio: '9 / 16' }}>
+                  <video
+                    src={v.src}
+                    className="absolute inset-0 w-full h-full object-cover"
+                    playsInline
+                    muted
+                    loop
+                    autoPlay
+                    preload="metadata"
+                  />
+                </div>
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 pt-12">
+                  <p className="text-sm text-white/80 font-medium">{v.label}</p>
+                </div>
+              </div>
+            ))}
+          </motion.div>
+        </div>
+      </section>
+
       {/* Testimonials — auto-scrolling marquee */}
       <section id="testimonials" className="py-20 md:py-32 overflow-hidden">
         <div className="max-w-[1200px] mx-auto px-4">
