@@ -46,7 +46,7 @@ function cn(...classes: (string | false | undefined | null)[]) {
 // ─── Main Component ─────────────────────────────────────────────────────────
 export default function SignupPage() {
   const [step, setStep] = useState(0);
-  const [billing, setBilling] = useState<BillingCycle>('monthly');
+  const [billing, setBilling] = useState<BillingCycle>('annual');
   const [selectedTier, setSelectedTier] = useState<PlanTierV2>('creator');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -325,7 +325,7 @@ export default function SignupPage() {
       </Link>
 
       {/* Progress indicator */}
-      <div className="flex items-center gap-2 mb-8 relative z-10">
+      <div className="flex items-center gap-1 sm:gap-2 mb-8 relative z-10">
         {STEPS.map((s, i) => {
           const Icon = s.icon;
           const isActive = i === step;
@@ -334,17 +334,17 @@ export default function SignupPage() {
             <React.Fragment key={s.label}>
               {i > 0 && (
                 <div className={cn(
-                  'w-8 h-px transition-colors duration-300',
+                  'w-6 sm:w-8 h-px transition-colors duration-300',
                   isDone ? 'bg-[#D4AF37]' : 'bg-white/10'
                 )} />
               )}
               <div className={cn(
-                'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300',
+                'flex items-center justify-center gap-1.5 min-w-[44px] min-h-[44px] px-3 py-2 rounded-full text-xs font-medium transition-all duration-300',
                 isActive && 'bg-[#D4AF37]/20 text-[#D4AF37] border border-[#D4AF37]/30',
                 isDone && 'bg-[#D4AF37]/10 text-[#D4AF37]/70',
                 !isActive && !isDone && 'text-white/30'
               )}>
-                {isDone ? <Check className="w-3.5 h-3.5" /> : <Icon className="w-3.5 h-3.5" />}
+                {isDone ? <Check className="w-4 h-4" /> : <Icon className="w-4 h-4" />}
                 <span className="hidden sm:inline">{s.label}</span>
               </div>
             </React.Fragment>
@@ -375,14 +375,14 @@ export default function SignupPage() {
               </div>
 
               {/* Billing toggle */}
-              <div className="flex items-center justify-center gap-3 mb-8">
+              <div className="relative z-20 flex items-center justify-center gap-2 mb-8 p-1 rounded-xl bg-white/[0.03] border border-white/10 w-fit mx-auto">
                 <button
                   onClick={() => setBilling('monthly')}
                   className={cn(
-                    'px-4 py-2 rounded-lg text-sm font-medium transition-all',
+                    'relative z-10 px-5 py-2.5 rounded-lg text-sm font-medium transition-all min-h-[44px]',
                     billing === 'monthly'
-                      ? 'bg-[#D4AF37]/20 text-[#D4AF37] border border-[#D4AF37]/30'
-                      : 'text-white/40 hover:text-white/60'
+                      ? 'bg-[#D4AF37]/20 text-[#D4AF37] border border-[#D4AF37]/30 shadow-sm'
+                      : 'text-white/40 hover:text-white/60 active:text-white/80'
                   )}
                 >
                   Monthly
@@ -390,10 +390,10 @@ export default function SignupPage() {
                 <button
                   onClick={() => setBilling('annual')}
                   className={cn(
-                    'px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2',
+                    'relative z-10 px-5 py-2.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2 min-h-[44px]',
                     billing === 'annual'
-                      ? 'bg-[#D4AF37]/20 text-[#D4AF37] border border-[#D4AF37]/30'
-                      : 'text-white/40 hover:text-white/60'
+                      ? 'bg-[#D4AF37]/20 text-[#D4AF37] border border-[#D4AF37]/30 shadow-sm'
+                      : 'text-white/40 hover:text-white/60 active:text-white/80'
                   )}
                 >
                   Annual
@@ -475,10 +475,14 @@ export default function SignupPage() {
                 </div>
               </div>
 
-              <div className="flex justify-center">
+              {/* Spacer for sticky button on mobile */}
+              <div className="h-20 sm:h-0" />
+
+              {/* Sticky CTA on mobile, centered on desktop */}
+              <div className="fixed bottom-0 left-0 right-0 z-50 p-4 bg-gradient-to-t from-[#0A0A0A] via-[#0A0A0A]/95 to-transparent sm:static sm:bg-none sm:p-0 sm:flex sm:justify-center">
                 <button
                   onClick={handlePlanNext}
-                  className="px-8 py-3 rounded-xl gold-gradient text-black font-bold text-sm hover:opacity-90 transition-all flex items-center gap-2"
+                  className="w-full sm:w-auto px-8 py-3.5 rounded-xl gold-gradient text-black font-bold text-sm hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center gap-2 min-h-[48px] shadow-lg sm:shadow-none"
                 >
                   Continue with {PLANS_V2[selectedTier].name}
                   <ArrowRight className="w-4 h-4" />
@@ -759,10 +763,15 @@ export default function SignupPage() {
         </AnimatePresence>
       </div>
 
-      {/* Footer */}
-      <div className="relative z-10 mt-auto pt-8 pb-4 text-center">
+      {/* Footer — includes reCAPTCHA attribution (required when badge is hidden) */}
+      <div className="relative z-10 mt-auto pt-8 pb-20 sm:pb-4 text-center">
         <p className="text-xs text-white/20">
           By creating an account, you agree to our terms of service.
+        </p>
+        <p className="text-[10px] text-white/20 mt-1">
+          Protected by reCAPTCHA. Google{' '}
+          <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" className="underline">Privacy</a>{' & '}
+          <a href="https://policies.google.com/terms" target="_blank" rel="noopener noreferrer" className="underline">Terms</a>.
         </p>
       </div>
     </div>
