@@ -773,7 +773,7 @@ export function LandingPage() {
 
             {/* Right — iPhone Mockup Showcase */}
             <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} className="shrink-0 w-full lg:flex-1">
-              <div className="relative w-full max-w-[700px] mx-auto" style={{ aspectRatio: '2048 / 2103' }}>
+              <div className="relative w-full max-w-[700px] mx-auto" style={{ aspectRatio: '1693 / 1834' }}>
                 <Image
                   src="/showcase/iphone-mockup-dual.png"
                   alt="ManifestReel AI app shown on two iPhone 15 Pro devices — Craft Your Reel screen with mood picker, platform selection, and voice options on the left; Choose Voice screen with AI voice cards, speaking speed slider, and Generate Reel button on the right"
