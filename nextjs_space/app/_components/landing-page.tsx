@@ -773,13 +773,13 @@ export function LandingPage() {
 
             {/* Right — Phone Mockups with real screenshots */}
             <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} className="flex items-end gap-4 md:gap-6 shrink-0">
-              {/* Phone 1 — Craft Screen (1290×2328 → aspect 43/77.6 ≈ 9/16.2) */}
+              {/* Phone 1 — Craft Screen (1290×2438) */}
               <div className="relative w-[150px] md:w-[200px] lg:w-[220px]">
                 <div className="rounded-[28px] md:rounded-[36px] border-[2.5px] border-white/15 bg-black overflow-hidden shadow-2xl shadow-black/60">
                   {/* Notch */}
                   <div className="absolute top-0 left-1/2 -translate-x-1/2 w-16 md:w-20 h-5 md:h-6 bg-black rounded-b-2xl z-20" />
                   {/* Screenshot — natural ratio, no cropping */}
-                  <div className="relative w-full" style={{ aspectRatio: '1290 / 2328' }}>
+                  <div className="relative w-full" style={{ aspectRatio: '1290 / 2438' }}>
                     <Image src="/showcase/app-screen-craft.jpg" alt="ManifestReel AI craft screen showing mood picker, platform selection, voice settings, subtitle styles, and background music options" fill className="object-contain" sizes="220px" />
                   </div>
                 </div>
