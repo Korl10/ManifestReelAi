@@ -7,6 +7,7 @@ import Image from 'next/image';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import YouTubePlayer from '@/components/youtube-player';
 
 const fadeUp = { hidden: { opacity: 0, y: 30 }, visible: { opacity: 1, y: 0 } };
 
@@ -614,28 +615,24 @@ export function LandingPage() {
           </motion.div>
 
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} className="grid grid-cols-1 md:grid-cols-3 gap-5 max-w-[960px] mx-auto">
-            {[
-              { src: '/showcase/demos/demo-1.mp4', label: 'Creating a manifestation reel from scratch' },
-              { src: '/showcase/demos/demo-2.mp4', label: 'Picking voice, style & mood in seconds' },
-              { src: '/showcase/demos/demo-3.mp4', label: 'From prompt to finished reel — 30s' },
-            ].map((v, i) => (
-              <div key={i} className="group relative rounded-xl overflow-hidden border border-white/[0.06] bg-white/[0.02] backdrop-blur-sm">
-                <div className="relative w-full" style={{ aspectRatio: '16 / 9' }}>
-                  <video
-                    src={v.src}
-                    className="absolute inset-0 w-full h-full object-cover"
-                    playsInline
-                    muted
-                    loop
-                    autoPlay
-                    preload="metadata"
-                  />
-                </div>
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-3 pt-10">
-                  <p className="text-xs text-white/80 font-medium">{v.label}</p>
-                </div>
-              </div>
-            ))}
+            <YouTubePlayer
+              src="/showcase/demos/demo-1.mp4"
+              title="Creating a manifestation reel from scratch"
+              views="12K views"
+              timeAgo="2 days ago"
+            />
+            <YouTubePlayer
+              src="/showcase/demos/demo-2.mp4"
+              title="Picking voice, style & mood in seconds"
+              views="8.4K views"
+              timeAgo="5 days ago"
+            />
+            <YouTubePlayer
+              src="/showcase/demos/demo-3.mp4"
+              title="From prompt to finished reel — 30 seconds"
+              views="15K views"
+              timeAgo="1 week ago"
+            />
           </motion.div>
         </div>
       </section>
