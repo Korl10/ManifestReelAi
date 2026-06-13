@@ -348,7 +348,7 @@ export default function DashboardPage() {
     if (typeof window === 'undefined') return;
     const urlParams = new URLSearchParams(window.location.search);
     const upgraded = urlParams.get('upgraded');
-    const coins = urlParams.get('coins');
+    const coins = urlParams.get('coins') || urlParams.get('credits');
     const sessionId = urlParams.get('session_id');
     if (!upgraded && !coins) return;
 
@@ -382,7 +382,7 @@ export default function DashboardPage() {
           if (upgraded) {
             toast.success(`Successfully upgraded to ${upgraded.charAt(0).toUpperCase() + upgraded.slice(1)}! 🎉`);
           } else if (coins) {
-            toast.success('Coins added to your account! 🪙');
+            toast.success('Credits added to your account! ✨');
           }
           router.replace('/dashboard', { scroll: false });
         }
@@ -481,7 +481,7 @@ export default function DashboardPage() {
           return;
         }
         // Paywall-triggering reasons
-        if (res.status === 403 && (data?.reason === 'free_locked' || data?.reason === 'insufficient_coins' || data?.reason === 'motion_locked' || data?.reason === 'inactive' || data?.reason === 'trial_limit_reached')) {
+        if (res.status === 403 && (data?.reason === 'free_locked' || data?.reason === 'insufficient_credits' || data?.reason === 'insufficient_coins' || data?.reason === 'motion_locked' || data?.reason === 'inactive' || data?.reason === 'trial_limit_reached')) {
           setShowPaywall(true);
           return;
         }
@@ -519,7 +519,7 @@ export default function DashboardPage() {
           <div className="shrink-0 flex items-center gap-2 px-3.5 py-2 rounded-full bg-gradient-to-r from-[#D4AF37]/15 to-[#7B2FBE]/15 border border-[#D4AF37]/30">
             <Zap className="w-4 h-4 text-[#D4AF37]" />
             <span className="text-sm font-bold text-[#D4AF37]">{remaining ?? 0}</span>
-            <span className="text-xs text-white/50 hidden sm:inline">{isFreeTier ? 'free' : isTrialing ? `trial (${trialReelsUsed}/${trialReelLimit} reels)` : 'coins left'}</span>
+            <span className="text-xs text-white/50 hidden sm:inline">{isFreeTier ? 'free' : isTrialing ? `trial (${trialReelsUsed}/${trialReelLimit} reels)` : 'credits left'}</span>
           </div>
         )}
       </div>
@@ -1120,9 +1120,9 @@ export default function DashboardPage() {
             {isFreeTier ? (
               <>Explore freely — <button onClick={() => setShowPaywall(true)} className="text-[#D4AF37] hover:underline">start a free trial</button> to generate</>
             ) : isTrialing ? (
-              <><span className="text-white font-semibold">{trialReelsUsed}/{trialReelLimit}</span> trial reels used • <span className="text-white font-semibold">{quota?.coinsAvailable ?? 0}</span> coins</>
+              <><span className="text-white font-semibold">{trialReelsUsed}/{trialReelLimit}</span> trial reels used • <span className="text-white font-semibold">{quota?.coinsAvailable ?? 0}</span> credits</>
             ) : (
-              <><span className="text-white font-semibold">{quota?.coinsAvailable ?? 0}</span> coins available{(quota?.rolloverCoins ?? 0) > 0 ? <span className="text-emerald-400/70"> • {quota.rolloverCoins} rolled over</span> : null}{(quota?.bundleCoins ?? 0) > 0 ? ` • ${quota.bundleCoins} bundle` : ''}</>
+              <><span className="text-white font-semibold">{quota?.coinsAvailable ?? 0}</span> credits available{(quota?.rolloverCoins ?? 0) > 0 ? <span className="text-emerald-400/70"> • {quota.rolloverCoins} rolled over</span> : null}{(quota?.bundleCoins ?? 0) > 0 ? ` • ${quota.bundleCoins} bundle` : ''}</>
             )}
             <span className="text-white/30 ml-2">({(quota?.tier ?? 'free').charAt(0).toUpperCase() + (quota?.tier ?? 'free').slice(1)} plan)</span>
           </span>
@@ -1143,7 +1143,7 @@ export default function DashboardPage() {
         ) : isFreeTier ? (
           <><Sparkles className="w-5 h-5" /> ✨ Generate Reel</>
         ) : (
-          <><Sparkles className="w-5 h-5" /> {enableMotion ? `Generate ${getModelTier(modelTier).name} Reel (${getModelTier(modelTier).coinCost} coins) ✨` : 'Generate Reel (1 coin) ✨'}</>
+          <><Sparkles className="w-5 h-5" /> {enableMotion ? `Generate ${getModelTier(modelTier).name} Reel (${getModelTier(modelTier).coinCost} credits) ✨` : 'Generate Reel (1 credit) ✨'}</>
         )}
       </button>
 

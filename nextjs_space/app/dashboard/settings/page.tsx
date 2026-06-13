@@ -4,7 +4,8 @@ import { useSession } from 'next-auth/react';
 import { Settings, User, CreditCard, Link2, Key, Crown, Loader2, AlertCircle, Zap, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
-import { COIN_BUNDLES, PLANS, PLAN_ORDER, isFoundersPeriod, FOUNDERS_ANNUAL_PRICE, foundersCountdownDays, type PlanTier } from '@/lib/pricing';
+import { PLANS, PLAN_ORDER, type PlanTier } from '@/lib/pricing';
+import { TOPUP_PACKS } from '@/lib/pricing-v2';
 
 export default function SettingsPage() {
   const { data: session } = useSession() || {};
@@ -13,14 +14,11 @@ export default function SettingsPage() {
   const [error, setError] = useState('');
   const [upgrading, setUpgrading] = useState('');
   const [portalLoading, setPortalLoading] = useState(false);
-  const [buyingCoins, setBuyingCoins] = useState('');
+  const [buyingTopup, setBuyingTopup] = useState('');
   const [billing, setBilling] = useState<'monthly' | 'annual'>('annual');
   const [resending, setResending] = useState(false);
   const [showCancelTrial, setShowCancelTrial] = useState(false);
-  // Founders flag computed client-side to avoid SSR/CSR hydration mismatch
-  const [founders, setFounders] = useState(false);
-  const [foundersDays, setFoundersDays] = useState(0);
-  useEffect(() => { setFounders(isFoundersPeriod()); setFoundersDays(foundersCountdownDays()); }, []);
+
 
   useEffect(() => {
     if (!session) return;
@@ -84,19 +82,19 @@ export default function SettingsPage() {
     finally { setPortalLoading(false); }
   };
 
-  const handleBuyCoins = async (bundleId: string) => {
-    setBuyingCoins(bundleId);
+  const handleBuyTopup = async (packId: string) => {
+    setBuyingTopup(packId);
     try {
-      const res = await fetch('/api/payments/buy-credits', {
+      const res = await fetch('/api/payments/create-checkout-v2', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bundleId }),
+        body: JSON.stringify({ mode: 'topup', packId }),
       });
       const data = await res.json();
       if (!res.ok) { toast.error(data?.error ?? 'Purchase failed'); return; }
       if (data?.url) window.location.href = data.url;
     } catch { toast.error('Something went wrong.'); }
-    finally { setBuyingCoins(''); }
+    finally { setBuyingTopup(''); }
   };
 
   const sub = subData?.subscription;
@@ -227,27 +225,27 @@ export default function SettingsPage() {
                 ) : (
                   <>
                     <div className="flex justify-between text-xs text-white/50 mb-1">
-                      <span>Coins available</span>
+                      <span>Credits available</span>
                       <span className="font-semibold text-[#D4AF37]">{quota?.coinsAvailable ?? 0}</span>
                     </div>
                     <div className="flex justify-between text-[10px] text-white/35 mb-1">
-                      <span>Monthly plan coins</span>
+                      <span>Monthly plan credits</span>
                       <span>{quota?.subscriptionRemaining ?? 0} / {quota?.subscriptionCoins ?? 0} left</span>
                     </div>
                     <div className="h-1.5 rounded-full bg-white/5 overflow-hidden mb-1">
                       <div className="h-full rounded-full gold-gradient" style={{ width: `${Math.min(100, ((quota?.subscriptionRemaining ?? 0) / Math.max(1, quota?.subscriptionCoins ?? 1)) * 100)}%` }} />
                     </div>
-                    {/* Rollover coins */}
+                    {/* Rollover credits */}
                     {(quota?.rolloverCoins ?? 0) > 0 && (
                       <div className="flex justify-between text-[10px] text-emerald-400/70 mt-1">
                         <span>🔄 {quota.rolloverCoins} rolling over</span>
                         <span>expires {new Date(quota.rolloverInfo?.[0]?.expiresAt).toLocaleDateString()}</span>
                       </div>
                     )}
-                    {/* Bundle coins */}
+                    {/* Bundle credits */}
                     {(quota?.bundleCoins ?? 0) > 0 && (
                       <div className="flex justify-between text-[10px] text-white/30 mt-0.5">
-                        <span>+ {quota.bundleCoins} bundle coins</span>
+                        <span>+ {quota.bundleCoins} bundle credits</span>
                       </div>
                     )}
                   </>
@@ -263,7 +261,7 @@ export default function SettingsPage() {
                   <div className="inline-flex items-center gap-1 p-1 rounded-full bg-white/[0.04] border border-white/10">
                     <button onClick={() => setBilling('monthly')} className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${billing === 'monthly' ? 'bg-white text-black' : 'text-white/60 hover:text-white'}`}>Monthly</button>
                     <button onClick={() => setBilling('annual')} className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all flex items-center gap-1.5 ${billing === 'annual' ? 'bg-white text-black' : 'text-white/60 hover:text-white'}`}>
-                      Annual ✓ <span className="text-[10px] font-bold text-emerald-400">{founders ? '(Founders)' : '(Save 20%)'}</span>
+                      Annual ✓ <span className="text-[10px] font-bold text-emerald-400">(Save 40%)</span>
                     </button>
                   </div>
                 </div>
@@ -274,7 +272,7 @@ export default function SettingsPage() {
                     return tierIdx > currentIdx;
                   }).map(tier => {
                     const plan = PLANS[tier];
-                    const annualCents = (billing === 'annual' && founders) ? FOUNDERS_ANNUAL_PRICE[tier] : plan.annualPrice;
+                    const annualCents = plan.annualPrice;
                     const monthlyDisplay = billing === 'annual'
                       ? (Math.round(annualCents / 12) / 100).toFixed(2)
                       : (plan.monthlyPrice / 100).toFixed(2);
@@ -294,11 +292,7 @@ export default function SettingsPage() {
                   })}
                 </div>
                 {billing === 'annual' && (
-                  <p className="text-[11px] text-center text-white/40">
-                    {founders
-                      ? `🔥 Founders' annual pricing — renews at this rate. ${foundersDays} ${foundersDays === 1 ? 'day' : 'days'} left.`
-                      : 'Billed annually'}
-                  </p>
+                  <p className="text-[11px] text-center text-white/40">Billed annually — save 40%</p>
                 )}
               </div>
             )}
@@ -314,17 +308,17 @@ export default function SettingsPage() {
         )}
       </motion.div>
 
-      {/* Extra Coin Bundles */}
+      {/* Top-up Credit Packs */}
       {isPaid && (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }} className="rounded-xl bg-white/[0.02] border border-white/5 p-5">
-          <h2 className="text-sm font-semibold flex items-center gap-2 mb-3"><Zap className="w-4 h-4 text-[#D4AF37]" /> Buy Extra Coins</h2>
-          <p className="text-xs text-white/40 mb-4">Top up with a one-time coin bundle. Bundle coins stack on your plan and never expire. Coin cost varies by model tier &amp; duration.</p>
+          <h2 className="text-sm font-semibold flex items-center gap-2 mb-3"><Zap className="w-4 h-4 text-[#D4AF37]" /> Buy Extra Credits</h2>
+          <p className="text-xs text-white/40 mb-4">One-time credit packs that stack on your plan. Use anytime — no expiry.</p>
           <div className="space-y-2">
-            {COIN_BUNDLES.map(bundle => (
+            {TOPUP_PACKS.map(pack => (
               <button
-                key={bundle.id}
-                onClick={() => handleBuyCoins(bundle.id)}
-                disabled={!!buyingCoins}
+                key={pack.id}
+                onClick={() => handleBuyTopup(pack.id)}
+                disabled={!!buyingTopup}
                 className="w-full flex items-center justify-between p-3 rounded-xl bg-white/[0.03] border border-white/8 hover:border-[#D4AF37]/30 transition"
               >
                 <div className="flex items-center gap-3">
@@ -332,15 +326,15 @@ export default function SettingsPage() {
                     <Zap className="w-4 h-4 text-black" />
                   </div>
                   <div className="text-left">
-                    <p className="text-sm font-semibold flex items-center gap-2">{bundle.label}
-                      {(bundle as any).popular && <span className="px-1.5 py-0.5 rounded-full bg-[#D4AF37]/15 text-[#D4AF37] text-[9px] font-bold uppercase tracking-wide">Most Popular</span>}
+                    <p className="text-sm font-semibold flex items-center gap-2">{pack.label}
+                      {pack.popular && <span className="px-1.5 py-0.5 rounded-full bg-[#D4AF37]/15 text-[#D4AF37] text-[9px] font-bold uppercase tracking-wide">Most Popular</span>}
                     </p>
-                    <p className="text-[10px] text-white/40">{bundle.coins} coins • never expire</p>
+                    <p className="text-[10px] text-white/40">{pack.credits.toLocaleString()} credits</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-bold text-[#D4AF37]">${(bundle.price / 100).toFixed(2)}</span>
-                  {buyingCoins === bundle.id && <Loader2 className="w-4 h-4 animate-spin text-[#D4AF37]" />}
+                  <span className="text-sm font-bold text-[#D4AF37]">${(pack.priceCents / 100).toFixed(2)}</span>
+                  {buyingTopup === pack.id && <Loader2 className="w-4 h-4 animate-spin text-[#D4AF37]" />}
                 </div>
               </button>
             ))}

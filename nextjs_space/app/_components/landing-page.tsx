@@ -217,11 +217,18 @@ const FEATURES = [
 ];
 
 const TIERS = [
-  { name: 'Free', monthly: 0, annualMo: 0, annualTotal: 0, annualSave: 0, foundersMo: 0, foundersTotal: 0, foundersSave: 0, features: ['Demo gallery access', 'Full configurator access — explore all styles & moods', 'Browse premium voices & music library', 'No card required'], cta: 'Start 3-Day Free Trial', tier: 'free', popular: false },
-  { name: 'Starter', monthly: 19.99, annualMo: 15.99, annualTotal: 191.88, annualSave: 48, foundersMo: 12.99, foundersTotal: 155.88, foundersSave: 84, features: ['200 coins / month', 'Standard + Pro tiers', '1080p exports, no watermark', 'Full voice catalog (~150)', 'Manual export only'], cta: 'Get Starter', tier: 'starter', popular: false },
-  { name: 'Pro', monthly: 39.99, annualMo: 31.99, annualTotal: 383.88, annualSave: 96, foundersMo: 24.99, foundersTotal: 299.88, foundersSave: 180, features: ['500 coins / month', 'All 3 quality tiers', '1080p exports', '1 Craft preset', 'Auto-post IG + TikTok (coming soon)'], cta: 'Get Pro', tier: 'pro', popular: true },
-  { name: 'Premium', monthly: 89.99, annualMo: 71.99, annualTotal: 863.88, annualSave: 216, foundersMo: 59.99, foundersTotal: 719.88, foundersSave: 360, features: ['1,200 coins / month', 'All 3 quality tiers', 'Brand Kit (unlimited presets)', '1080p exports', 'Fastest generation speeds'], cta: 'Get Premium', tier: 'premium', popular: false },
-  { name: 'Agency', monthly: 199, annualMo: 159, annualTotal: 1908, annualSave: 480, foundersMo: 129, foundersTotal: 1548, foundersSave: 840, features: ['3,000 coins / month', 'Everything in Premium', '5 team seats', 'White-label exports', 'Bulk generation'], cta: 'Start Agency', tier: 'agency', popular: false },
+  { name: 'Free', monthly: 0, annualMo: 0, annualTotal: 0, annualSave: 0, features: ['Demo gallery access', 'Full configurator access — explore all styles & moods', 'Browse premium voices & music library', 'No card required'], cta: 'Start 3-Day Free Trial', tier: 'free', popular: false },
+  { name: 'Starter', monthly: 14.99, annualMo: 8.99, annualTotal: 107.88, annualSave: 72, features: ['1,500 credits / month', '10 premium voices', 'Up to Standard quality', '720p & 1080p exports', 'Auto-matched background music'], cta: 'Get Starter', tier: 'starter', popular: false },
+  { name: 'Creator', monthly: 34.99, annualMo: 20.99, annualTotal: 251.88, annualSave: 168, features: ['4,000 credits / month', '30 premium voices', 'Up to Pro quality', '1080p exports', 'Custom music uploads'], cta: 'Get Creator', tier: 'creator', popular: true },
+  { name: 'Pro', monthly: 79.99, annualMo: 47.99, annualTotal: 575.88, annualSave: 384, features: ['10,000 credits / month', 'All 150+ voices', 'Cinematic quality (Veo 3)', 'Brand Kit (unlimited presets)', '4K upscale add-on'], cta: 'Get Pro', tier: 'pro', popular: false },
+  { name: 'Studio', monthly: 199, annualMo: 119, annualTotal: 1432.80, annualSave: 956, features: ['30,000 credits / month', 'All 150+ voices + cloning', 'All quality tiers', 'Priority rendering', 'White-label exports'], cta: 'Start Studio', tier: 'studio', popular: false },
+];
+
+const TOPUPS = [
+  { id: 'topup-1000', label: 'Mini Pack', credits: '1,000', price: 14.99 },
+  { id: 'topup-3000', label: 'Plus Pack', credits: '3,000', price: 39.99, popular: true },
+  { id: 'topup-8000', label: 'Power Pack', credits: '8,000', price: 99.99 },
+  { id: 'topup-20000', label: 'Studio Pack', credits: '20,000', price: 199 },
 ];
 
 const TESTIMONIALS = [
@@ -241,18 +248,6 @@ export function LandingPage() {
   const router = useRouter();
   const [mobileMenu, setMobileMenu] = useState(false);
   const [billing, setBilling] = useState<'monthly' | 'annual'>('annual');
-  const [foundersDays, setFoundersDays] = useState<number | null>(null);
-
-  useEffect(() => {
-    // Compute founders countdown client-side only to avoid hydration mismatch
-    const LAUNCH = new Date('2026-06-07T00:00:00Z');
-    const DURATION = 90;
-    const end = new Date(LAUNCH.getTime() + DURATION * 86400000);
-    const remaining = Math.ceil((end.getTime() - Date.now()) / 86400000);
-    setFoundersDays(remaining > 0 ? remaining : 0);
-  }, []);
-
-  const isFounders = (foundersDays ?? 0) > 0;
 
   const handlePricing = async (tier: string) => {
     if (!session) {
@@ -264,17 +259,41 @@ export function LandingPage() {
       return;
     }
     try {
-      const res = await fetch('/api/payments/create-checkout', {
+      const res = await fetch('/api/payments/create-checkout-v2', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tier, billing }),
+        body: JSON.stringify({ mode: 'subscription', tier, billing }),
       });
       const data = await res.json();
       if (data?.url) {
         window.location.href = data.url;
+      } else if (data?.error) {
+        toast.error(data.error);
       }
     } catch {
       toast.error('Failed to process upgrade');
+    }
+  };
+
+  const handleTopup = async (packId: string) => {
+    if (!session) {
+      router.push('/signup');
+      return;
+    }
+    try {
+      const res = await fetch('/api/payments/create-checkout-v2', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: 'topup', packId }),
+      });
+      const data = await res.json();
+      if (data?.url) {
+        window.location.href = data.url;
+      } else if (data?.error) {
+        toast.error(data.error);
+      }
+    } catch {
+      toast.error('Failed to process purchase');
     }
   };
 
@@ -429,17 +448,6 @@ export function LandingPage() {
             <p className="text-white/50 max-w-xl mx-auto">Start free. Upgrade when you're ready to scale your manifestation content.</p>
           </motion.div>
 
-          {/* Founders' countdown banner */}
-          {isFounders && (
-            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} className="text-center mb-8">
-              <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-orange-500/20 to-red-500/20 border border-orange-500/30">
-                <span className="text-lg">🔥</span>
-                <span className="text-sm font-semibold text-orange-300">Founders&apos; Pricing — Ends in {foundersDays} {foundersDays === 1 ? 'day' : 'days'}</span>
-              </div>
-              <p className="text-xs text-white/45 mt-2 max-w-md mx-auto">Annual plans at launch-exclusive rates — renews at the same discounted price. Available during launch window only.</p>
-            </motion.div>
-          )}
-
           {/* Billing toggle — Annual LEFT (default), Monthly RIGHT */}
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} className="flex justify-center mb-12">
             <div className="inline-flex items-center gap-1 p-1 rounded-full bg-white/[0.04] border border-white/10">
@@ -448,7 +456,7 @@ export function LandingPage() {
                 className={`px-5 py-2 rounded-full text-sm font-semibold transition-all flex items-center gap-2 ${billing === 'annual' ? 'bg-white text-black' : 'text-white/60 hover:text-white'}`}
               >
                 Annual ✓
-                <span className={`text-[11px] font-bold ${billing === 'annual' ? 'text-emerald-600' : 'text-emerald-400'}`}>(Save 20%)</span>
+                <span className={`text-[11px] font-bold ${billing === 'annual' ? 'text-emerald-600' : 'text-emerald-400'}`}>(Save 40%)</span>
               </button>
               <button
                 onClick={() => setBilling('monthly')}
@@ -463,10 +471,7 @@ export function LandingPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-5 lg:gap-4 max-w-6xl mx-auto items-start">
             {TIERS.map((t, i) => {
               const isPro = t.popular;
-              const isPremium = t.tier === 'premium';
-              const isAgency = t.tier === 'agency';
-              // Founders' promo applies to ANNUAL billing across ALL paid tiers.
-              const showFoundersAnnual = isFounders && t.monthly > 0 && billing === 'annual';
+              const isStudio = t.tier === 'studio';
 
               return (
                 <motion.div
@@ -489,8 +494,8 @@ export function LandingPage() {
                     </div>
                   )}
 
-                  {/* Trial badge — paid tiers only (not Agency) */}
-                  {t.monthly > 0 && !isAgency && (
+                  {/* Trial badge — paid tiers only (not Studio) */}
+                  {t.monthly > 0 && !isStudio && (
                     <div className="mb-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-semibold">
                       🎁 3-day free trial
                     </div>
@@ -506,11 +511,11 @@ export function LandingPage() {
                         <span className="text-sm text-white/40">forever</span>
                       </div>
                     ) : billing === 'annual' ? (
-                      /* ── Annual view (clean: price + /mo + save badge) ── */
+                      /* ── Annual view ── */
                       <div>
                         <div className="flex items-baseline gap-1.5">
                           <span className="text-3xl font-bold text-[#D4AF37]">
-                            ${showFoundersAnnual ? (t.foundersMo % 1 === 0 ? t.foundersMo.toFixed(0) : t.foundersMo.toFixed(2)) : (t.annualMo % 1 === 0 ? t.annualMo.toFixed(0) : t.annualMo.toFixed(2))}
+                            ${t.annualMo % 1 === 0 ? t.annualMo.toFixed(0) : t.annualMo.toFixed(2)}
                           </span>
                           <span className="text-sm text-white/40">/mo</span>
                         </div>
@@ -536,8 +541,8 @@ export function LandingPage() {
                     ))}
                   </ul>
 
-                  {/* Agency: money-back badge */}
-                  {isAgency && (
+                  {/* Studio: money-back badge */}
+                  {isStudio && (
                     <div className="flex items-center gap-1.5 mb-3 text-[11px] font-semibold text-emerald-400">
                       <span>✅</span> 30-day money-back guarantee
                     </div>
@@ -552,9 +557,9 @@ export function LandingPage() {
                     {t.cta}
                   </button>
 
-                  {/* Agency: Talk to Sales link */}
-                  {isAgency && (
-                    <a href="mailto:hello@manifestreel.ai?subject=Agency%20Inquiry" className="block text-center mt-2 text-xs text-white/40 hover:text-white/60 transition">
+                  {/* Studio: Talk to Sales link */}
+                  {isStudio && (
+                    <a href="mailto:hello@manifestreel.ai?subject=Studio%20Inquiry" className="block text-center mt-2 text-xs text-white/40 hover:text-white/60 transition">
                       or Talk to Sales →
                     </a>
                   )}
@@ -563,10 +568,29 @@ export function LandingPage() {
             })}
           </div>
 
-          {/* Coin rollover note */}
+          {/* Credits note */}
           <p className="text-center text-xs text-white/30 mt-6">
-            🔄 Unused coins roll over for 60 days (capped at 1× monthly allotment). Auto-posting launches in 30 days — Pro+ early access.
+            🔄 Unused credits roll over for 60 days (capped at 1× monthly allotment). Auto-posting launches soon — Pro+ early access.
           </p>
+
+          {/* Top-up Packs */}
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} className="mt-14 max-w-4xl mx-auto">
+            <h3 className="text-center font-display text-xl font-semibold mb-2">Need More Credits?</h3>
+            <p className="text-center text-sm text-white/45 mb-6">One-time credit packs — no subscription required. Use anytime.</p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {TOPUPS.map((pk) => (
+                <button
+                  key={pk.id}
+                  onClick={() => handleTopup(pk.id)}
+                  className="p-4 rounded-xl bg-white/[0.03] border border-white/10 hover:border-[#D4AF37]/30 hover:bg-white/[0.06] transition-all text-center group"
+                >
+                  <div className="text-2xl font-bold text-[#D4AF37] mb-1">{pk.credits.toLocaleString()}</div>
+                  <div className="text-xs text-white/50 mb-2">credits</div>
+                  <div className="text-sm font-semibold text-white group-hover:text-[#D4AF37] transition-colors">${pk.price}</div>
+                </button>
+              ))}
+            </div>
+          </motion.div>
         </div>
       </section>
 

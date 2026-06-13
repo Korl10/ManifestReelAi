@@ -81,12 +81,12 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             })()}
             {/* Credits pill */}
             {quota && (
-              <div className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 rounded-full bg-gradient-to-r from-[#D4AF37]/15 to-[#7B2FBE]/15 border border-[#D4AF37]/25" title={quota.tier === 'free' ? 'Free preview remaining' : 'Coins available'}>
+              <div className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 rounded-full bg-gradient-to-r from-[#D4AF37]/15 to-[#7B2FBE]/15 border border-[#D4AF37]/25" title={quota.tier === 'free' ? 'Free preview remaining' : 'Credits available'}>
                 <Zap className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-[#D4AF37] shrink-0" />
                 <span className="text-[10px] sm:text-[11px] font-bold text-[#D4AF37] whitespace-nowrap">
                   {quota.tier === 'free'
                     ? `${Math.max(0, 1 - (quota.reelsUsed ?? 0))} preview`
-                    : `${quota.coinsAvailable ?? Math.max(0, (quota.reelsCap ?? 0) - (quota.reelsUsed ?? 0))} coins`}
+                    : `${quota.coinsAvailable ?? Math.max(0, (quota.reelsCap ?? 0) - (quota.reelsUsed ?? 0))} credits`}
                 </span>
               </div>
             )}
