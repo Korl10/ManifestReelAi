@@ -210,10 +210,10 @@ function ShowcaseReel({ reel, index }: { reel: any; index: number }) {
 }
 
 const FEATURES = [
-  { icon: Type, title: 'AI Script Writing', desc: 'Powerful manifestation scripts crafted by AI, optimized for engagement and spiritual impact.', color: '#D4AF37' },
-  { icon: Music, title: 'Voice & Music', desc: 'Soothing voiceovers paired with 528Hz frequency music and ambient soundscapes.', color: '#7B2FBE' },
-  { icon: Video, title: 'Cinematic AI Motion', desc: 'Cinematic tier is all-motion AI video powered by Veo 3 Fast — every scene animated. Pro adds up to 4 animated hero scenes; Standard includes 2 cinematic motion scenes plus premium Ken Burns stills.', color: '#D4AF37' },
-  { icon: Sparkles, title: 'Auto Captions', desc: 'Perfectly synced karaoke-style captions that boost engagement and accessibility.', color: '#7B2FBE' },
+  { icon: Type, title: 'AI Script Writing', desc: 'Powerful manifestation scripts crafted by AI, optimized for engagement and spiritual impact.', color: '#D4AF37', image: '/features/ai-script.jpg' },
+  { icon: Music, title: 'Voice & Music', desc: 'Soothing voiceovers paired with 528Hz frequency music and ambient soundscapes.', color: '#7B2FBE', image: '/features/voice-music.jpg' },
+  { icon: Video, title: 'Cinematic AI Motion', desc: 'Cinematic tier is all-motion AI video powered by Veo 3 Fast — every scene animated. Pro adds up to 4 animated hero scenes; Standard includes 2 cinematic motion scenes plus premium Ken Burns stills.', color: '#D4AF37', image: '/features/cinematic-motion.jpg' },
+  { icon: Sparkles, title: 'Auto Captions', desc: 'Perfectly synced karaoke-style captions that boost engagement and accessibility.', color: '#7B2FBE', image: '/features/auto-captions.jpg' },
 ];
 
 const TIERS = [
@@ -429,13 +429,28 @@ export function LandingPage() {
                 viewport={{ once: true }}
                 variants={fadeUp}
                 transition={{ delay: i * 0.1 }}
-                className="group p-6 rounded-xl bg-white/[0.02] border border-white/5 hover:border-white/10 hover:bg-white/[0.04] transition-all duration-300"
+                className="group rounded-2xl overflow-hidden bg-white/[0.02] border border-white/5 hover:border-[#D4AF37]/20 transition-all duration-500"
               >
-                <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-4" style={{ backgroundColor: `${f?.color ?? '#D4AF37'}15` }}>
-                  {f?.icon && <f.icon className="w-5 h-5" style={{ color: f?.color ?? '#D4AF37' }} />}
+                {/* Feature image */}
+                <div className="relative aspect-[16/9] overflow-hidden">
+                  <Image
+                    src={f.image}
+                    alt={f?.title ?? 'Feature'}
+                    fill
+                    className="object-cover transition-transform duration-700 group-hover:scale-105"
+                    sizes="(max-width: 768px) 100vw, 50vw"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] via-[#0A0A0A]/40 to-transparent" />
+                  {/* Icon badge */}
+                  <div className="absolute top-4 left-4 w-10 h-10 rounded-xl flex items-center justify-center backdrop-blur-sm" style={{ backgroundColor: `${f?.color ?? '#D4AF37'}20`, border: `1px solid ${f?.color ?? '#D4AF37'}30` }}>
+                    {f?.icon && <f.icon className="w-5 h-5" style={{ color: f?.color ?? '#D4AF37' }} />}
+                  </div>
                 </div>
-                <h3 className="font-display text-lg font-semibold mb-2">{f?.title ?? ''}</h3>
-                <p className="text-sm text-white/50 leading-relaxed">{f?.desc ?? ''}</p>
+                {/* Text content */}
+                <div className="p-6">
+                  <h3 className="font-display text-lg font-semibold mb-2">{f?.title ?? ''}</h3>
+                  <p className="text-sm text-white/50 leading-relaxed">{f?.desc ?? ''}</p>
+                </div>
               </motion.div>
             ))}
           </div>
