@@ -70,6 +70,7 @@ model Subscription {
   introUsed            Boolean  @default(false) @map("intro_used")
   creditBalance        Int      @default(0) @map("credit_balance")       // V2 credit balance
   scheduledTier        String?  @map("scheduled_tier")                   // V2 downgrade scheduled for next cycle
+  isGrandfathered      Boolean  @default(false) @map("is_grandfathered") // Legacy users migrated to V2
   currentPeriodStart   DateTime @default(now()) @map("current_period_start")
   currentPeriodEnd     DateTime @default(dbgenerated("NOW() + interval '30 days'")) @map("current_period_end")
   createdAt            DateTime @default(now()) @map("created_at")
