@@ -132,6 +132,47 @@ export async function POST(request: Request) {
 
   // ═══ TOP-UP CHECKOUT ═══
   if (mode === 'topup') {
+    // Gate: top-ups require an active paid subscription (no free, no trial, no cancelled/past_due)
+    if (!sub || sub.tier === 'free') {
+      return NextResponse.json(
+        { error: 'Top-up packs are available for active subscribers. Please subscribe first.', code: 'no_subscription' },
+        { status: 403 },
+      );
+    }
+    if (sub.status === 'cancelled' || sub.status === 'canceled' || sub.status === 'past_due') {
+      return NextResponse.json(
+        { error: 'Your subscription is no longer active. Please resubscribe to purchase top-ups.', code: 'subscription_inactive' },
+        { status: 403 },
+      );
+    }
+    // Block during trial — keep trial scope tight
+    if (sub.trialUsed === false && sub.status === 'trialing') {
+      return NextResponse.json(
+        { error: 'Top-up packs are available after your trial converts to a paid plan.', code: 'trial_active' },
+        { status: 403 },
+      );
+    }
+    // Also check via Stripe if subscription is trialing
+    if (sub.stripeSubscriptionId) {
+      try {
+        const stripeSub = await stripe.subscriptions.retrieve(sub.stripeSubscriptionId);
+        if (stripeSub.status === 'trialing') {
+          return NextResponse.json(
+            { error: 'Top-up packs are available after your trial converts to a paid plan.', code: 'trial_active' },
+            { status: 403 },
+          );
+        }
+        if (stripeSub.status === 'canceled' || stripeSub.status === 'past_due' || stripeSub.status === 'unpaid') {
+          return NextResponse.json(
+            { error: 'Your subscription is no longer active. Please resubscribe to purchase top-ups.', code: 'subscription_inactive' },
+            { status: 403 },
+          );
+        }
+      } catch {
+        // Non-fatal — proceed with local checks already done
+      }
+    }
+
     const packId = body.packId as string;
     const pack = TOPUP_PACKS.find(p => p.id === packId);
     if (!pack) {

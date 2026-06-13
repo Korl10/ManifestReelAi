@@ -306,11 +306,12 @@ export default function SettingsPage() {
         )}
       </motion.div>
 
-      {/* Top-up Credit Packs */}
-      {isPaid && (
+      {/* Top-up Credit Packs — active paid subscribers only (not trial) */}
+      {isPaid && !quota?.isTrialing && sub?.status !== 'cancelled' && sub?.status !== 'canceled' && sub?.status !== 'past_due' && (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }} className="rounded-xl bg-white/[0.02] border border-white/5 p-5">
           <h2 className="text-sm font-semibold flex items-center gap-2 mb-3"><Zap className="w-4 h-4 text-[#D4AF37]" /> Buy Extra Credits</h2>
-          <p className="text-xs text-white/40 mb-4">One-time credit packs that stack on your plan. Use anytime — no expiry.</p>
+          <p className="text-xs text-white/40 mb-4">Top up anytime — available for active subscribers. Credits never expire.</p>
+          <p className="text-[10px] text-white/25 mb-3">Available on Starter, Creator, Pro, and Studio plans.</p>
           <div className="space-y-2">
             {TOPUP_PACKS.map(pack => (
               <button
@@ -337,6 +338,14 @@ export default function SettingsPage() {
               </button>
             ))}
           </div>
+        </motion.div>
+      )}
+
+      {/* Trial users see greyed-out top-up hint */}
+      {isPaid && quota?.isTrialing && (
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }} className="rounded-xl bg-white/[0.02] border border-white/5 p-5 opacity-50">
+          <h2 className="text-sm font-semibold flex items-center gap-2 mb-2"><Zap className="w-4 h-4 text-white/30" /> Buy Extra Credits</h2>
+          <p className="text-xs text-white/30">Available after your trial converts to a paid plan.</p>
         </motion.div>
       )}
 

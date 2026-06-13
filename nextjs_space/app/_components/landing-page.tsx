@@ -224,12 +224,6 @@ const TIERS = [
   { name: 'Studio', monthly: 199, annualMo: 119, annualTotal: 1432.80, annualSave: 956, features: ['30,000 credits / month', 'All 150+ voices + cloning (Q3 2026)', 'All quality tiers', 'Priority rendering', 'White-label exports'], cta: 'Start Studio', tier: 'studio', popular: false },
 ];
 
-const TOPUPS = [
-  { id: 'topup-1000', label: 'Mini Pack', credits: '1,000', price: 14.99 },
-  { id: 'topup-3000', label: 'Plus Pack', credits: '3,000', price: 39.99, popular: true },
-  { id: 'topup-8000', label: 'Power Pack', credits: '8,000', price: 99.99 },
-  { id: 'topup-20000', label: 'Studio Pack', credits: '20,000', price: 199 },
-];
 
 const TESTIMONIALS = [
   { name: 'Sarah M.', role: 'Manifestation Coach', avatar: '/testimonials/sarah.jpg', text: 'ManifestReel completely transformed my content game. I went from struggling to post to having a week of reels done in 20 minutes. My audience has grown 3x since I started using it.', stars: 5 },
@@ -275,27 +269,7 @@ export function LandingPage() {
     }
   };
 
-  const handleTopup = async (packId: string) => {
-    if (!session) {
-      router.push('/signup');
-      return;
-    }
-    try {
-      const res = await fetch('/api/payments/create-checkout-v2', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode: 'topup', packId }),
-      });
-      const data = await res.json();
-      if (data?.url) {
-        window.location.href = data.url;
-      } else if (data?.error) {
-        toast.error(data.error);
-      }
-    } catch {
-      toast.error('Failed to process purchase');
-    }
-  };
+
 
   return (
     <div className="min-h-screen bg-[#0A0A0A] text-white overflow-x-hidden">
@@ -571,24 +545,16 @@ export function LandingPage() {
             🔄 Unused credits roll over for 60 days (capped at 1× monthly allotment). Auto-posting launches soon — Pro+ early access.
           </p>
 
-          {/* Top-up Packs */}
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} className="mt-14 max-w-4xl mx-auto">
-            <h3 className="text-center font-display text-xl font-semibold mb-2">Need More Credits?</h3>
-            <p className="text-center text-sm text-white/45 mb-6">One-time credit packs — no subscription required. Use anytime.</p>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {TOPUPS.map((pk) => (
-                <button
-                  key={pk.id}
-                  onClick={() => handleTopup(pk.id)}
-                  className="p-4 rounded-xl bg-white/[0.03] border border-white/10 hover:border-[#D4AF37]/30 hover:bg-white/[0.06] transition-all text-center group"
-                >
-                  <div className="text-2xl font-bold text-[#D4AF37] mb-1">{pk.credits.toLocaleString()}</div>
-                  <div className="text-xs text-white/50 mb-2">credits</div>
-                  <div className="text-sm font-semibold text-white group-hover:text-[#D4AF37] transition-colors">${pk.price}</div>
-                </button>
-              ))}
-            </div>
-          </motion.div>
+          {/* Subscriber top-up link */}
+          <p className="text-center text-xs text-white/30 mt-8">
+            Already a subscriber?{' '}
+            <Link
+              href={session ? '/dashboard/settings' : '/login?next=/dashboard/settings'}
+              className="text-[#D4AF37] hover:underline"
+            >
+              Buy extra credits →
+            </Link>
+          </p>
         </div>
       </section>
 
