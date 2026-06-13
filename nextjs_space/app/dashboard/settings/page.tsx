@@ -282,9 +282,7 @@ export default function SettingsPage() {
                         key={tier}
                         onClick={() => handleUpgrade(tier)}
                         disabled={!!upgrading}
-                        className={`py-2.5 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-50 transition ${
-                          isGold ? 'gold-gradient text-black hover:opacity-90' : 'bg-[#7B2FBE]/20 border border-[#7B2FBE]/30 text-[#A855F7] hover:bg-[#7B2FBE]/30'
-                        }`}
+                        className="py-2.5 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-50 transition gold-gradient text-black hover:opacity-90"
                       >
                         {upgrading === tier ? <Loader2 className="w-4 h-4 animate-spin" /> : `${plan.name} — $${monthlyDisplay}/mo`}
                       </button>

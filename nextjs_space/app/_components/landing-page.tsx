@@ -217,7 +217,7 @@ const FEATURES = [
 ];
 
 const TIERS = [
-  { name: 'Free', monthly: 0, annualMo: 0, annualTotal: 0, annualSave: 0, features: ['Demo gallery access', 'Full configurator access — explore all styles & moods', 'Browse premium voices & music library', 'No card required'], cta: 'Start 3-Day Free Trial', tier: 'free', popular: false },
+  { name: 'Free', monthly: 0, annualMo: 0, annualTotal: 0, annualSave: 0, features: ['Demo gallery access', 'Full configurator access — explore all styles & moods', 'Browse premium voices & music library', 'No card required'], cta: 'Get Started', tier: 'free', popular: false },
   { name: 'Starter', monthly: 14.99, annualMo: 8.99, annualTotal: 107.88, annualSave: 72, features: ['1,500 credits / month', '10 premium voices', 'Up to Standard quality', '720p & 1080p exports', 'Auto-matched background music'], cta: 'Get Starter', tier: 'starter', popular: false },
   { name: 'Creator', monthly: 34.99, annualMo: 20.99, annualTotal: 251.88, annualSave: 168, features: ['4,000 credits / month', '30 premium voices', 'Up to Pro quality', '1080p exports', 'Custom music uploads'], cta: 'Get Creator', tier: 'creator', popular: true },
   { name: 'Pro', monthly: 79.99, annualMo: 47.99, annualTotal: 575.88, annualSave: 384, features: ['10,000 credits / month', 'All 150+ voices', 'Cinematic quality (Veo 3)', 'Brand Kit (unlimited presets)', '4K upscale add-on'], cta: 'Get Pro', tier: 'pro', popular: false },
@@ -497,7 +497,7 @@ export function LandingPage() {
                   {/* Trial badge — paid tiers only (not Studio) */}
                   {t.monthly > 0 && !isStudio && (
                     <div className="mb-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-semibold">
-                      🎁 3-day free trial
+                      3-day free trial
                     </div>
                   )}
 
@@ -550,9 +550,7 @@ export function LandingPage() {
 
                   <button
                     onClick={() => handlePricing(t.tier)}
-                    className={`w-full py-2.5 rounded-lg font-semibold text-sm transition-all ${
-                      isPro ? 'gold-gradient text-black hover:opacity-90' : 'bg-white/5 text-white hover:bg-white/10 border border-white/10'
-                    }`}
+                    className="w-full py-2.5 rounded-lg font-semibold text-sm transition-all gold-gradient text-black hover:opacity-90"
                   >
                     {t.cta}
                   </button>
