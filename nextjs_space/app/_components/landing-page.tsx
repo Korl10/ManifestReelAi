@@ -389,7 +389,7 @@ export function LandingPage() {
                     <Star key={i} className="w-3.5 h-3.5 fill-[#D4AF37] text-[#D4AF37]" />
                   ))}
                 </div>
-                <span className="text-sm text-white/60">Rated <span className="text-white/90 font-semibold">4.9/5</span> by <span className="text-white/90 font-semibold">2,000+</span> creators</span>
+                <span className="text-sm text-white/60">Rated <span className="text-white/90 font-semibold">4.9/5</span> by <span className="text-white/90 font-semibold">50,000+</span> creators</span>
               </div>
             </div>
           </motion.div>
