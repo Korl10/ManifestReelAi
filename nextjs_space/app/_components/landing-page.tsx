@@ -558,40 +558,63 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* Testimonials */}
-      <section id="testimonials" className="py-20 md:py-32">
+      {/* Testimonials — auto-scrolling marquee */}
+      <section id="testimonials" className="py-20 md:py-32 overflow-hidden">
         <div className="max-w-[1200px] mx-auto px-4">
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} className="text-center mb-16">
-            <h2 className="font-display text-3xl md:text-4xl font-bold tracking-tight mb-4">Loved by <span className="text-[#D4AF37]">Creators</span></h2>
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} className="text-center mb-14">
+            <h2 className="font-display text-3xl md:text-4xl font-bold tracking-tight mb-4">What Creators Say About <span className="text-[#D4AF37]">ManifestReel AI</span></h2>
             <p className="text-white/50 max-w-xl mx-auto">Join thousands of manifestation creators who transformed their content with AI.</p>
           </motion.div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {TESTIMONIALS.map((t: any, i: number) => (
-              <motion.div
-                key={t?.name ?? i}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true }}
-                variants={fadeUp}
-                transition={{ delay: (i % 3) * 0.1 }}
-                className="group p-5 rounded-xl bg-white/[0.02] border border-white/5 hover:border-[#D4AF37]/20 hover:bg-white/[0.04] transition-all duration-300"
+        </div>
+
+        {/* Row 1 — scrolls left */}
+        <div className="relative mb-5">
+          <div className="absolute left-0 top-0 bottom-0 w-20 bg-gradient-to-r from-[#0A0A0A] to-transparent z-10 pointer-events-none" />
+          <div className="absolute right-0 top-0 bottom-0 w-20 bg-gradient-to-l from-[#0A0A0A] to-transparent z-10 pointer-events-none" />
+          <div className="flex animate-marquee-left gap-4 w-max">
+            {[...TESTIMONIALS, ...TESTIMONIALS].map((t: any, i: number) => (
+              <div
+                key={`r1-${i}`}
+                className="flex items-center gap-3 px-5 py-3.5 rounded-full bg-white/[0.04] border border-[#D4AF37]/15 hover:border-[#D4AF37]/40 transition-all duration-300 shrink-0 max-w-[420px]"
               >
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="relative w-11 h-11 rounded-full overflow-hidden border-2 border-[#D4AF37]/30 shrink-0">
-                    <Image src={t.avatar} alt={t.name} fill className="object-cover" sizes="44px" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold truncate text-white">{t?.name ?? ''}</p>
-                    <p className="text-xs text-[#D4AF37] truncate">{t?.role ?? ''}</p>
-                  </div>
+                <div className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-[#D4AF37]/30 shrink-0">
+                  <Image src={t.avatar} alt={t.name} fill className="object-cover" sizes="40px" />
                 </div>
-                <div className="flex gap-0.5 mb-3">
-                  {Array.from({ length: t?.stars ?? 5 }).map((_: any, j: number) => (
-                    <Star key={j} className="w-3.5 h-3.5 fill-[#D4AF37] text-[#D4AF37]" />
-                  ))}
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <span className="text-sm font-semibold text-white whitespace-nowrap">{t?.name ?? ''}</span>
+                    <span className="text-[10px] text-[#D4AF37]/60">|</span>
+                    <span className="text-xs text-[#D4AF37] whitespace-nowrap">{t?.role ?? ''}</span>
+                  </div>
+                  <p className="text-xs text-white/50 truncate max-w-[280px]">"{t?.text?.slice(0, 80) ?? ''}…"</p>
                 </div>
-                <p className="text-sm text-white/70 leading-relaxed">"{t?.text ?? ''}"</p>
-              </motion.div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Row 2 — scrolls right */}
+        <div className="relative">
+          <div className="absolute left-0 top-0 bottom-0 w-20 bg-gradient-to-r from-[#0A0A0A] to-transparent z-10 pointer-events-none" />
+          <div className="absolute right-0 top-0 bottom-0 w-20 bg-gradient-to-l from-[#0A0A0A] to-transparent z-10 pointer-events-none" />
+          <div className="flex animate-marquee-right gap-4 w-max">
+            {[...TESTIMONIALS.slice(4), ...TESTIMONIALS.slice(0, 4), ...TESTIMONIALS.slice(4), ...TESTIMONIALS.slice(0, 4)].map((t: any, i: number) => (
+              <div
+                key={`r2-${i}`}
+                className="flex items-center gap-3 px-5 py-3.5 rounded-full bg-white/[0.04] border border-[#D4AF37]/15 hover:border-[#D4AF37]/40 transition-all duration-300 shrink-0 max-w-[420px]"
+              >
+                <div className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-[#D4AF37]/30 shrink-0">
+                  <Image src={t.avatar} alt={t.name} fill className="object-cover" sizes="40px" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <span className="text-sm font-semibold text-white whitespace-nowrap">{t?.name ?? ''}</span>
+                    <span className="text-[10px] text-[#D4AF37]/60">|</span>
+                    <span className="text-xs text-[#D4AF37] whitespace-nowrap">{t?.role ?? ''}</span>
+                  </div>
+                  <p className="text-xs text-white/50 truncate max-w-[280px]">"{t?.text?.slice(0, 80) ?? ''}…"</p>
+                </div>
+              </div>
             ))}
           </div>
         </div>
