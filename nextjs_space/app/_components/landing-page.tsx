@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Sparkles, Wand2, Music, Video, Type, Zap, Crown, Star, ArrowRight, Check, Menu, X, Heart, MessageCircle, Share2, Bookmark, ThumbsUp, ThumbsDown, Plus, MoreHorizontal, Music2 } from 'lucide-react';
+import { Sparkles, Wand2, Music, Video, Type, Zap, Crown, Star, ArrowRight, Check, Menu, X, Heart, MessageCircle, Share2, Bookmark, ThumbsUp, ThumbsDown, Plus, MoreHorizontal, Music2, Smartphone, Monitor, Globe, Play, Download } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useSession } from 'next-auth/react';
@@ -716,6 +716,137 @@ export function LandingPage() {
               );
             })}
           </div>
+        </div>
+      </section>
+
+      {/* Create Anywhere — App Showcase */}
+      <section className="py-20 md:py-32 relative overflow-hidden">
+        {/* Ambient glow */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-[#D4AF37]/[0.03] blur-[120px] pointer-events-none" />
+        
+        <div className="max-w-[1200px] mx-auto px-4">
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} className="text-center mb-16">
+            <h2 className="font-display text-3xl md:text-4xl font-bold tracking-tight mb-4">
+              Create Reels <span className="text-[#D4AF37]">Anywhere</span>
+            </h2>
+            <p className="text-white/50 max-w-xl mx-auto">
+              Start on desktop, continue on your phone. Your ManifestReel workspace stays fully synced across all devices.
+            </p>
+          </motion.div>
+
+          {/* Device mockups */}
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} className="flex justify-center items-end gap-6 md:gap-10 mb-16">
+            {/* Phone 1 — Craft screen */}
+            <div className="relative w-[160px] md:w-[220px] shrink-0">
+              <div className="rounded-[24px] md:rounded-[32px] border-2 border-white/10 bg-[#111] overflow-hidden shadow-2xl shadow-black/50">
+                {/* Status bar */}
+                <div className="flex items-center justify-between px-4 py-1.5 bg-black/60">
+                  <span className="text-[8px] md:text-[9px] text-white/60 font-medium">9:41</span>
+                  <div className="flex items-center gap-1">
+                    <div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-[#D4AF37]/60" />
+                  </div>
+                </div>
+                {/* App header */}
+                <div className="px-3 md:px-4 py-2 md:py-3 border-b border-white/5">
+                  <div className="flex items-center gap-1.5">
+                    <Sparkles className="w-3 h-3 md:w-3.5 md:h-3.5 text-[#D4AF37]" />
+                    <span className="text-[9px] md:text-[11px] font-bold text-white">ManifestReel <span className="text-[#D4AF37]">AI</span></span>
+                  </div>
+                </div>
+                {/* Craft UI */}
+                <div className="p-3 md:p-4 space-y-2.5 md:space-y-3">
+                  <div className="text-[8px] md:text-[10px] text-white/40 uppercase tracking-wider font-semibold">Your Affirmation</div>
+                  <div className="rounded-lg bg-white/[0.04] border border-white/10 p-2 md:p-2.5">
+                    <p className="text-[8px] md:text-[10px] text-[#D4AF37]/80 leading-relaxed">I am a magnet for abundance and prosperity flows to me effortlessly...</p>
+                  </div>
+                  <div className="text-[8px] md:text-[10px] text-white/40 uppercase tracking-wider font-semibold">Style</div>
+                  <div className="flex gap-1.5 flex-wrap">
+                    {['Spiritual', 'Wealth', 'Luxury'].map((s, si) => (
+                      <span key={s} className={`text-[7px] md:text-[9px] px-2 py-1 rounded-full border ${si === 0 ? 'border-[#D4AF37]/50 text-[#D4AF37] bg-[#D4AF37]/10' : 'border-white/10 text-white/40'}`}>{s}</span>
+                    ))}
+                  </div>
+                  <div className="text-[8px] md:text-[10px] text-white/40 uppercase tracking-wider font-semibold">Voice</div>
+                  <div className="rounded-lg bg-white/[0.04] border border-white/10 px-2 py-1.5 flex items-center justify-between">
+                    <span className="text-[8px] md:text-[10px] text-white/60">Rachel — Warm</span>
+                    <ArrowRight className="w-2.5 h-2.5 text-white/30" />
+                  </div>
+                  <button className="w-full py-2 md:py-2.5 rounded-lg gold-gradient text-black font-bold text-[9px] md:text-[11px] flex items-center justify-center gap-1">
+                    <Sparkles className="w-2.5 h-2.5 md:w-3 md:h-3" /> Generate Reel
+                  </button>
+                </div>
+              </div>
+              {/* Notch */}
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-16 md:w-20 h-4 md:h-5 bg-black rounded-b-2xl" />
+            </div>
+
+            {/* Phone 2 — Preview screen */}
+            <div className="relative w-[160px] md:w-[220px] shrink-0">
+              <div className="rounded-[24px] md:rounded-[32px] border-2 border-white/10 bg-[#111] overflow-hidden shadow-2xl shadow-black/50">
+                {/* Status bar */}
+                <div className="flex items-center justify-between px-4 py-1.5 bg-black/60">
+                  <span className="text-[8px] md:text-[9px] text-white/60 font-medium">9:42</span>
+                  <div className="flex items-center gap-1">
+                    <div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-green-500/60" />
+                  </div>
+                </div>
+                {/* Preview header */}
+                <div className="px-3 md:px-4 py-2 md:py-3 border-b border-white/5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[9px] md:text-[11px] font-semibold text-white">Preview</span>
+                    <div className="flex items-center gap-2">
+                      <Share2 className="w-3 h-3 text-white/40" />
+                      <Download className="w-3 h-3 text-white/40" />
+                    </div>
+                  </div>
+                </div>
+                {/* Video preview area */}
+                <div className="relative aspect-[9/12] bg-gradient-to-b from-[#1a0f2e] via-[#0d0d0d] to-[#1a0f00] flex items-center justify-center">
+                  <div className="absolute inset-0 bg-[url('/features/cinematic-motion.jpg')] bg-cover bg-center opacity-40" />
+                  <div className="relative z-10 w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center">
+                    <Play className="w-4 h-4 md:w-5 md:h-5 text-white fill-white" />
+                  </div>
+                  {/* Captions overlay */}
+                  <div className="absolute bottom-3 left-3 right-3 z-10">
+                    <p className="text-[8px] md:text-[10px] text-white font-medium text-center leading-relaxed bg-black/40 backdrop-blur-sm rounded-lg px-2 py-1.5">
+                      <span className="text-[#D4AF37]">I attract</span> abundance and prosperity into my life
+                    </p>
+                  </div>
+                </div>
+                {/* Meta info */}
+                <div className="p-3 md:p-4 space-y-2">
+                  <h4 className="text-[9px] md:text-[11px] font-semibold text-white truncate">Morning Abundance Affirmation</h4>
+                  <div className="flex items-center gap-2 text-[7px] md:text-[9px] text-white/40">
+                    <span>1080p</span>
+                    <span className="text-white/20">•</span>
+                    <span>30s</span>
+                    <span className="text-white/20">•</span>
+                    <span className="text-[#D4AF37]/70">Cinematic</span>
+                  </div>
+                </div>
+              </div>
+              {/* Notch */}
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-16 md:w-20 h-4 md:h-5 bg-black rounded-b-2xl" />
+            </div>
+          </motion.div>
+
+          {/* Device badges */}
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} className="flex flex-wrap justify-center gap-4 md:gap-6">
+            {[
+              { icon: Monitor, label: 'Desktop', sub: 'Full studio experience' },
+              { icon: Smartphone, label: 'Mobile', sub: 'Create on the go' },
+              { icon: Globe, label: 'Any Browser', sub: 'No downloads needed' },
+            ].map((d) => (
+              <div key={d.label} className="flex items-center gap-3 px-5 py-3 rounded-xl bg-white/[0.03] border border-white/5">
+                <div className="w-9 h-9 rounded-lg bg-[#D4AF37]/10 border border-[#D4AF37]/20 flex items-center justify-center">
+                  <d.icon className="w-4 h-4 text-[#D4AF37]" />
+                </div>
+                <div>
+                  <div className="text-sm font-semibold text-white">{d.label}</div>
+                  <div className="text-[11px] text-white/40">{d.sub}</div>
+                </div>
+              </div>
+            ))}
+          </motion.div>
         </div>
       </section>
 
