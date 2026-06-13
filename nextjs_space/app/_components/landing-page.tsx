@@ -773,14 +773,14 @@ export function LandingPage() {
 
             {/* Right — Phone Mockups with real screenshots */}
             <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} className="flex items-end gap-4 md:gap-6 shrink-0">
-              {/* Phone 1 — Craft Screen */}
+              {/* Phone 1 — Craft Screen (1290×2328 → aspect 43/77.6 ≈ 9/16.2) */}
               <div className="relative w-[150px] md:w-[200px] lg:w-[220px]">
                 <div className="rounded-[28px] md:rounded-[36px] border-[2.5px] border-white/15 bg-black overflow-hidden shadow-2xl shadow-black/60">
                   {/* Notch */}
                   <div className="absolute top-0 left-1/2 -translate-x-1/2 w-16 md:w-20 h-5 md:h-6 bg-black rounded-b-2xl z-20" />
-                  {/* Screenshot */}
-                  <div className="relative w-full aspect-[9/19.5]">
-                    <Image src="/showcase/app-screen-craft.jpg" alt="ManifestReel AI craft screen showing mood picker, platform selection, voice settings, subtitle styles, and background music options" fill className="object-cover object-top" sizes="220px" />
+                  {/* Screenshot — natural ratio, no cropping */}
+                  <div className="relative w-full" style={{ aspectRatio: '1290 / 2328' }}>
+                    <Image src="/showcase/app-screen-craft.jpg" alt="ManifestReel AI craft screen showing mood picker, platform selection, voice settings, subtitle styles, and background music options" fill className="object-contain" sizes="220px" />
                   </div>
                 </div>
                 {/* Floating label */}
@@ -789,14 +789,14 @@ export function LandingPage() {
                 </div>
               </div>
 
-              {/* Phone 2 — Voice Screen */}
+              {/* Phone 2 — Voice Screen (1290×2466 → aspect 9/17.2) */}
               <div className="relative w-[150px] md:w-[200px] lg:w-[220px] -mb-4">
                 <div className="rounded-[28px] md:rounded-[36px] border-[2.5px] border-white/15 bg-black overflow-hidden shadow-2xl shadow-black/60">
                   {/* Notch */}
                   <div className="absolute top-0 left-1/2 -translate-x-1/2 w-16 md:w-20 h-5 md:h-6 bg-black rounded-b-2xl z-20" />
-                  {/* Screenshot */}
-                  <div className="relative w-full aspect-[9/19.5]">
-                    <Image src="/showcase/app-screen-voice.jpg" alt="ManifestReel AI voice selection screen showing voice cards for Jenny, Farah, and Koraly with speaking speed and reel length controls" fill className="object-cover object-top" sizes="220px" />
+                  {/* Screenshot — natural ratio, no cropping */}
+                  <div className="relative w-full" style={{ aspectRatio: '1290 / 2466' }}>
+                    <Image src="/showcase/app-screen-voice.jpg" alt="ManifestReel AI voice selection screen showing voice cards for Jenny, Farah, and Koraly with speaking speed and reel length controls" fill className="object-contain" sizes="220px" />
                   </div>
                 </div>
                 {/* Floating label */}
