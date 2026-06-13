@@ -221,7 +221,7 @@ const TIERS = [
   { name: 'Starter', monthly: 14.99, annualMo: 8.99, annualTotal: 107.88, annualSave: 72, features: ['1,500 credits / month', '10 premium voices', 'Up to Standard quality', '720p & 1080p exports', 'Auto-matched background music'], cta: 'Get Starter', tier: 'starter', popular: false },
   { name: 'Creator', monthly: 34.99, annualMo: 20.99, annualTotal: 251.88, annualSave: 168, features: ['4,000 credits / month', '30 premium voices', 'Up to Pro quality', '1080p exports', 'Custom music uploads'], cta: 'Get Creator', tier: 'creator', popular: true },
   { name: 'Pro', monthly: 79.99, annualMo: 47.99, annualTotal: 575.88, annualSave: 384, features: ['10,000 credits / month', 'All 150+ voices', 'Cinematic quality (Veo 3)', 'Brand Kit (unlimited presets)', '4K upscale add-on'], cta: 'Get Pro', tier: 'pro', popular: false },
-  { name: 'Studio', monthly: 199, annualMo: 119, annualTotal: 1432.80, annualSave: 956, features: ['30,000 credits / month', 'All 150+ voices + cloning', 'All quality tiers', 'Priority rendering', 'White-label exports'], cta: 'Start Studio', tier: 'studio', popular: false },
+  { name: 'Studio', monthly: 199, annualMo: 119, annualTotal: 1432.80, annualSave: 956, features: ['30,000 credits / month', 'All 150+ voices + cloning (Q3 2026)', 'All quality tiers', 'Priority rendering', 'White-label exports'], cta: 'Start Studio', tier: 'studio', popular: false },
 ];
 
 const TOPUPS = [

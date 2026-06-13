@@ -31,8 +31,31 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'An account with this email already exists' }, { status: 409 });
     }
     const passwordHash = await bcrypt.hash(password, 12);
+
+    // If the client indicates OTP was verified, confirm it server-side
+    // and auto-set emailVerified so trial checkout can proceed.
+    let emailVerifiedAt: Date | null = null;
+    if (body.otpVerified) {
+      const verifiedOtp = await prisma.emailOtp.findFirst({
+        where: {
+          email: email.toLowerCase().trim(),
+          verified: true,
+          expiresAt: { gt: new Date(Date.now() - 30 * 60 * 1000) }, // within 30 min
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+      if (verifiedOtp) {
+        emailVerifiedAt = new Date();
+      }
+    }
+
     const user = await prisma.user.create({
-      data: { email, passwordHash, name: name ?? email.split('@')[0] },
+      data: {
+        email,
+        passwordHash,
+        name: name ?? email.split('@')[0],
+        ...(emailVerifiedAt ? { emailVerified: emailVerifiedAt } : {}),
+      },
     });
     // Create free subscription
     await prisma.subscription.create({ data: { userId: user.id, tier: 'free', status: 'active' } });

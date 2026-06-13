@@ -163,7 +163,7 @@ export const PLANS_V2: Record<PlanTierV2, PlanV2> = {
     features: [
       '30,000 credits / month',
       'All 150+ professional voices',
-      'Custom voice cloning',
+      'Custom voice cloning (Coming Q3 2026)',
       'Up to Cinematic quality reels',
       '4K upscale add-on',
       'Highest priority rendering',
