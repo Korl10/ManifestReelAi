@@ -226,16 +226,44 @@ const TIERS = [
 
 
 const TESTIMONIALS = [
-  { name: 'Sarah M.', role: 'Manifestation Coach', avatar: '/testimonials/sarah.jpg', text: 'ManifestReel completely transformed my content game. I went from struggling to post to having a week of reels done in 20 minutes. My audience has grown 3x since I started using it.', stars: 5 },
-  { name: 'David K.', role: 'Spiritual Creator', avatar: '/testimonials/david.jpg', text: 'The quality of the scripts is incredible. My followers think I hired a professional team. The 528Hz music tracks are chef\'s kiss — my reels actually feel healing.', stars: 5 },
-  { name: 'Luna R.', role: 'LOA Influencer', avatar: '/testimonials/luna.jpg', text: 'I\'ve tried every reel tool out there. This is the only one that actually understands the manifestation niche. 500K views on my first reel. Game changer.', stars: 5 },
-  { name: 'Marcus T.', role: 'Mindset Mentor', avatar: '/testimonials/marcus.jpg', text: 'As someone who coaches high-performers, my content needs to match that energy. ManifestReel delivers polished, professional reels that resonate with my audience every single time.', stars: 5 },
-  { name: 'Priya S.', role: 'Meditation Teacher', avatar: '/testimonials/priya.jpg', text: 'The combination of soothing voiceovers and frequency music is perfect for my guided meditation reels. My students love sharing them. It\'s like having a whole production studio.', stars: 5 },
-  { name: 'Aiden C.', role: 'TikTok Creator', avatar: '/testimonials/aiden.jpg', text: 'I was spending 4+ hours per reel manually. Now I create 5 in under an hour and they perform even better. The captions sync perfectly — my engagement rate doubled.', stars: 5 },
-  { name: 'Jasmine W.', role: 'Abundance Coach', avatar: '/testimonials/jasmine.jpg', text: 'My clients always ask how I make my reels so beautiful. ManifestReel gives me that luxury aesthetic without needing any design skills. The affirmation scripts are pure gold.', stars: 5 },
-  { name: 'Elena V.', role: 'Energy Healer', avatar: '/testimonials/elena.jpg', text: 'What I love most is how the AI truly captures spiritual language. Other tools feel generic, but ManifestReel creates scripts that feel authentic to the healing community.', stars: 5 },
-  { name: 'Tyler M.', role: 'YouTube Shorts Creator', avatar: '/testimonials/tyler.jpg', text: 'I repurpose every reel across TikTok, Instagram, and YouTube Shorts. ManifestReel optimizes for all three platforms automatically. My channel hit 100K subscribers thanks to consistent posting.', stars: 5 },
+  // Row 1
+  { name: 'Sarah M.', role: 'Manifestation Coach', avatar: '/testimonials/sarah.jpg', platform: 'instagram' as const, text: 'ManifestReel completely transformed my content game. I went from struggling to post to having a week of reels done in 20 minutes. My audience has grown 3x since I started using it.', stars: 5 },
+  { name: 'David K.', role: 'Spiritual Creator', avatar: '/testimonials/david.jpg', platform: 'youtube' as const, text: 'The quality of the scripts is incredible. My followers think I hired a professional team. The 528Hz music tracks are chef\'s kiss — my reels actually feel healing.', stars: 5 },
+  { name: 'Luna R.', role: 'LOA Influencer', avatar: '/testimonials/luna.jpg', platform: 'tiktok' as const, text: 'I\'ve tried every reel tool out there. This is the only one that actually understands the manifestation niche. 500K views on my first reel. Game changer.', stars: 5 },
+  { name: 'Marcus T.', role: 'Mindset Mentor', avatar: '/testimonials/marcus.jpg', platform: 'youtube' as const, text: 'As someone who coaches high-performers, my content needs to match that energy. ManifestReel delivers polished, professional reels that resonate with my audience every single time.', stars: 5 },
+  { name: 'Natasha P.', role: 'Affirmation Creator', avatar: '/testimonials/natasha.jpg', platform: 'instagram' as const, text: 'I post 3 reels a day now — all made in under 10 minutes each. The affirmation scripts feel like they were written just for my audience. Engagement is through the roof.', stars: 5 },
+  { name: 'Jordan L.', role: 'Mindfulness Coach', avatar: '/testimonials/jordan.jpg', platform: 'tiktok' as const, text: 'My TikTok went from 2K to 85K followers in two months. ManifestReel\'s caption sync is flawless — people watch my reels on mute and still get the full message.', stars: 5 },
+  { name: 'Mei C.', role: 'Wellness Creator', avatar: '/testimonials/mei.jpg', platform: 'youtube' as const, text: 'The cinematic quality is insane for the price. My Shorts look like they were made by a production house. Clients think I have a whole team behind me.', stars: 5 },
+  { name: 'Carlos R.', role: 'Life Coach', avatar: '/testimonials/carlos.jpg', platform: 'instagram' as const, text: 'I\'ve tried Canva, CapCut, everything — nothing comes close. ManifestReel understands the coaching niche perfectly. My DMs are flooded with new client inquiries.', stars: 5 },
+  // Row 2
+  { name: 'Priya S.', role: 'Meditation Teacher', avatar: '/testimonials/priya.jpg', platform: 'youtube' as const, text: 'The combination of soothing voiceovers and frequency music is perfect for my guided meditation reels. My students love sharing them. It\'s like having a whole production studio.', stars: 5 },
+  { name: 'Aiden C.', role: 'TikTok Creator', avatar: '/testimonials/aiden.jpg', platform: 'tiktok' as const, text: 'I was spending 4+ hours per reel manually. Now I create 5 in under an hour and they perform even better. The captions sync perfectly — my engagement rate doubled.', stars: 5 },
+  { name: 'Jasmine W.', role: 'Abundance Coach', avatar: '/testimonials/jasmine.jpg', platform: 'instagram' as const, text: 'My clients always ask how I make my reels so beautiful. ManifestReel gives me that luxury aesthetic without needing any design skills. The affirmation scripts are pure gold.', stars: 5 },
+  { name: 'Elena V.', role: 'Energy Healer', avatar: '/testimonials/elena.jpg', platform: 'instagram' as const, text: 'What I love most is how the AI truly captures spiritual language. Other tools feel generic, but ManifestReel creates scripts that feel authentic to the healing community.', stars: 5 },
+  { name: 'Aria H.', role: 'Gratitude Creator', avatar: '/testimonials/aria.jpg', platform: 'tiktok' as const, text: 'My gratitude reels get saved more than any other content I make. ManifestReel nails the vibe every time — warm visuals, perfect voiceover, healing music. Pure magic.', stars: 5 },
+  { name: 'Ben S.', role: 'Shorts Creator', avatar: '/testimonials/ben.jpg', platform: 'youtube' as const, text: 'I monetized my YouTube Shorts channel in 3 months thanks to consistent posting with ManifestReel. The batch creation feature is a total game-changer for productivity.', stars: 5 },
+  { name: 'Zara K.', role: 'Spiritual Influencer', avatar: '/testimonials/zara.jpg', platform: 'instagram' as const, text: 'Every reel feels like a mini masterpiece. My followers tell me my content is the highlight of their morning scroll. That\'s the ManifestReel effect.', stars: 5 },
+  { name: 'Miles J.', role: 'Manifestation Creator', avatar: '/testimonials/miles.jpg', platform: 'tiktok' as const, text: 'Went viral 4 times in one month. The AI scripts hit different — they feel personal, not robotic. My comment sections are full of people saying "I needed this today."', stars: 5 },
+  // Row 3
+  { name: 'Tyler M.', role: 'YouTube Shorts Creator', avatar: '/testimonials/tyler.jpg', platform: 'youtube' as const, text: 'I repurpose every reel across TikTok, Instagram, and YouTube Shorts. ManifestReel optimizes for all three platforms automatically. My channel hit 100K subscribers thanks to consistent posting.', stars: 5 },
+  { name: 'Olivia D.', role: 'Vision Board Coach', avatar: '/testimonials/olivia.jpg', platform: 'instagram' as const, text: 'ManifestReel turned my vision board workshops into a viral reel series. The visual quality is stunning and my workshop signups tripled since I started posting consistently.', stars: 5 },
+  { name: 'Kai N.', role: 'Breathwork Guide', avatar: '/testimonials/kai.jpg', platform: 'youtube' as const, text: 'The frequency music library is incredible — 528Hz, 432Hz, all perfectly matched. My breathwork reels feel like an experience, not just a video. Subscribers love it.', stars: 5 },
+  { name: 'Sofia G.', role: 'LOA TikToker', avatar: '/testimonials/sofia.jpg', platform: 'tiktok' as const, text: 'From 500 followers to 200K in 4 months. ManifestReel is my secret weapon. The scripting AI genuinely understands law of attraction language — not generic motivation.', stars: 5 },
+  { name: 'Theo W.', role: 'Mindset Creator', avatar: '/testimonials/theo.jpg', platform: 'youtube' as const, text: 'I run 3 YouTube channels and ManifestReel powers all of them. The batch workflow saves me 20+ hours a week. Quality is consistently cinematic — my audience can\'t tell it\'s AI.', stars: 5 },
+  { name: 'Nina F.', role: 'Self-Love Coach', avatar: '/testimonials/nina.jpg', platform: 'instagram' as const, text: 'My self-love affirmation series went viral — 2M views in a week. The voiceover quality is so warm and authentic, people thought I recorded it myself. Absolutely love this tool.', stars: 5 },
+  { name: 'Ryan T.', role: 'Meditation Creator', avatar: '/testimonials/ryan.jpg', platform: 'tiktok' as const, text: 'Best investment I\'ve made for my content business. Each reel takes 3 minutes to create and performs better than anything I used to spend hours editing manually.', stars: 5 },
+  { name: 'Amber L.', role: 'Abundance Creator', avatar: '/testimonials/amber.jpg', platform: 'instagram' as const, text: 'The gold aesthetic in ManifestReel perfectly matches my abundance brand. My reels look cohesive, premium, and professional. Followers constantly ask what tool I use.', stars: 5 },
 ];
+
+const ROW1_TESTIMONIALS = TESTIMONIALS.slice(0, 8);
+const ROW2_TESTIMONIALS = TESTIMONIALS.slice(8, 16);
+const ROW3_TESTIMONIALS = TESTIMONIALS.slice(16, 24);
+
+const PLATFORM_ICONS: Record<string, { color: string; path: string }> = {
+  tiktok: { color: '#00f2ea', path: 'M12.53.02C13.84 0 15.14.01 16.44 0c.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z' },
+  instagram: { color: '#E1306C', path: 'M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z' },
+  youtube: { color: '#FF0000', path: 'M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z' },
+};
 
 export function LandingPage() {
   const { data: session } = useSession() || {};
@@ -572,50 +600,106 @@ export function LandingPage() {
           <div className="absolute left-0 top-0 bottom-0 w-20 bg-gradient-to-r from-[#0A0A0A] to-transparent z-10 pointer-events-none" />
           <div className="absolute right-0 top-0 bottom-0 w-20 bg-gradient-to-l from-[#0A0A0A] to-transparent z-10 pointer-events-none" />
           <div className="flex animate-marquee-left gap-4 w-max">
-            {[...TESTIMONIALS, ...TESTIMONIALS].map((t: any, i: number) => (
-              <div
-                key={`r1-${i}`}
-                className="flex items-center gap-3 px-5 py-3.5 rounded-full bg-white/[0.04] border border-[#D4AF37]/15 hover:border-[#D4AF37]/40 transition-all duration-300 shrink-0 max-w-[420px]"
-              >
-                <div className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-[#D4AF37]/30 shrink-0">
-                  <Image src={t.avatar} alt={t.name} fill className="object-cover" sizes="40px" />
-                </div>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <span className="text-sm font-semibold text-white whitespace-nowrap">{t?.name ?? ''}</span>
-                    <span className="text-[10px] text-[#D4AF37]/60">|</span>
-                    <span className="text-xs text-[#D4AF37] whitespace-nowrap">{t?.role ?? ''}</span>
+            {[...ROW1_TESTIMONIALS, ...ROW1_TESTIMONIALS].map((t: any, i: number) => {
+              const pi = PLATFORM_ICONS[t.platform];
+              return (
+                <div
+                  key={`r1-${i}`}
+                  className="flex items-center gap-3 px-5 py-3.5 rounded-full bg-white/[0.04] border border-[#D4AF37]/15 hover:border-[#D4AF37]/40 transition-all duration-300 shrink-0 max-w-[420px]"
+                >
+                  <div className="relative shrink-0">
+                    <div className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-[#D4AF37]/30">
+                      <Image src={t.avatar} alt={t.name} fill className="object-cover" sizes="40px" />
+                    </div>
+                    {pi && (
+                      <div className="absolute -bottom-0.5 -right-0.5 w-4.5 h-4.5 rounded-full bg-[#0A0A0A] flex items-center justify-center" style={{ width: 18, height: 18 }}>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill={pi.color}><path d={pi.path} /></svg>
+                      </div>
+                    )}
                   </div>
-                  <p className="text-xs text-white/50 truncate max-w-[280px]">"{t?.text?.slice(0, 80) ?? ''}…"</p>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className="text-sm font-semibold text-white whitespace-nowrap">{t?.name ?? ''}</span>
+                      <span className="text-[10px] text-[#D4AF37]/60">|</span>
+                      <span className="text-xs text-[#D4AF37] whitespace-nowrap">{t?.role ?? ''}</span>
+                    </div>
+                    <p className="text-xs text-white/50 truncate max-w-[280px]">"{t?.text?.slice(0, 80) ?? ''}…"</p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
         {/* Row 2 — scrolls right */}
-        <div className="relative">
+        <div className="relative mb-5">
           <div className="absolute left-0 top-0 bottom-0 w-20 bg-gradient-to-r from-[#0A0A0A] to-transparent z-10 pointer-events-none" />
           <div className="absolute right-0 top-0 bottom-0 w-20 bg-gradient-to-l from-[#0A0A0A] to-transparent z-10 pointer-events-none" />
           <div className="flex animate-marquee-right gap-4 w-max">
-            {[...TESTIMONIALS.slice(4), ...TESTIMONIALS.slice(0, 4), ...TESTIMONIALS.slice(4), ...TESTIMONIALS.slice(0, 4)].map((t: any, i: number) => (
-              <div
-                key={`r2-${i}`}
-                className="flex items-center gap-3 px-5 py-3.5 rounded-full bg-white/[0.04] border border-[#D4AF37]/15 hover:border-[#D4AF37]/40 transition-all duration-300 shrink-0 max-w-[420px]"
-              >
-                <div className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-[#D4AF37]/30 shrink-0">
-                  <Image src={t.avatar} alt={t.name} fill className="object-cover" sizes="40px" />
-                </div>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <span className="text-sm font-semibold text-white whitespace-nowrap">{t?.name ?? ''}</span>
-                    <span className="text-[10px] text-[#D4AF37]/60">|</span>
-                    <span className="text-xs text-[#D4AF37] whitespace-nowrap">{t?.role ?? ''}</span>
+            {[...ROW2_TESTIMONIALS, ...ROW2_TESTIMONIALS].map((t: any, i: number) => {
+              const pi = PLATFORM_ICONS[t.platform];
+              return (
+                <div
+                  key={`r2-${i}`}
+                  className="flex items-center gap-3 px-5 py-3.5 rounded-full bg-white/[0.04] border border-[#D4AF37]/15 hover:border-[#D4AF37]/40 transition-all duration-300 shrink-0 max-w-[420px]"
+                >
+                  <div className="relative shrink-0">
+                    <div className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-[#D4AF37]/30">
+                      <Image src={t.avatar} alt={t.name} fill className="object-cover" sizes="40px" />
+                    </div>
+                    {pi && (
+                      <div className="absolute -bottom-0.5 -right-0.5 w-4.5 h-4.5 rounded-full bg-[#0A0A0A] flex items-center justify-center" style={{ width: 18, height: 18 }}>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill={pi.color}><path d={pi.path} /></svg>
+                      </div>
+                    )}
                   </div>
-                  <p className="text-xs text-white/50 truncate max-w-[280px]">"{t?.text?.slice(0, 80) ?? ''}…"</p>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className="text-sm font-semibold text-white whitespace-nowrap">{t?.name ?? ''}</span>
+                      <span className="text-[10px] text-[#D4AF37]/60">|</span>
+                      <span className="text-xs text-[#D4AF37] whitespace-nowrap">{t?.role ?? ''}</span>
+                    </div>
+                    <p className="text-xs text-white/50 truncate max-w-[280px]">"{t?.text?.slice(0, 80) ?? ''}…"</p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Row 3 — scrolls left (slower) */}
+        <div className="relative">
+          <div className="absolute left-0 top-0 bottom-0 w-20 bg-gradient-to-r from-[#0A0A0A] to-transparent z-10 pointer-events-none" />
+          <div className="absolute right-0 top-0 bottom-0 w-20 bg-gradient-to-l from-[#0A0A0A] to-transparent z-10 pointer-events-none" />
+          <div className="flex animate-marquee-left-slow gap-4 w-max">
+            {[...ROW3_TESTIMONIALS, ...ROW3_TESTIMONIALS].map((t: any, i: number) => {
+              const pi = PLATFORM_ICONS[t.platform];
+              return (
+                <div
+                  key={`r3-${i}`}
+                  className="flex items-center gap-3 px-5 py-3.5 rounded-full bg-white/[0.04] border border-[#D4AF37]/15 hover:border-[#D4AF37]/40 transition-all duration-300 shrink-0 max-w-[420px]"
+                >
+                  <div className="relative shrink-0">
+                    <div className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-[#D4AF37]/30">
+                      <Image src={t.avatar} alt={t.name} fill className="object-cover" sizes="40px" />
+                    </div>
+                    {pi && (
+                      <div className="absolute -bottom-0.5 -right-0.5 w-4.5 h-4.5 rounded-full bg-[#0A0A0A] flex items-center justify-center" style={{ width: 18, height: 18 }}>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill={pi.color}><path d={pi.path} /></svg>
+                      </div>
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className="text-sm font-semibold text-white whitespace-nowrap">{t?.name ?? ''}</span>
+                      <span className="text-[10px] text-[#D4AF37]/60">|</span>
+                      <span className="text-xs text-[#D4AF37] whitespace-nowrap">{t?.role ?? ''}</span>
+                    </div>
+                    <p className="text-xs text-white/50 truncate max-w-[280px]">"{t?.text?.slice(0, 80) ?? ''}…"</p>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>

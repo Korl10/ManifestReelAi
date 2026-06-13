@@ -200,12 +200,16 @@
   100% { transform: translateX(0); }
 }
 .animate-marquee-left {
-  animation: marquee-left 35s linear infinite;
+  animation: marquee-left 50s linear infinite;
 }
 .animate-marquee-right {
-  animation: marquee-right 40s linear infinite;
+  animation: marquee-right 55s linear infinite;
+}
+.animate-marquee-left-slow {
+  animation: marquee-left 60s linear infinite;
 }
 .animate-marquee-left:hover,
-.animate-marquee-right:hover {
+.animate-marquee-right:hover,
+.animate-marquee-left-slow:hover {
   animation-play-state: paused;
 }
