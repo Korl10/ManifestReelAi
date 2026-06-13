@@ -356,7 +356,7 @@ function UpgradeModal({
         <h3 className="font-display text-xl font-bold">Preset limit reached</h3>
         <p className="text-white/55 text-sm mt-2">
           Your <span className="capitalize text-white/80">{tier}</span> plan includes {limitLabel}.
-          Upgrade to <span className="text-[#D4AF37]">Premium</span> for unlimited brand presets.
+          Upgrade to <span className="text-[#D4AF37]">Pro</span> for unlimited brand presets.
         </p>
         <div className="flex gap-3 mt-6">
           <button onClick={onClose} className="flex-1 px-4 py-2.5 rounded-xl border border-white/12 text-white/70 text-sm font-medium hover:bg-white/5 transition">

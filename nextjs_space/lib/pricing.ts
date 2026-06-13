@@ -1,63 +1,60 @@
-// ── Pricing configuration (Phase 5 — June 2026 revision) ────────
-// All prices are in USD cents. Stripe prices are created on-demand via
-// the checkout API, so we don't need hardcoded Stripe Price IDs.
-//
-// Coin model:
-//   • Coins are the universal currency. Each reel type + duration has
-//     a fixed coin cost (see REEL_COIN_COSTS below).
-//   • Subscriptions include a monthly coin allotment that RESETS each month.
-//   • Coin bundles are one-time purchases that STACK on top of the
-//     subscription balance and never expire — they're yours forever.
-//   • Coins extend VOLUME within a tier — they never unlock features.
-//     Feature access (model tiers, auto-post, etc.) is gated by plan.
+// ── Pricing configuration (June 2026 — credit-based model) ─────
+// All prices are in USD cents. 1 credit ≈ $0.10 user value.
+// Annual = 40% off monthly. This is the SINGLE SOURCE OF TRUTH for
+// all surfaces: landing page, signup, settings, paywall, admin.
 
 // ── Subscription plans ───────────────────────────────────────────
 export const PLANS = {
   starter: {
     name: 'Starter',
-    monthlyPrice: 1999,    // $19.99
-    annualPrice: 19188,    // $15.99/mo × 12 = $191.88/yr — save $48/yr (20% off)
-    coins: 200,
-    reelsCap: 200,         // legacy alias
-    modelTiers: ['standard', 'pro'] as string[],
-    autoPostPlatforms: [] as string[],  // manual export only
-    features: ['Standard + Pro tiers', '1080p exports, no watermark', 'Full voice catalog (~150)', 'Manual export only'],
+    monthlyPrice: 1499,    // $14.99
+    annualPrice: 10788,    // $8.99/mo × 12 = $107.88/yr — save 40%
+    credits: 1500,
+    coins: 1500,           // legacy alias
+    reelsCap: 1500,        // legacy alias
+    modelTiers: ['standard'] as string[],
+    autoPostPlatforms: [] as string[],
+    features: ['1,500 credits / month', '10 premium voices', 'Up to Standard quality', '720p & 1080p exports', 'Auto-matched background music'],
     introMonthlyPrice: 999,
     introDurationMonths: 3,
   },
-  pro: {
-    name: 'Pro',
-    monthlyPrice: 3999,    // $39.99
-    annualPrice: 38388,    // $31.99/mo × 12 = $383.88/yr — save $96/yr (20% off)
-    coins: 500,
-    reelsCap: 500,
-    modelTiers: ['standard', 'pro', 'cinematic'] as string[],
+  creator: {
+    name: 'Creator',
+    monthlyPrice: 3499,    // $34.99
+    annualPrice: 25188,    // $20.99/mo × 12 = $251.88/yr — save 40%
+    credits: 4000,
+    coins: 4000,
+    reelsCap: 4000,
+    modelTiers: ['standard', 'pro'] as string[],
     autoPostPlatforms: ['instagram', 'tiktok'],
-    features: ['All 3 quality tiers', 'Auto-post IG + TikTok (coming soon)', '1080p exports', '1 Craft preset', '500 coins/month'],
+    features: ['4,000 credits / month', '30 premium voices', 'Up to Pro quality', '1080p exports', 'Custom music uploads', 'Craft brand presets'],
     introMonthlyPrice: 1999,
     introDurationMonths: 3,
+    highlight: true,
   },
-  premium: {
-    name: 'Premium',
-    monthlyPrice: 8999,    // $89.99
-    annualPrice: 86388,    // $71.99/mo × 12 = $863.88/yr — save $216/yr (20% off)
-    coins: 1200,
-    reelsCap: 1200,
+  pro: {
+    name: 'Pro',
+    monthlyPrice: 7999,    // $79.99
+    annualPrice: 57588,    // $47.99/mo × 12 = $575.88/yr — save 40%
+    credits: 10000,
+    coins: 10000,
+    reelsCap: 10000,
     modelTiers: ['standard', 'pro', 'cinematic'] as string[],
     autoPostPlatforms: ['instagram', 'tiktok', 'youtube', 'x'],
-    features: ['All 3 quality tiers', 'Brand Kit (unlimited presets)', 'Auto-post all platforms (coming soon)', '1080p exports', 'Fastest generation speeds', '1,200 coins/month'],
+    features: ['10,000 credits / month', 'All 150+ voices', 'Cinematic quality (Veo 3)', 'Brand Kit (unlimited presets)', '4K upscale add-on', 'Priority rendering'],
     introMonthlyPrice: 4499,
     introDurationMonths: 3,
   },
-  agency: {
-    name: 'Agency',
+  studio: {
+    name: 'Studio',
     monthlyPrice: 19900,   // $199.00
-    annualPrice: 190800,   // $159/mo × 12 = $1,908/yr — save $480/yr (20% off)
-    coins: 3000,
-    reelsCap: 3000,
+    annualPrice: 143280,   // $119/mo × 12 = $1,428/yr — save 40%
+    credits: 30000,
+    coins: 30000,
+    reelsCap: 30000,
     modelTiers: ['standard', 'pro', 'cinematic'] as string[],
     autoPostPlatforms: ['instagram', 'tiktok', 'youtube', 'x'],
-    features: ['5 seats', 'Multi-brand', 'Bulk generation', 'White-label option', '3,000 coins/month'],
+    features: ['30,000 credits / month', 'All 150+ voices + cloning (Q3 2026)', 'All quality tiers', 'Priority rendering', 'White-label exports', 'Dedicated support'],
     introMonthlyPrice: 9900,
     introDurationMonths: 3,
   },
@@ -66,7 +63,36 @@ export const PLANS = {
 export type PlanTier = keyof typeof PLANS;
 export type BillingInterval = 'monthly' | 'annual';
 
-export const PLAN_ORDER: PlanTier[] = ['starter', 'pro', 'premium', 'agency'];
+export const PLAN_ORDER: PlanTier[] = ['starter', 'creator', 'pro', 'studio'];
+
+// ── Legacy slug mapping (grandfathered users) ────────────────────
+// Maps OLD DB slugs from Phase 5 to the new canonical tier keys.
+// Users who signed up under the old plan names keep their OLD tier
+// name + OLD price (contractual). New users see only the new names.
+export const LEGACY_SLUG_MAP: Record<string, PlanTier> = {
+  starter: 'starter',
+  pro: 'creator',      // old 'Pro' $39.99 → now sold as 'Creator' $34.99
+  premium: 'pro',      // old 'Premium' $89.99 → now sold as 'Pro' $79.99
+  agency: 'studio',    // old 'Agency' $199 → now sold as 'Studio' $199
+};
+
+export const LEGACY_DISPLAY: Record<string, { name: string; monthlyPrice: number }> = {
+  starter: { name: 'Starter', monthlyPrice: 1999 },
+  pro: { name: 'Pro', monthlyPrice: 3999 },
+  premium: { name: 'Premium', monthlyPrice: 8999 },
+  agency: { name: 'Agency', monthlyPrice: 19900 },
+};
+
+/** Resolve a potentially-legacy DB slug to the canonical tier key. */
+export function resolveSlug(dbSlug: string): PlanTier | null {
+  if (dbSlug in PLANS) return dbSlug as PlanTier;
+  return LEGACY_SLUG_MAP[dbSlug] ?? null;
+}
+
+/** Check if a DB slug is a legacy (old naming) slug. */
+export function isLegacySlug(dbSlug: string): boolean {
+  return !!(LEGACY_DISPLAY[dbSlug] && !(dbSlug in PLANS));
+}
 
 // ── Per-reel coin costs (by model tier × duration) ───────────────
 // Columns: [5s, 10s, 15s, 25s, 30s]
@@ -101,15 +127,15 @@ export function reelCoinCost(modelTierId: string, durationSec: number): number {
 // Agency has NO trial — uses 30-day money-back guarantee instead.
 export const TRIAL_CONFIG: Partial<Record<PlanTier, { coins: number; duration: number; modelTier: string }>> = {
   starter: { coins: 8,   duration: 10, modelTier: 'standard' },
-  pro:     { coins: 40,  duration: 10, modelTier: 'pro' },
-  premium: { coins: 170, duration: 10, modelTier: 'cinematic' },
+  creator: { coins: 40,  duration: 10, modelTier: 'pro' },
+  pro:     { coins: 170, duration: 10, modelTier: 'cinematic' },
 };
 
-// Annual billing is 20% off the monthly rate.
+// Annual billing is 40% off the monthly rate.
 export function annualPerMonth(tier: PlanTier) {
   return Math.round(PLANS[tier].annualPrice / 12);
 }
-export const ANNUAL_DISCOUNT_PCT = 20;
+export const ANNUAL_DISCOUNT_PCT = 40;
 
 /** Annual savings in cents for a given tier. */
 export function annualSavingsCents(tier: PlanTier): number {
@@ -126,10 +152,10 @@ export const FOUNDERS_DURATION_DAYS = 90;
 
 /** Founders’ ANNUAL price (cents/year) per tier. */
 export const FOUNDERS_ANNUAL_PRICE: Record<PlanTier, number> = {
-  starter: 15588,   // $155.88/yr → $12.99/mo (35% off $19.99)
-  pro:     29988,   // $299.88/yr → $24.99/mo (38% off $39.99)
-  premium: 71988,   // $719.88/yr → $59.99/mo (33% off $89.99)
-  agency:  154800,  // $1,548/yr  → $129/mo   (35% off $199)
+  starter: 10788,   // $107.88/yr → $8.99/mo (same as standard annual — 40% off $14.99)
+  creator: 25188,   // $251.88/yr → $20.99/mo (40% off $34.99)
+  pro:     57588,   // $575.88/yr → $47.99/mo (40% off $79.99)
+  studio:  143280,  // $1,428/yr  → $119/mo   (40% off $199)
 };
 
 /** Founders’ annual price as a monthly-equivalent (cents). */
@@ -158,13 +184,16 @@ export function foundersCountdownDays(): number {
 }
 
 // ── Coin bundles (one-time purchases, stack on subscription, never expire) ──
-export const COIN_BUNDLES = [
-  { id: 'quick-boost', label: 'Quick Boost',  coins: 100,   price: 799,    popular: false },
-  { id: 'creator',     label: 'Creator Pack', coins: 300,   price: 1999,   popular: false },
-  { id: 'pro-pack',    label: 'Pro Pack',     coins: 750,   price: 3999,   popular: false },
-  { id: 'power-pack',  label: 'Power Pack',   coins: 1500,  price: 6999,   popular: true },
-  { id: 'studio',      label: 'Studio Pack',  coins: 3500,  price: 14999,  popular: false },
+// Top-up credit packs (one-time, never expire, active subscribers only).
+export const TOPUP_PACKS = [
+  { id: 'topup-1000',  label: 'Mini Pack',   credits: 1000,   price: 1499,   popular: false },
+  { id: 'topup-3000',  label: 'Plus Pack',   credits: 3000,   price: 3999,   popular: true },
+  { id: 'topup-8000',  label: 'Power Pack',  credits: 8000,   price: 9999,   popular: false },
+  { id: 'topup-20000', label: 'Studio Pack', credits: 20000,  price: 19900,  popular: false },
 ] as const;
+
+// Legacy alias for backward compat (old coin bundles).
+export const COIN_BUNDLES = TOPUP_PACKS;
 
 // Free tier: registration + dashboard + 7s watermarked preview.
 export const FREE_PREVIEW_CAP = 1;
@@ -175,12 +204,12 @@ export function savePct(full: number, intro: number) {
 }
 
 export function premiumSavePct() {
-  const yearly = PLANS.premium.monthlyPrice * 12;
+  const yearly = PLANS.studio.monthlyPrice * 12;
   const proYearly = PLANS.pro.monthlyPrice * 12;
   return Math.round(((proYearly * 2 - yearly) / (proYearly * 2)) * 100);
 }
 
 // Per-coin economics — used by admin/margin reporting.
 export function cheapestPerCoinCents() {
-  return Math.min(...COIN_BUNDLES.map((b) => b.price / b.coins));
+  return Math.min(...COIN_BUNDLES.map((b) => b.price / b.credits));
 }

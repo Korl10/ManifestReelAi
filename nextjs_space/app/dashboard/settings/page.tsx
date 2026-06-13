@@ -4,8 +4,7 @@ import { useSession } from 'next-auth/react';
 import { Settings, User, CreditCard, Link2, Key, Crown, Loader2, AlertCircle, Zap, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
-import { PLANS, PLAN_ORDER, type PlanTier } from '@/lib/pricing';
-import { TOPUP_PACKS } from '@/lib/pricing-v2';
+import { PLANS, PLAN_ORDER, type PlanTier, TOPUP_PACKS, resolveSlug, isLegacySlug, LEGACY_DISPLAY } from '@/lib/pricing';
 
 export default function SettingsPage() {
   const { data: session } = useSession() || {};
@@ -99,8 +98,11 @@ export default function SettingsPage() {
 
   const sub = subData?.subscription;
   const quota = subData?.quota;
-  const currentTier = sub?.tier ?? 'free';
-  const isPaid = PLAN_ORDER.includes(currentTier as PlanTier);
+  const rawTier = sub?.tier ?? 'free';
+  // Resolve legacy DB slugs (premium → pro, agency → studio, etc.)
+  const currentTier = resolveSlug(rawTier) ?? rawTier;
+  const isLegacy = isLegacySlug(rawTier);
+  const isPaid = PLAN_ORDER.includes(currentTier as PlanTier) || ['premium', 'agency'].includes(rawTier);
 
   return (
     <div className="space-y-6 max-w-2xl pb-24 lg:pb-6">
@@ -176,7 +178,7 @@ export default function SettingsPage() {
             <div className="flex items-center gap-3">
               <Crown className="w-5 h-5 text-[#D4AF37]" />
               <div>
-                <p className="text-sm font-semibold capitalize">{currentTier === 'free' ? 'Free' : currentTier} Plan</p>
+                <p className="text-sm font-semibold">{currentTier === 'free' ? 'Free' : (isLegacy ? LEGACY_DISPLAY[rawTier]?.name : PLANS[currentTier as PlanTier]?.name) ?? currentTier} Plan</p>
                 <p className="text-xs text-white/40">
                   {quota?.isTrialing ? 'Trial' : sub?.status === 'active' ? 'Active' : sub?.status ?? 'Active'}
                   {sub?.cancelAtPeriodEnd ? ' • Cancels at period end' : ''}
@@ -220,7 +222,7 @@ export default function SettingsPage() {
                 {currentTier === 'free' ? (
                   <div className="text-xs text-white/50">
                     <p>Free plan — explore all configurator features.</p>
-                    <button onClick={() => handleStartTrial('pro')} className="mt-2 text-[#D4AF37] hover:underline">Start 3-day free trial →</button>
+                    <button onClick={() => handleStartTrial('creator')} className="mt-2 text-[#D4AF37] hover:underline">Start 3-day free trial →</button>
                   </div>
                 ) : (
                   <>
@@ -272,17 +274,17 @@ export default function SettingsPage() {
                     return tierIdx > currentIdx;
                   }).map(tier => {
                     const plan = PLANS[tier];
-                    const annualCents = plan.annualPrice;
                     const monthlyDisplay = billing === 'annual'
-                      ? (Math.round(annualCents / 12) / 100).toFixed(2)
+                      ? (Math.round(plan.annualPrice / 12) / 100).toFixed(2)
                       : (plan.monthlyPrice / 100).toFixed(2);
-                    const isGold = tier === 'starter' || tier === 'pro';
                     return (
                       <button
                         key={tier}
                         onClick={() => handleUpgrade(tier)}
                         disabled={!!upgrading}
-                        className="py-2.5 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-50 transition gold-gradient text-black hover:opacity-90"
+                        className={`py-2.5 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-50 transition ${
+                          (plan as any).highlight ? 'gold-gradient text-black hover:opacity-90 gold-glow' : 'gold-gradient text-black hover:opacity-90'
+                        }`}
                       >
                         {upgrading === tier ? <Loader2 className="w-4 h-4 animate-spin" /> : `${plan.name} — $${monthlyDisplay}/mo`}
                       </button>
@@ -332,7 +334,7 @@ export default function SettingsPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-bold text-[#D4AF37]">${(pack.priceCents / 100).toFixed(2)}</span>
+                  <span className="text-sm font-bold text-[#D4AF37]">${(pack.price / 100).toFixed(2)}</span>
                   {buyingTopup === pack.id && <Loader2 className="w-4 h-4 animate-spin text-[#D4AF37]" />}
                 </div>
               </button>

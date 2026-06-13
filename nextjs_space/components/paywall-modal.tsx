@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Sparkles, Crown, Zap, Check, Loader2, Gift, Play, Clock, Star } from 'lucide-react';
 import { toast } from 'sonner';
-import { COIN_BUNDLES, PLANS, PLAN_ORDER, isFoundersPeriod, FOUNDERS_ANNUAL_PRICE, type PlanTier } from '@/lib/pricing';
+import { TOPUP_PACKS, PLANS, PLAN_ORDER, isFoundersPeriod, FOUNDERS_ANNUAL_PRICE, type PlanTier, resolveSlug } from '@/lib/pricing';
 
 interface PaywallModalProps {
   open: boolean;
@@ -123,13 +123,14 @@ export function PaywallModal({ open, onClose, tier, reelsUsed, reelsCap, trialUs
 
   if (!open) return null;
 
-  const isPaid = PLAN_ORDER.includes(tier as PlanTier);
+  const resolvedTier = resolveSlug(tier) ?? tier;
+  const isPaid = PLAN_ORDER.includes(resolvedTier as PlanTier) || ['premium', 'agency'].includes(tier);
   const isFree = !isPaid;
-  const isTopTier = tier === 'agency';
+  const isTopTier = resolvedTier === 'studio';
   const canTrial = isFree && !trialUsed;
   // Tiers available to upgrade to (higher than current)
   const upgradeTiers = PLAN_ORDER.filter(t => {
-    const currentIdx = PLAN_ORDER.indexOf(tier as PlanTier);
+    const currentIdx = PLAN_ORDER.indexOf(resolvedTier as PlanTier);
     return PLAN_ORDER.indexOf(t) > currentIdx;
   });
 
@@ -164,7 +165,7 @@ export function PaywallModal({ open, onClose, tier, reelsUsed, reelsCap, trialUs
             <p className="text-sm text-white/50 mt-1">
               {isFree
                 ? 'Your reel configuration is saved. Start a free trial to generate it.'
-                : `You're out of coins. Top up a bundle or upgrade your plan.`}
+                : `You're out of credits. Top up or upgrade your plan.`}
             </p>
           </div>
 
@@ -196,11 +197,11 @@ export function PaywallModal({ open, onClose, tier, reelsUsed, reelsCap, trialUs
 
                     {/* Quick trial CTA — default to Pro (most popular) */}
                     <button
-                      onClick={() => handleStartTrial('pro')}
+                      onClick={() => handleStartTrial('creator')}
                       disabled={!!loading}
                       className="w-full py-3.5 rounded-xl gold-gradient text-black font-bold text-sm hover:opacity-90 transition-all flex items-center justify-center gap-2 gold-glow"
                     >
-                      {loading === 'trial-pro' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                      {loading === 'trial-creator' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
                       Start Free Trial
                     </button>
 
@@ -255,7 +256,7 @@ export function PaywallModal({ open, onClose, tier, reelsUsed, reelsCap, trialUs
                         const plan = PLANS[t];
                         const introMo = (plan.introMonthlyPrice / 100).toFixed(0);
                         const fullMo = (plan.monthlyPrice / 100).toFixed(2);
-                        const isGold = t === 'starter' || t === 'pro';
+                        const isGold = t === 'starter' || t === 'creator';
                         return (
                           <button
                             key={t}
@@ -281,11 +282,11 @@ export function PaywallModal({ open, onClose, tier, reelsUsed, reelsCap, trialUs
             {/* ── COIN BUNDLES (for paid users who ran out) ── */}
             {isPaid && (
               <div className="space-y-3">
-                <p className="text-xs text-white/40 font-medium">Or buy extra coins:</p>
-                {COIN_BUNDLES.map(bundle => (
+                <p className="text-xs text-white/40 font-medium">Or buy extra credits:</p>
+                {TOPUP_PACKS.map(pack => (
                   <button
-                    key={bundle.id}
-                    onClick={() => handleBuyCoins(bundle.id)}
+                    key={pack.id}
+                    onClick={() => handleBuyCoins(pack.id)}
                     disabled={!!loading}
                     className="w-full flex items-center justify-between p-3 rounded-xl bg-white/[0.03] border border-white/8 hover:border-white/15 transition"
                   >
@@ -294,13 +295,13 @@ export function PaywallModal({ open, onClose, tier, reelsUsed, reelsCap, trialUs
                         <Zap className="w-4 h-4 text-black" />
                       </div>
                       <div className="text-left">
-                        <p className="text-sm font-semibold flex items-center gap-1.5">{bundle.label}{(bundle as any).popular && <span className="px-1.5 py-0.5 rounded-full bg-[#D4AF37]/15 text-[#D4AF37] text-[9px] font-bold uppercase">Popular</span>}</p>
-                        <p className="text-[10px] text-white/40">{bundle.coins} coins • never expire</p>
+                        <p className="text-sm font-semibold flex items-center gap-1.5">{pack.label}{pack.popular && <span className="px-1.5 py-0.5 rounded-full bg-[#D4AF37]/15 text-[#D4AF37] text-[9px] font-bold uppercase">Popular</span>}</p>
+                        <p className="text-[10px] text-white/40">{pack.credits.toLocaleString()} credits • never expire</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold text-[#D4AF37]">${(bundle.price / 100).toFixed(2)}</span>
-                      {loading === `coins-${bundle.id}` && <Loader2 className="w-4 h-4 animate-spin text-[#D4AF37]" />}
+                      <span className="text-sm font-bold text-[#D4AF37]">${(pack.price / 100).toFixed(2)}</span>
+                      {loading === `coins-${pack.id}` && <Loader2 className="w-4 h-4 animate-spin text-[#D4AF37]" />}
                     </div>
                   </button>
                 ))}
@@ -314,7 +315,7 @@ export function PaywallModal({ open, onClose, tier, reelsUsed, reelsCap, trialUs
 
   // ── Helper: render upgrade tier cards ──
   function renderUpgradeTiers() {
-    const tiers = isFree ? PLAN_ORDER.filter(t => t !== 'agency') : upgradeTiers;
+    const tiers = isFree ? PLAN_ORDER.filter(t => t !== 'studio') : upgradeTiers;
     if (tiers.length === 0) return null;
     return (
       <div className="space-y-3">
@@ -332,7 +333,7 @@ export function PaywallModal({ open, onClose, tier, reelsUsed, reelsCap, trialUs
               className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all flex items-center gap-1.5 ${billing === 'annual' ? 'bg-white text-black' : 'text-white/60 hover:text-white'}`}
             >
               Annually
-              <span className="text-[10px] font-bold text-emerald-400">{founders ? '🔥 Founders' : '(Save 20%)'}</span>
+              <span className="text-[10px] font-bold text-emerald-400">{founders ? '🔥 Founders' : '(Save 40%)'}</span>
             </button>
           </div>
         </div>
@@ -341,7 +342,8 @@ export function PaywallModal({ open, onClose, tier, reelsUsed, reelsCap, trialUs
           const monthly = (plan.monthlyPrice / 100).toFixed(2);
           const annualCents = founders ? FOUNDERS_ANNUAL_PRICE[t] : plan.annualPrice;
           const annualMo = (Math.round(annualCents / 12) / 100).toFixed(2);
-          const isGold = t === 'starter' || t === 'pro';
+          const isHighlight = t === 'creator';
+          const isGold = t === 'starter' || t === 'creator';
           const accent = isGold ? '#D4AF37' : '#A855F7';
           const Icon = isGold ? Sparkles : Crown;
           return (
@@ -365,7 +367,7 @@ export function PaywallModal({ open, onClose, tier, reelsUsed, reelsCap, trialUs
                 </span>
               </div>
               <div className="space-y-1">
-                {[`${plan.coins} coins / month`, ...plan.features.slice(0, 3)].map(f => (
+                {[`${plan.credits.toLocaleString()} credits / month`, ...plan.features.slice(0, 3)].map(f => (
                   <div key={f} className="flex items-center gap-2 text-xs text-white/50">
                     <Check className="w-3 h-3" style={{ color: accent }} />{f}
                   </div>

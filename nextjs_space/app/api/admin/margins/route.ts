@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
-import { PLANS, COIN_COST, PLAN_ORDER } from '@/lib/pricing';
+import { PLANS, COIN_COST, PLAN_ORDER, LEGACY_SLUG_MAP } from '@/lib/pricing';
 import { moodCoverage } from '@/lib/music-library';
 import { getFreeBudgetToday } from '@/lib/free-tier-limits';
 
@@ -14,6 +14,10 @@ const CREDIT_RETAIL_VALUE = 0.10; // Part D target: 1 credit = $0.10
 const TIER_PRICES: Record<string, number> = { free: 0 };
 for (const t of PLAN_ORDER) {
   TIER_PRICES[t] = PLANS[t].monthlyPrice / 100;
+}
+// Map legacy DB slugs to current pricing
+for (const [legacy, current] of Object.entries(LEGACY_SLUG_MAP)) {
+  TIER_PRICES[legacy] = TIER_PRICES[current] ?? 0;
 }
 
 function dayKey(d: Date): string {

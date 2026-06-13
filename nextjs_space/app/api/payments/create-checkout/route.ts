@@ -18,9 +18,12 @@ export async function POST(request: Request) {
   const billing = body?.billing === 'annual' ? 'annual' : 'monthly';
   const wantsTrial = body?.trial === true;
 
-  if (!tier || !['starter', 'pro', 'premium', 'agency'].includes(tier)) {
+  if (!tier || !['starter', 'creator', 'pro', 'studio', 'premium', 'agency'].includes(tier)) {
     return NextResponse.json({ error: 'Invalid tier' }, { status: 400 });
   }
+  // Map legacy tier slugs to new canonical keys
+  const tierMap: Record<string, string> = { premium: 'pro', agency: 'studio' };
+  const resolvedTier = tierMap[tier] ?? tier;
 
   // Trial-start guards (only when a free trial is being requested):
   if (wantsTrial) {
@@ -46,7 +49,7 @@ export async function POST(request: Request) {
     }
   }
 
-  const plan = PLANS[tier as PlanTier];
+  const plan = PLANS[resolvedTier as PlanTier];
   const origin = request.headers.get('origin') || process.env.NEXTAUTH_URL || 'http://localhost:3000';
 
   // Get or create Stripe customer
@@ -79,7 +82,7 @@ export async function POST(request: Request) {
   // Founders' pricing: Stripe keeps the subscription's price on renewal.
   const isFounders = isAnnual && isFoundersPeriod();
   const annualAmount = isFounders
-    ? FOUNDERS_ANNUAL_PRICE[tier as PlanTier]
+    ? FOUNDERS_ANNUAL_PRICE[resolvedTier as PlanTier]
     : plan.annualPrice;
   const unitAmount = isAnnual
     ? annualAmount
@@ -95,18 +98,18 @@ export async function POST(request: Request) {
         currency: 'usd',
         product_data: {
           name: `ManifestReel AI ${plan.name}`,
-          description: `${plan.coins} coins/month • billed ${isAnnual ? (isFounders ? "annually (Founders' pricing)" : 'annually') : 'monthly'}${isIntro ? ' (introductory offer)' : ''}${applyTrial ? ' • 3-day free trial' : ''}`,
+          description: `${plan.credits.toLocaleString()} credits/month • billed ${isAnnual ? (isFounders ? "annually (Founders' pricing)" : 'annually') : 'monthly'}${isIntro ? ' (introductory offer)' : ''}${applyTrial ? ' • 3-day free trial' : ''}`,
         },
         unit_amount: unitAmount,
         recurring: { interval },
       },
       quantity: 1,
     }],
-    success_url: `${origin}/dashboard?upgraded=${tier}&session_id={CHECKOUT_SESSION_ID}${applyTrial ? '&trial=1' : ''}`,
+    success_url: `${origin}/dashboard?upgraded=${resolvedTier}&session_id={CHECKOUT_SESSION_ID}${applyTrial ? '&trial=1' : ''}`,
     cancel_url: `${origin}/dashboard`,
-    metadata: { userId, tier, isIntro: isIntro ? 'true' : 'false', billing, isFounders: isFounders ? 'true' : 'false', isTrial: applyTrial ? 'true' : 'false' },
+    metadata: { userId, tier: resolvedTier, isIntro: isIntro ? 'true' : 'false', billing, isFounders: isFounders ? 'true' : 'false', isTrial: applyTrial ? 'true' : 'false' },
     subscription_data: {
-      metadata: { userId, tier, isIntro: isIntro ? 'true' : 'false', billing, isFounders: isFounders ? 'true' : 'false' },
+      metadata: { userId, tier: resolvedTier, isIntro: isIntro ? 'true' : 'false', billing, isFounders: isFounders ? 'true' : 'false' },
       ...(applyTrial ? { trial_period_days: 3 } : {}),
     },
   };

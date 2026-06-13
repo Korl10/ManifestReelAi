@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import { PLANS, FREE_PREVIEW_CAP, COIN_COST, reelCoinCost, REEL_COIN_COSTS } from '@/lib/pricing';
+import { PLANS, FREE_PREVIEW_CAP, COIN_COST, reelCoinCost, REEL_COIN_COSTS, PLAN_ORDER, LEGACY_SLUG_MAP, resolveSlug } from '@/lib/pricing';
 import { modelTierAccess, getModelTier, MODEL_TIERS, type ModelTierId } from '@/lib/model-tiers';
 
 // ── Constants ────────────────────────────────────────────────────
@@ -26,13 +26,17 @@ export interface CoinBalance {
   trialReelsUsed: number;        // reels generated during trial
 }
 
-const TIER_COINS: Record<string, number> = {
-  free: 0,
-  starter: PLANS.starter.coins,
-  pro: PLANS.pro.coins,
-  premium: PLANS.premium.coins,
-  agency: PLANS.agency.coins,
-};
+// Build TIER_COINS from current plan tiers + legacy slug aliases
+const TIER_COINS: Record<string, number> = { free: 0 };
+for (const t of PLAN_ORDER) {
+  TIER_COINS[t] = PLANS[t].credits;
+}
+// Legacy DB slugs map to their resolved tier's credits
+for (const [legacy, current] of Object.entries(LEGACY_SLUG_MAP)) {
+  if (!(legacy in TIER_COINS)) {
+    TIER_COINS[legacy] = TIER_COINS[current] ?? 0;
+  }
+}
 
 function monthWindow(now = new Date()) {
   const periodStart = new Date(now.getFullYear(), now.getMonth(), 1);

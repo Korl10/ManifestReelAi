@@ -4,7 +4,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
 import { stripe } from '@/lib/stripe';
-import { COIN_BUNDLES } from '@/lib/pricing';
+import { TOPUP_PACKS } from '@/lib/pricing';
 
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
@@ -13,7 +13,7 @@ export async function POST(request: Request) {
   const body = await request.json();
   const { bundleId } = body ?? {};
 
-  const bundle = COIN_BUNDLES.find(b => b.id === bundleId);
+  const bundle = TOPUP_PACKS.find(b => b.id === bundleId);
   if (!bundle) return NextResponse.json({ error: 'Invalid bundle' }, { status: 400 });
 
   const origin = request.headers.get('origin') || process.env.NEXTAUTH_URL || 'http://localhost:3000';
@@ -43,15 +43,15 @@ export async function POST(request: Request) {
         currency: 'usd',
         product_data: {
           name: `${bundle.label} — ManifestReel AI`,
-          description: `${bundle.coins} coins • never expire`,
+          description: `${bundle.credits} credits • never expire`,
         },
         unit_amount: bundle.price,
       },
       quantity: 1,
     }],
-    success_url: `${origin}/dashboard?coins=purchased&session_id={CHECKOUT_SESSION_ID}`,
+    success_url: `${origin}/dashboard?credits=purchased&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${origin}/dashboard/settings`,
-    metadata: { userId, bundleId: bundle.id, coins: String(bundle.coins), type: 'coin_purchase' },
+    metadata: { userId, bundleId: bundle.id, coins: String(bundle.credits), type: 'coin_purchase' },
   });
 
   // Create pending purchase record
@@ -59,7 +59,7 @@ export async function POST(request: Request) {
     data: {
       userId,
       bundleId: bundle.id,
-      reelsAdded: bundle.coins,
+      reelsAdded: bundle.credits,
       amountCents: bundle.price,
       stripeSessionId: checkoutSession.id,
       status: 'pending',
