@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Sparkles, Wand2, Music, Video, Type, Zap, Crown, Star, ArrowRight, Check, Menu, X, Heart, MessageCircle, Share2, Bookmark, ThumbsUp, ThumbsDown, Plus, MoreHorizontal, Music2, Smartphone, Monitor, Globe, Play, Download } from 'lucide-react';
+import { Sparkles, Wand2, Music, Video, Type, Zap, Crown, Star, ArrowRight, Check, Menu, X, Heart, MessageCircle, Share2, Bookmark, ThumbsUp, ThumbsDown, Plus, MoreHorizontal, Music2 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useSession } from 'next-auth/react';
@@ -719,134 +719,93 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* Create Anywhere — App Showcase */}
+      {/* #1 AI Reel Generator APP — Showcase */}
       <section className="py-20 md:py-32 relative overflow-hidden">
         {/* Ambient glow */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-[#D4AF37]/[0.03] blur-[120px] pointer-events-none" />
-        
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] rounded-full bg-[#D4AF37]/[0.04] blur-[150px] pointer-events-none" />
+
         <div className="max-w-[1200px] mx-auto px-4">
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} className="text-center mb-16">
-            <h2 className="font-display text-3xl md:text-4xl font-bold tracking-tight mb-4">
-              Create Reels <span className="text-[#D4AF37]">Anywhere</span>
-            </h2>
-            <p className="text-white/50 max-w-xl mx-auto">
-              Start on desktop, continue on your phone. Your ManifestReel workspace stays fully synced across all devices.
-            </p>
-          </motion.div>
+          <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
+            {/* Left — Copy + Store Buttons */}
+            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} className="flex-1 text-center lg:text-left">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#D4AF37]/10 border border-[#D4AF37]/20 mb-6">
+                <Sparkles className="w-3.5 h-3.5 text-[#D4AF37]" />
+                <span className="text-xs font-semibold text-[#D4AF37] uppercase tracking-wider">Available Now</span>
+              </div>
+              <h2 className="font-display text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight mb-6">
+                #1 AI Reel Generator{' '}
+                <span className="text-[#D4AF37]">APP</span>
+              </h2>
+              <p className="text-white/50 text-base md:text-lg leading-relaxed mb-4 max-w-lg mx-auto lg:mx-0">
+                Create, discover, and share AI-generated reels anytime, anywhere. ManifestReelAI combines every tool you need — AI scripts, voiceovers, visuals, and auto-captions — into one seamless workspace, fully synced across web and mobile.
+              </p>
+              <p className="text-[#D4AF37]/80 font-semibold text-lg md:text-xl mb-8">
+                Create a viral-ready reel within a minute!
+              </p>
 
-          {/* Device mockups */}
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} className="flex justify-center items-end gap-6 md:gap-10 mb-16">
-            {/* Phone 1 — Craft screen */}
-            <div className="relative w-[160px] md:w-[220px] shrink-0">
-              <div className="rounded-[24px] md:rounded-[32px] border-2 border-white/10 bg-[#111] overflow-hidden shadow-2xl shadow-black/50">
-                {/* Status bar */}
-                <div className="flex items-center justify-between px-4 py-1.5 bg-black/60">
-                  <span className="text-[8px] md:text-[9px] text-white/60 font-medium">9:41</span>
-                  <div className="flex items-center gap-1">
-                    <div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-[#D4AF37]/60" />
+              {/* Store Buttons */}
+              <div className="flex flex-col sm:flex-row items-center lg:items-start gap-3">
+                {/* Google Play */}
+                <a href="#" className="group flex items-center gap-3 px-5 py-3 rounded-xl bg-white/[0.06] border border-white/10 hover:border-[#D4AF37]/30 hover:bg-white/[0.08] transition-all duration-300 w-[200px]">
+                  <svg viewBox="0 0 24 24" className="w-7 h-7 shrink-0" fill="none">
+                    <path d="M3.609 1.814L13.792 12 3.61 22.186a.996.996 0 01-.61-.92V2.734a1 1 0 01.609-.92z" fill="#4285F4"/>
+                    <path d="M17.556 8.236L5.178.738A1.002 1.002 0 003.609 1.814L13.792 12l3.764-3.764z" fill="#EA4335"/>
+                    <path d="M3.609 22.186a1.002 1.002 0 001.569 1.076l12.378-7.498L13.792 12 3.609 22.186z" fill="#34A853"/>
+                    <path d="M21.003 10.837l-3.447-2.601L13.792 12l3.764 3.764 3.447-2.601c.684-.397.684-1.929 0-2.326z" fill="#FBBC05"/>
+                  </svg>
+                  <div className="text-left">
+                    <div className="text-[9px] text-white/40 uppercase tracking-wider leading-none">Get it on</div>
+                    <div className="text-sm font-semibold text-white group-hover:text-[#D4AF37] transition-colors">Google Play</div>
+                  </div>
+                </a>
+                {/* App Store */}
+                <a href="#" className="group flex items-center gap-3 px-5 py-3 rounded-xl bg-white/[0.06] border border-white/10 hover:border-[#D4AF37]/30 hover:bg-white/[0.08] transition-all duration-300 w-[200px]">
+                  <svg viewBox="0 0 24 24" className="w-7 h-7 shrink-0" fill="white">
+                    <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+                  </svg>
+                  <div className="text-left">
+                    <div className="text-[9px] text-white/40 uppercase tracking-wider leading-none">Download on the</div>
+                    <div className="text-sm font-semibold text-white group-hover:text-[#D4AF37] transition-colors">App Store</div>
+                  </div>
+                </a>
+              </div>
+            </motion.div>
+
+            {/* Right — Phone Mockups with real screenshots */}
+            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} className="flex items-end gap-4 md:gap-6 shrink-0">
+              {/* Phone 1 — Craft Screen */}
+              <div className="relative w-[150px] md:w-[200px] lg:w-[220px]">
+                <div className="rounded-[28px] md:rounded-[36px] border-[2.5px] border-white/15 bg-black overflow-hidden shadow-2xl shadow-black/60">
+                  {/* Notch */}
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-16 md:w-20 h-5 md:h-6 bg-black rounded-b-2xl z-20" />
+                  {/* Screenshot */}
+                  <div className="relative w-full aspect-[9/19.5]">
+                    <Image src="/showcase/app-screen-craft.jpg" alt="ManifestReel AI craft screen showing mood picker, platform selection, voice settings, subtitle styles, and background music options" fill className="object-cover object-top" sizes="220px" />
                   </div>
                 </div>
-                {/* App header */}
-                <div className="px-3 md:px-4 py-2 md:py-3 border-b border-white/5">
-                  <div className="flex items-center gap-1.5">
-                    <Sparkles className="w-3 h-3 md:w-3.5 md:h-3.5 text-[#D4AF37]" />
-                    <span className="text-[9px] md:text-[11px] font-bold text-white">ManifestReel <span className="text-[#D4AF37]">AI</span></span>
-                  </div>
-                </div>
-                {/* Craft UI */}
-                <div className="p-3 md:p-4 space-y-2.5 md:space-y-3">
-                  <div className="text-[8px] md:text-[10px] text-white/40 uppercase tracking-wider font-semibold">Your Affirmation</div>
-                  <div className="rounded-lg bg-white/[0.04] border border-white/10 p-2 md:p-2.5">
-                    <p className="text-[8px] md:text-[10px] text-[#D4AF37]/80 leading-relaxed">I am a magnet for abundance and prosperity flows to me effortlessly...</p>
-                  </div>
-                  <div className="text-[8px] md:text-[10px] text-white/40 uppercase tracking-wider font-semibold">Style</div>
-                  <div className="flex gap-1.5 flex-wrap">
-                    {['Spiritual', 'Wealth', 'Luxury'].map((s, si) => (
-                      <span key={s} className={`text-[7px] md:text-[9px] px-2 py-1 rounded-full border ${si === 0 ? 'border-[#D4AF37]/50 text-[#D4AF37] bg-[#D4AF37]/10' : 'border-white/10 text-white/40'}`}>{s}</span>
-                    ))}
-                  </div>
-                  <div className="text-[8px] md:text-[10px] text-white/40 uppercase tracking-wider font-semibold">Voice</div>
-                  <div className="rounded-lg bg-white/[0.04] border border-white/10 px-2 py-1.5 flex items-center justify-between">
-                    <span className="text-[8px] md:text-[10px] text-white/60">Rachel — Warm</span>
-                    <ArrowRight className="w-2.5 h-2.5 text-white/30" />
-                  </div>
-                  <button className="w-full py-2 md:py-2.5 rounded-lg gold-gradient text-black font-bold text-[9px] md:text-[11px] flex items-center justify-center gap-1">
-                    <Sparkles className="w-2.5 h-2.5 md:w-3 md:h-3" /> Generate Reel
-                  </button>
+                {/* Floating label */}
+                <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-[#D4AF37]/20 border border-[#D4AF37]/30 backdrop-blur-sm">
+                  <span className="text-[9px] md:text-[10px] font-semibold text-[#D4AF37] whitespace-nowrap">Craft Your Reel</span>
                 </div>
               </div>
-              {/* Notch */}
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-16 md:w-20 h-4 md:h-5 bg-black rounded-b-2xl" />
-            </div>
 
-            {/* Phone 2 — Preview screen */}
-            <div className="relative w-[160px] md:w-[220px] shrink-0">
-              <div className="rounded-[24px] md:rounded-[32px] border-2 border-white/10 bg-[#111] overflow-hidden shadow-2xl shadow-black/50">
-                {/* Status bar */}
-                <div className="flex items-center justify-between px-4 py-1.5 bg-black/60">
-                  <span className="text-[8px] md:text-[9px] text-white/60 font-medium">9:42</span>
-                  <div className="flex items-center gap-1">
-                    <div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-green-500/60" />
+              {/* Phone 2 — Voice Screen */}
+              <div className="relative w-[150px] md:w-[200px] lg:w-[220px] -mb-4">
+                <div className="rounded-[28px] md:rounded-[36px] border-[2.5px] border-white/15 bg-black overflow-hidden shadow-2xl shadow-black/60">
+                  {/* Notch */}
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-16 md:w-20 h-5 md:h-6 bg-black rounded-b-2xl z-20" />
+                  {/* Screenshot */}
+                  <div className="relative w-full aspect-[9/19.5]">
+                    <Image src="/showcase/app-screen-voice.jpg" alt="ManifestReel AI voice selection screen showing voice cards for Jenny, Farah, and Koraly with speaking speed and reel length controls" fill className="object-cover object-top" sizes="220px" />
                   </div>
                 </div>
-                {/* Preview header */}
-                <div className="px-3 md:px-4 py-2 md:py-3 border-b border-white/5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[9px] md:text-[11px] font-semibold text-white">Preview</span>
-                    <div className="flex items-center gap-2">
-                      <Share2 className="w-3 h-3 text-white/40" />
-                      <Download className="w-3 h-3 text-white/40" />
-                    </div>
-                  </div>
-                </div>
-                {/* Video preview area */}
-                <div className="relative aspect-[9/12] bg-gradient-to-b from-[#1a0f2e] via-[#0d0d0d] to-[#1a0f00] flex items-center justify-center">
-                  <div className="absolute inset-0 bg-[url('/features/cinematic-motion.jpg')] bg-cover bg-center opacity-40" />
-                  <div className="relative z-10 w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center">
-                    <Play className="w-4 h-4 md:w-5 md:h-5 text-white fill-white" />
-                  </div>
-                  {/* Captions overlay */}
-                  <div className="absolute bottom-3 left-3 right-3 z-10">
-                    <p className="text-[8px] md:text-[10px] text-white font-medium text-center leading-relaxed bg-black/40 backdrop-blur-sm rounded-lg px-2 py-1.5">
-                      <span className="text-[#D4AF37]">I attract</span> abundance and prosperity into my life
-                    </p>
-                  </div>
-                </div>
-                {/* Meta info */}
-                <div className="p-3 md:p-4 space-y-2">
-                  <h4 className="text-[9px] md:text-[11px] font-semibold text-white truncate">Morning Abundance Affirmation</h4>
-                  <div className="flex items-center gap-2 text-[7px] md:text-[9px] text-white/40">
-                    <span>1080p</span>
-                    <span className="text-white/20">•</span>
-                    <span>30s</span>
-                    <span className="text-white/20">•</span>
-                    <span className="text-[#D4AF37]/70">Cinematic</span>
-                  </div>
+                {/* Floating label */}
+                <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-[#D4AF37]/20 border border-[#D4AF37]/30 backdrop-blur-sm">
+                  <span className="text-[9px] md:text-[10px] font-semibold text-[#D4AF37] whitespace-nowrap">Pick a Voice</span>
                 </div>
               </div>
-              {/* Notch */}
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-16 md:w-20 h-4 md:h-5 bg-black rounded-b-2xl" />
-            </div>
-          </motion.div>
-
-          {/* Device badges */}
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} className="flex flex-wrap justify-center gap-4 md:gap-6">
-            {[
-              { icon: Monitor, label: 'Desktop', sub: 'Full studio experience' },
-              { icon: Smartphone, label: 'Mobile', sub: 'Create on the go' },
-              { icon: Globe, label: 'Any Browser', sub: 'No downloads needed' },
-            ].map((d) => (
-              <div key={d.label} className="flex items-center gap-3 px-5 py-3 rounded-xl bg-white/[0.03] border border-white/5">
-                <div className="w-9 h-9 rounded-lg bg-[#D4AF37]/10 border border-[#D4AF37]/20 flex items-center justify-center">
-                  <d.icon className="w-4 h-4 text-[#D4AF37]" />
-                </div>
-                <div>
-                  <div className="text-sm font-semibold text-white">{d.label}</div>
-                  <div className="text-[11px] text-white/40">{d.sub}</div>
-                </div>
-              </div>
-            ))}
-          </motion.div>
+            </motion.div>
+          </div>
         </div>
       </section>
 
