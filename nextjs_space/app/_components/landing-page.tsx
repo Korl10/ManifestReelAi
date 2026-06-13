@@ -771,38 +771,17 @@ export function LandingPage() {
               </div>
             </motion.div>
 
-            {/* Right — Phone Mockups with real screenshots */}
-            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} className="flex items-end gap-4 md:gap-6 shrink-0">
-              {/* Phone 1 — Craft Screen (1290×2438) */}
-              <div className="relative w-[150px] md:w-[200px] lg:w-[220px]">
-                <div className="rounded-[28px] md:rounded-[36px] border-[2.5px] border-white/15 bg-black overflow-hidden shadow-2xl shadow-black/60">
-                  {/* Notch */}
-                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-16 md:w-20 h-5 md:h-6 bg-black rounded-b-2xl z-20" />
-                  {/* Screenshot — natural ratio, no cropping */}
-                  <div className="relative w-full" style={{ aspectRatio: '1290 / 2438' }}>
-                    <Image src="/showcase/app-screen-craft.jpg" alt="ManifestReel AI craft screen showing mood picker, platform selection, voice settings, subtitle styles, and background music options" fill className="object-contain" sizes="220px" />
-                  </div>
-                </div>
-                {/* Floating label */}
-                <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-[#D4AF37]/20 border border-[#D4AF37]/30 backdrop-blur-sm">
-                  <span className="text-[9px] md:text-[10px] font-semibold text-[#D4AF37] whitespace-nowrap">Craft Your Reel</span>
-                </div>
-              </div>
-
-              {/* Phone 2 — Voice Screen (1290×2466 → aspect 9/17.2) */}
-              <div className="relative w-[150px] md:w-[200px] lg:w-[220px] -mb-4">
-                <div className="rounded-[28px] md:rounded-[36px] border-[2.5px] border-white/15 bg-black overflow-hidden shadow-2xl shadow-black/60">
-                  {/* Notch */}
-                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-16 md:w-20 h-5 md:h-6 bg-black rounded-b-2xl z-20" />
-                  {/* Screenshot — natural ratio, no cropping */}
-                  <div className="relative w-full" style={{ aspectRatio: '1290 / 2466' }}>
-                    <Image src="/showcase/app-screen-voice.jpg" alt="ManifestReel AI voice selection screen showing voice cards for Jenny, Farah, and Koraly with speaking speed and reel length controls" fill className="object-contain" sizes="220px" />
-                  </div>
-                </div>
-                {/* Floating label */}
-                <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-[#D4AF37]/20 border border-[#D4AF37]/30 backdrop-blur-sm">
-                  <span className="text-[9px] md:text-[10px] font-semibold text-[#D4AF37] whitespace-nowrap">Pick a Voice</span>
-                </div>
+            {/* Right — iPhone Mockup Showcase */}
+            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} className="shrink-0 w-full lg:w-auto">
+              <div className="relative w-full max-w-[560px] mx-auto lg:mx-0" style={{ aspectRatio: '16 / 9' }}>
+                <Image
+                  src="/showcase/iphone-mockup-dual.png"
+                  alt="ManifestReel AI app shown on two iPhone 15 Pro devices — Craft Your Reel screen with mood picker, platform selection, and voice options on the left; Choose Voice screen with AI voice cards, speaking speed slider, and Generate Reel button on the right"
+                  fill
+                  className="object-contain"
+                  sizes="(max-width: 768px) 100vw, 560px"
+                  priority
+                />
               </div>
             </motion.div>
           </div>
